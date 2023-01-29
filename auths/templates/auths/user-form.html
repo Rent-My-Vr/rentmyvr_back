@@ -1,0 +1,242 @@
+{% load bootstrap4 static %}
+
+<style>
+    .avatarWrapper {
+         position: relative;
+         margin: 0 auto;
+         width: 258px;
+    }
+    .avatar-el {
+        background-color: #edebe1;
+        border-radius: 100%;
+        height: 216px;
+        width: 216px;
+        padding: 8px 50px 8px 0;
+    }
+    .avatar-el.active {
+        border-radius: 100% 0 20px 100%;
+        background-color: #007bff;
+    }
+    .avatar-el img {
+        border-radius: 100%;
+        width: 200px;
+        height: 200px;
+        margin-left: 8px;
+    }
+    .avatar-el .uploadOverlay, .avatar-el .uploadCompleteOverlay {
+        background-color: rgba(0, 123, 255, 0.8);
+        -webkit-transition: all 150ms ease;
+        -moz-transition: all 150ms ease;
+        -ms-transition: all 150ms ease;
+        -o-transition: all 150ms ease;
+        transition: all 150ms ease;
+        background-repeat: no-repeat;
+        background-position: center;
+        border-radius: 100%;
+        position: absolute;
+        height: 200px;
+        width: 200px;
+        left: 8px;
+        top: 0;
+        opacity: 0;
+    }
+    .avatar-el .uploadOverlay i, .avatar-el .uploadCompleteOverlay i {
+        vertical-align: bottom;
+        display: inline-block;
+        line-height: 200px;
+        text-align: center;
+        font-size: 40px;
+        height: 200px;
+        width: 200px;
+        color: white;
+    }
+    .avatar-el:hover .uploadOverlay {
+        -webkit-transition: all 150ms ease;
+        -moz-transition: all 150ms ease;
+        -ms-transition: all 150ms ease;
+        -o-transition: all 150ms ease;
+        transition: all 150ms ease;
+        opacity: 1;
+        top: 8px;
+    }
+    .avatar-el .uploadCompleteOverlay {
+        background-color: rgba(104, 174, 0, 0.9);
+        opacity: 1;
+        top: 8px;
+    }
+    .avatar-el .processingOverlay {
+        background-image: url('https://s3-us-west-2.amazonaws.com/s.cdpn.io/20625/loading2.gif');
+        background-color: rgba(0, 123, 255, 0.8);
+        background-repeat: no-repeat;
+        background-position: center;
+        border-radius: 100%;
+        position: absolute;
+        height: 200px;
+        width: 200px;
+        left: 8px;
+        top: 8px;
+    }
+    .cursor-pointer {
+        cursor: pointer;
+    }
+</style>
+
+<form method="POST" id="user-form" enctype='multipart/form-data'>
+    {% csrf_token %}
+    <div class="fieldWrapper">
+        {% bootstrap_form form exclude="avatar_image" %}
+        <div class="avatarWrapper">
+            <div class="avatar-el cursor-pointer avatar-upload">
+                <div class="uploadOverlay"><i class="fa fa-cloud-upload"></i></div>
+                <img class="avatar-image" src="{{ form.instance.get_avatar_thumbnail }}">
+            </div>
+            <input id="id_user-avatar_image" class="d-none" name="user-avatar_image" type="file" accept="image/*"/>
+        </div>
+        {% bootstrap_form profile_form exclude="title,company_address,lead_user" %}
+    </div>
+    <input type="submit" value="Save" class="btn btn-primary float-right">
+</form>
+
+{% if not is_mobile %}
+    <link rel="stylesheet" href="{% static 'select2/css/select2.min.css' %}">
+    <script src="{% static 'select2/js/select2.full.min.js' %}"></script>
+{% endif %}
+
+
+<script src="{% static 'js-cookie/js-cookie.js' %}"></script>
+<script>
+    function readURL(input) {
+        if (input.files && input.files[0]) {
+            var reader = new FileReader();
+            reader.onload = function (e) {
+                $('.avatar-image').attr('src', e.target.result);
+            };
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
+
+    function loadingDialog() {
+        let dialog = new BootstrapDialog({
+            size: BootstrapDialog.SIZE_SMALL,
+            message: `<h4 class="text-center"><i class="fas fa-spinner fa-spin text-primary"></i> Processing...</h4>`,
+            closable: false,
+            draggable: true,
+            closeByBackdrop: false,
+            closeByKeyboard: false
+        });
+        dialog.realize();
+        dialog.getModalHeader().hide();
+        dialog.open();
+    }
+
+    $(document).ready(function () {
+        {% if not request.user.is_manager %}
+            console.log($('label[for="id_user-is_manager"]')[0].setAttribute('title',
+                'Only the Company Superadmin is authorized to check this box'));
+        {% endif %}
+
+        $("#id_user-is_manager").click(function(e) {
+            let is_checked = $("#id_user-is_manager").prop("checked");
+            if (is_checked) {
+                e.preventDefault();
+                BootstrapDialog.show({
+                    type: BootstrapDialog.TYPE_PRIMARY,
+                    size: BootstrapDialog.SIZE_NORMAL,
+                    message: `Checking this box will remove any restrictions from this user's account, and they will have access to everything.\n Are you sure?`,
+                    title: `<h4 class="text-white mb-0"> 🤔 Hmmm ....</h4>`,
+                    closable: false,
+                    draggable: true,
+                    closeByBackdrop: false,
+                    closeByKeyboard: false,
+                    buttons: [{
+                        label: 'Close',
+                        cssClass: 'btn btn-warning btn-sm',
+                        action: function (dialog) {
+                            dialog.close();
+                        }
+                    }, {
+                        label: 'Submit',
+                        cssClass: 'btn btn-primary btn-sm ml-1',
+                        action: function (dialog) {
+                            $("#id_user-is_manager").prop("checked", !$("#id_user-is_manager").prop("checked"));
+                            $("#id_user-is_manager").trigger('change');
+                            dialog.close();
+                        }
+                    }
+                    ]
+                });
+            }
+        });
+
+        $("#id_user-is_manager").change(function(){
+            var val = $(this).is(":checked");
+            if(val){
+                $('#id_user-groups').parent().hide();
+                $('#id_profile-portfolios').parent().hide();
+                $('#id_profile-departments').parent().hide();
+            }else{
+                $('#id_user-groups').parent().show();
+                $('#id_profile-portfolios').parent().show();
+                $('#id_profile-departments').parent().show();
+            }
+        });
+
+        var isManager = $("#id_user-is_manager").is(':checked');
+        if(isManager){
+            $('#id_user-groups').parent().hide();
+            $('#id_profile-portfolios').parent().hide();
+            $('#id_profile-departments').parent().hide();
+        }
+
+        $("#id_user-groups").select2().data('select2').listeners['*'].push(function(name, target) {
+                if(name == 'focus') {$(this.$element).select2("open");}
+        });
+
+        $("#id_profile-portfolios").select2().data('select2').listeners['*'].push(function(name, target) {
+                if(name == 'focus') {$(this.$element).select2("open");}
+        });
+        $("#id_profile-departments").select2().data('select2').listeners['*'].push(function(name, target) {
+                if(name == 'focus') {$(this.$element).select2("open");}
+        });
+
+
+        {#{% if request.is_ajax %}#}
+            $("#user-form input[type='submit']").click(function (ev) {
+                var selector="#id_user";
+                ev.preventDefault();
+                {% if not is_add %}
+                    var url = "{% url 'account:user-edit' form.instance.pk %}";
+                {% else %}
+                    var url = "{% url 'account:user-add' %}";
+                {% endif %}
+                $("#user-form").prop('action', url);
+                $("#user-form").unbind('submit').submit();
+                loadingDialog();
+                {% comment %}processFeed(url, $("#user-form").serialize(), "Processing your request...", "POST", function(d){
+                    if(d.type == "success"){
+                        BootstrapDialog.show({
+                            message: d.msg,
+                            onhide: function (dialog) {
+                                location.href = "."
+                            }
+                        });
+                    }else {
+                        renderError($("#user-form"), d.data)
+                        pwd(d.msg, false, true)
+                    }
+                }, function (d) {
+                    BootstrapDialog.show({message: d.responseText});
+                });{% endcomment %}
+            });
+        {#{% endif %}#}
+        $("#id_user-avatar_image").on('change', function(){
+            readURL(this);
+        });
+
+        $(".avatar-upload").on("click", function () {
+            $("#id_user-avatar_image").click();
+        });
+
+    });
+    var ddd
+</script>

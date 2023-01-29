@@ -1,0 +1,41 @@
+
+{% if form.errors %}
+
+    {% if form.errors %}
+        <!-- Error messaging -->
+        <div class="alert alert-warning alert-dismissible fade show" role="alert">
+
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+            </button>
+            <h4 class="alert-heading">Form Error</h4>
+{#            <p>There were some errors in the information you entered. Please correct the following:</p>#}
+            {{ form.non_field_errors }}
+{#            <hr>#}
+
+            <ul>
+                {% for field in form %}
+                    {% if field.errors %}<li>{{ field.label }}: {{ field.errors|striptags }}</li>{% endif %}
+                {% endfor %}
+            </ul>
+        </div>
+        <!-- /Error messaging -->
+    {% endif %}
+
+
+{#    {% for field in form %}#}
+{#        <h3>{{ field }}</h3>#}
+{#        {% for error in field.errors %}#}
+{#            <span class="m-badge m-badge--warning m-badge--wide m-badge--rounded">#}
+{#                <i class="fa fa-exclamation"></i>#}
+{#                <span>{{ error|escape }}</span>#}
+{#            </span>#}
+{#        {% endfor %}#}
+{#    {% endfor %}#}
+{#    {% for error in form.non_field_errors %}#}
+{#        <span class="m-badge m-badge--warning m-badge--wide m-badge--rounded">#}
+{#            <i class="fa fa-exclamation"></i>#}
+{#            <span>{{ error|escape }}</span>#}
+{#        </span>#}
+{#    {% endfor %}#}
+{% endif %}

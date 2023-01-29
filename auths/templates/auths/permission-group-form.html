@@ -1,0 +1,128 @@
+{% load bootstrap4 static %}
+
+    <form method="POST" id="permission-group-form">
+    {% csrf_token %}
+    <div class="steps-w">
+        <div class="step-triggers">
+            <a class="step-trigger active" href="#stepContent1">{% if permission-group_form.errors %}<i class="fas fa-exclamation-triangle text-danger"></i>{% endif %}Properties</a>
+            <a class="step-trigger" href="#stepContent2">{% if address_form.errors %}<i class="fas fa-exclamation-triangle text-danger"></i>{% endif %}Address</a>
+        </div>
+        <div class="step-contents">
+            <div class="step-content active" id="stepContent1">
+                {% bootstrap_form permission-group_form exclude="" %}
+
+                <div class="form-buttons-w">
+                    <a class="btn btn-primary step-trigger-btn float-right" href="#stepContent2"> Continue</a>
+                </div>
+            </div>
+            <div class="step-content" id="stepContent2">
+                {% bootstrap_form address_form exclude="" %}
+
+                <div class="form-buttons-w">
+                    <a class="btn btn-primary step-trigger-btn float-left" href="#stepContent1"> Back</a>
+                    <button class="btn btn-primary float-right">Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+
+
+<script src="{% static 'js-cookie/js-cookie.js' %}"></script>
+<script>
+    $(document).ready(function () {
+        {% if request.is_ajax %}
+            $("#permission-group-form input[type='submit']").click(function (ev) {
+                ev.preventDefault();
+
+                {% if form.instance.pk %}
+                    var url = "{% url 'contact:permission-group-edit' form.instance.pk %}";
+                {% else %}
+                    var url = "{% url 'contact:permission-group-add' %}";
+                {% endif %}
+
+                processFeed(url, $("#permission-group-form").serialize(), "Processing your request...", "POST", function (d) {
+                    if (d.type == "success") {
+                        BootstrapDialog.show({
+                            message: d.msg,
+                            onhide: function (dialog) {
+                                location.href = "."
+                            }
+                        });
+                    } else {
+                        renderError($("#permission-group-form"), d.data)
+                        pwd(d.msg, false, true)
+                    }
+                }, function (d) {
+                    BootstrapDialog.show({message: d.responseText});
+                });
+
+
+            });
+        {% endif %}
+
+        $(".input-group div").find("a[data-type*='edit'], a[data-type*='add']").click(function (ev) {
+            var title = $(this).prop("title") || $(this).data("original-title");
+
+            if (title.toLowerCase().indexOf("company") >= 0) {
+                if (title.toLowerCase().indexOf("add") >= 0) {
+                    var url = "{% url 'contact:company-add' %}";
+                } else if (title.toLowerCase().indexOf("edit") >= 0) {
+                    if ($("#id_company").val().length == 0) {
+                        pwd("Please select Company to edit", false, true);
+                        return
+                    }
+                    var url = "{% url 'contact:company-edit' '000' %}".replace("/000", "/" + $("#id_company").val());
+                } else {
+                    return
+                }
+            } else {
+                return
+            }
+
+            console.log(url)
+            BootstrapDialog.show({
+                message: $('<div><i class="far fa-spinner"></i> Loading...</div>').load(url),
+                title: title,
+                closeByBackdrop: false,
+                closeByKeyboard: false,
+                onhide: function (dialog) {
+                    location.href = "."
+                }
+            });
+
+        });
+
+
+        $(".input-group div a[data-type*='delete']").click(function (ev) {
+            var title = $(this).prop("title") || $(this).data("original-title");
+            if (title.toLowerCase().indexOf("company") >= 0) {
+                if ($("#id_company").val().length == 0) {
+                    pwd("Please select Company to delete", false, true);
+                    return
+                }
+                var url = "{% url 'contact:company-delete' '000' %}".replace('/000', "/"+$("#id_company").val());
+            }
+            BootstrapDialog.confirm("Are you sure you want to " + ($(this).prop("title") || $(this).data("original-title")) + " ?", function (result) {
+                if (result) {
+                    processFeed(url, {}, "Processing your request...", "POST", function (d) {
+                        if (d.type == "success") {
+                            BootstrapDialog.show({
+                                message: d.msg,
+                                onhide: function (dialog) {
+                                    location.href = "."
+                                }
+                            });
+                        } else {
+                            pwd(d.msg, false, true)
+                        }
+                    }, function (d) {
+                        BootstrapDialog.show({message: d.responseText});
+                    });
+                }
+            });
+        });
+    });
+    var tt
+    var modal
+</script>

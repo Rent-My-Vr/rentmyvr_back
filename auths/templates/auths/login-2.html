@@ -1,0 +1,130 @@
+{% extends "auths/base-2.html" %}
+{% load static bootstrap4 %}
+
+{% block contents %}
+<style>
+body:before {
+     background: url({% static 'img/blue.jpg' %});
+     background-repeat: no-repeat;
+    background-size: cover;
+}
+.auth-box-w {
+    background-color: #ffffff70;
+}
+.google-external-login{
+    background-color: #ffffffb8;
+}
+</style>
+{#    <link href="{% static 'css3-social-signin-buttons/css3-social-signin-buttons.css' %}" rel="stylesheet">#}
+    <h4 class="auth-header">Login to SavvyBiz</h4>
+
+        <form action="{% url 'account:login' %}" method="post">
+            {% csrf_token %}
+
+{#            {% bootstrap_form form %}#}
+{#            {% bootstrap_field  form.username addon_after='<div class="invalid-feedback">This field is required.</div>' %}#}
+            {% if form.errors %}
+                {% include 'account/form_errors.html' %}
+            {% endif %}
+
+
+{#            <p><a class="btn-auth btn-google large_ float-right" href="#button">Sign in with <b>Google</b></a></p>#}
+
+            <div class="form-group">
+                <label for="id_username">Email</label>
+                <input type="email" name="username" class="form-control m-input" placeholder="Email Address" autocomplete="off" maxlength="254" title="" required="" id="id_username">
+                <div class="pre-icon os-icon os-icon-user-male-circle"></div>
+            </div>
+            <div class="form-group">
+                <label for="id_password">Password</label>
+                <input type="password" name="password" class="form-control m-input m-login__form-input--last" placeholder="Password" maxlength="20" title="" required="" id="id_password">
+                <div class="pre-icon fal fa-lock-alt"></div>
+            </div>
+
+            <div class="buttons-w">
+                {{ form.client_id }}
+                <button class="btn btn-primary mr-1 mb-2 btn-lg" type="submit" style="width: 190px"> &nbsp; Log in &nbsp;</button>
+                <a href="{% url 'social:begin' 'google-oauth2' %}?client_id=1234" id="google-oauth-btn" class="google-external-login float-md-right" value="Connect with Google" data-disable-with="Connect with Google" kr="">
+                    Login with Google
+                </a>
+                <br>
+                <div class="form-check-inline ml-0 mb-2">
+                    <label class="form-check-label"><input class="form-check-input" type="checkbox">Remember Me</label>
+                </div>
+
+
+
+    {#            <button class="loginBtn loginBtn--facebook">#}
+    {#              Login with Facebook#}
+    {#            </button>#}
+                <div class="clearfix"></div>
+            </div>
+            <div class="buttons-w">
+                <a href="{% url 'account:password_reset' %}" class="btn btn-primary">Forgot your password</a>
+            </div>
+
+{#            <div class="col-12">#}
+{#                <p>#}
+{#                    <a href="javascript:;">#}
+{#                        <img alt="" src="{% static 'img/app-store-280x86.png' %}" style="width: 140px; height: 43px;">#}
+{#                    </a>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;&nbsp;#}
+{#                    <a href="javascript:;">#}
+{#                        <img alt="" src="{% static 'img/google-play-280x86.png' %}" style="width: 140px; height: 43px;">#}
+{#                    </a>#}
+{#                </p>#}
+{#            </div>#}
+        </form>
+
+{% endblock %}
+
+{% block more_js %}
+    <script src="{% static 'clientjs/client.min.js' %}"></script>
+    <script>
+        $(document).ready(function () {
+
+            var client = new ClientJS();
+            var paths = $("#google-oauth-btn").prop("href").split("=");
+
+            {#$("#id_phone").intlTelInput();#}
+            var device = (client.getDeviceVendor() || "") + " " + (client.getDevice() || "");
+            if (device.trim().length == 0){
+                if (client.isMobile()) {
+                    if (client.isMobileAndroid()) { // Check For Android
+                        device = 'Android Device'
+                    } else if (client.isMobileIOS()) { // Check For iOS
+                        if (client.isIpad()) {
+                            device = "iPad Device";
+                        } else if (client.isIphone()) {
+                            device = "iPhone Device";
+                        } else if (client.isIpod()) {
+                            device = "iPod Device";
+                        } else {
+                            device = "Unknown iOS Device"
+                        }
+                    } else if (client.isMobileBlackBerry()) { // Check For BlackBerry
+                        device = 'BlackBerry Device'
+                    } else {
+                        device = 'Unknown Mobile Device';
+                    }
+                } else if(client.isWindows() || client.isMac() || client.isLinux() || client.isUbuntu() || client.isSolaris()){
+                    device = 'Unknown '+client.getOS()+ ' Device';
+                } else {
+                    device = 'Unknown '+client.getOS()+' Device';
+                }
+            }
+
+            clientDetails = client.getFingerprint() + "::" + client.getBrowser() + " " + client.getBrowserVersion() + "::" + client.getOS() + " " + client.getOSVersion() + "::" +
+                    client.getCurrentResolution() + "::" + client.getAvailableResolution() + "::" + (device.trim() || 'Unknown')+"::"+client.getLanguage()+"::"+client.getTimeZone();
+
+            $("#id_client_id").val(clientDetails);
+            $("#google-oauth-btn").prop("href", paths[0]+"="+clientDetails);
+
+{#            $("div.social-login a").click(function(e){#}
+{#                e.preventDefault();#}
+{#                TODO: Think of encripting this id_client value#}
+{#                location.href = $(this).prop('href').replace("/?", "/?client_id="+$("#client-id").val()+"&");#}
+{#            });#}
+        });
+
+    </script>
+{% endblock %}

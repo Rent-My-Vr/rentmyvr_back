@@ -1,0 +1,15 @@
+*.pyc
+.vscode
+auths/migrations/00*
+auths_api/migrations/00*
+auths_api/__pycache__/*.pyc
+core/migrations/00*
+core_api/migrations/00*
+core_api/__pycache__/*.pyc
+.env
+credentials.json
+db.*
+rentmyvr_back.*
+venv/*
+.env/*
+.venv/*

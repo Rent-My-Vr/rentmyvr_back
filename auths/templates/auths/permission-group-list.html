@@ -1,0 +1,82 @@
+{% extends 'contact/base.html' %}
+
+{% load static %}
+
+{% block contents %}
+
+    <ul class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'core:dashboard' %}">Dashboard</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'contact:index' %}">Contacts</a></li>
+        <li class="breadcrumb-item"><span>Permission Group</span></li>
+    </ul>
+
+    <div class="container">
+        <div class="content-i">
+            <div class="content-box">
+                <div class="element-wrapper">
+                    <h6 class="element-header"><i class="fa fa-id-card-o"></i> Contact Manager</h6>
+                    <div class="element-box">
+                        <h5 class="form-header">
+                            <i class="fa fa-id-card-o"></i> Manage Permission Groups
+                            <small><a href="{% url 'contact:permission-group-add' %}" title="Add New Permission Group" data-toggle='tooltip' class="float-right">Add Permission Group</a></small>
+                        </h5>
+                        <div class="form-desc">
+{#                            <a href="{% url 'contact:profile-add' %}" title="Add New Contact" data-toggle='tooltip'>Add New</a>#}
+                        </div>
+                        <div class="table-responsive">
+                            <table id="profile-table" width="100%" class="table table-striped table-lightfont">
+                                <thead>
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Company</th>
+                                        <th>Website</th>
+                                        <th>Phone</th>
+                                    </tr>
+                                </thead>
+{#                                <tfoot>#}
+{#                                    <tr>#}
+{#                                        <th>Name</th>#}
+{#                                        <th>Phone</th>#}
+{#                                        <th>Email</th>#}
+{#                                        <th>Permission Group</th>#}
+{#                                    </tr>#}
+{#                                </tfoot>#}
+                                <tbody>
+                                {% for item in items %}
+                                    <tr>
+                                        <td>{{ item.name }}</td>
+                                        <td>{{ item.company.name }}</td>
+                                        <td><a href="{{ item.comapny.website|default:'javascript:;' }}" title="View {{ item.comapny.name }}'s Website" data-toggle="tooltip">{{ item.comapny.website }}</a> </td>
+                                        <td>{{ item.company.phone_pri }}</td>
+                                    </tr>
+                                {%endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script src="{% static 'datatables/datatables/js/jquery.dataTables.min.js' %}"></script>
+    <script src="{% static 'datatables/datatables/js/dataTables.bootstrap4.min.js' %}"></script>
+    <script src="{% static 'datatables/fixedheader/js/dataTables.fixedHeader.min.js' %}"></script>
+    <script src="{% static 'datatables/select/js/select.bootstrap4.min.js' %}"></script>
+    <script>
+        $(document).ready(function () {
+            $('#profile-table').DataTable( {
+                pagingType: "full_numbers",
+                fixedHeader: true,
+                select: true,
+                fixedColumns:   {
+                    leftColumns: 2
+                },
+
+            } );
+        });
+    </script>
+{% endblock %}
+

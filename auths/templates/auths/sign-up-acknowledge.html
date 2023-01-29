@@ -1,0 +1,22 @@
+{% extends "auths/base.html" %}
+{% load i18n static %}
+
+{% block contents %}
+
+    <div class="container">
+        <div class="row">
+            <div class="boxy col-md-6 col-md-offset-3 col-sm-8 col-sm-offset-2 col-xs-12">
+                <div id="opthome">
+
+                    <div class="selctboxarea-row" style="margin-bottom: 30px">
+                        <p style="text-align: right">{% blocktrans %}  Hello {{ first_name }}, We've emailed you instructions for completing your Registration.<br>Thanks for Signing up.{% endblocktrans %}</p>
+                    </div>
+                </div>
+            </div>
+            <div class="m-login__form-action" style="margin: 1rem 0;">
+                <a href="{% url 'account:login' %}" style="font-family: Poppins; color: white;" class="btn btn-focus m-btn m-btn--pill m-btn--custom m-btn--air">Login</a>
+            </div>
+        </div>
+    </div>
+
+{% endblock %}

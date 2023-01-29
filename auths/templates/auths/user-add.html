@@ -1,0 +1,15 @@
+{% extends 'core/base.html' %}
+
+{% load static bootstrap4 %}
+
+{% block contents %}
+    <div class="element-box col">
+        <div class="row justify-content-md-center">
+            <div class="col col-lg-8 mt-2">
+                {% include 'account/user-form.html' %}
+            </div>
+        </div>
+
+    </div>
+{% endblock %}
+

@@ -1,0 +1,33 @@
+{% extends 'account/base.html' %}
+{% load static %}
+{#{% block header_bar %}#}
+{#    {% include "core/header.html" %}#}
+{#{% endblock %}#}
+
+{% block content_body %}
+    {{ config.secure|safe }}
+    <div class="panel panel-default col-md-offset-3 col-sm-6 col-sm-offset-2 col-sm-8" style="padding: 0; margin-top: 30px">
+        <div class="panel-heading"><h3>2-factor Authentication</h3></div>
+        {% if twofactor_enabled %}
+            <div class="panel-body">
+                <p class="two-factor-status">
+                    Status:  <label class="label label-success">Enabled</label>
+                </p>
+                <a href="{% url 'account:disable_mfa' %}" class="btn btn-default">Disable 2FA</a>
+            </div>
+        {% else %}
+            <div class="panel-body">
+                <p class="two-factor-status">
+                    Status: <label class="label label-warning">Disabled</label>
+                </p>
+
+                <p>Use Google 2FA application on your phone to get 2-factor authentication codes when prompted.</p>
+                <form action="{% url 'account:configure_mfa' %}" method="post">{% csrf_token %}
+                    <input type="hidden" name="otp_type" value="hotp">
+                    <button type="submit" class="btn btn-primary">Set up using an app</button>
+                </form>
+            </div>
+        {% endif %}
+    </div>
+
+{% endblock %}

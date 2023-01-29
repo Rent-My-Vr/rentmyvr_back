@@ -1,0 +1,136 @@
+{% load i18n static %}
+
+
+<table cellpadding="0" cellspacing="0" border="0" width="100%">
+    <tbody>
+    <tr>
+        <td bgcolor="#ffffff" style="font-size: 0.0px;">&nbsp;</td>
+        <td bgcolor="#ffffff" width="660" align="center">
+            <table cellpadding="0" cellspacing="0" border="0" width="100%">
+                <tbody>
+                <tr>
+                    <td align="center" width="100%">
+                        <table width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#f5f5f5" style="height: 80px">
+                            <tbody style="background-image: url(http://{{ domain }}{% static 'images/mcs_logo.png' %}); background-repeat: no-repeat; background-size: 200px;">
+                                <tr>
+                                    <td align="center" style="font-family: Calibri , Trebuchet , Arial , sans serif;font-size: 17.0px;line-height: 18.0px;color: #c0e1fb;padding: 20.0px;" class="boxed"><h3>{{ mail_header }}</h3></td>
+                                </tr>
+                            </tbody>
+                        </table>
+
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+            <table cellpadding="0" cellspacing="0" border="0" width="100%">
+                <tbody>
+
+
+                <tr>
+
+                    <td width="600" valign="top" align="center">
+                        <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                            <tbody>
+                            <tr>
+                                <td align="center" valign="top" bgcolor="#ffffff" style="padding-top: 20.0px;">
+
+                                    {% block mail_body %}
+
+
+                                    {% endblock %}
+
+
+                                    <table width="100%" border="0" cellspacing="0" cellpadding="0">
+                                        <tbody>
+                                        <tr>
+                                            <td align="center" style="padding: 0.0px 30.0px 30.0px 30.0px;">
+                                                <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                                                    <tbody>
+                                                    <tr>
+                                                        <td align="center" valign="top" style="font-size: 0.0px;line-height: 0.0px;border-bottom: 1.0px dotted rgb(153,153,153);">
+                                                            &nbsp;
+                                                        </td>
+                                                    </tr>
+                                                    </tbody>
+                                                </table>
+                                            </td>
+                                        </tr>
+                                        </tbody>
+                                    </table>
+{#                                    <table width="100%" cellpadding="0" cellspacing="0" border="0">#}
+{#                                        <tbody>#}
+{#                                        <tr>#}
+{#                                            <td align="center" style="padding: 0.0px 30.0px 0.0px 30.0px;">#}
+{#                                                <table width="30%" align="left" border="0" cellpadding="0" cellspacing="0">#}
+{#                                                    <tbody>#}
+{#                                                    <tr>#}
+{#                                                        <td valign="top">#}
+{#                                                            <table align="center" cellpadding="0" cellspacing="0" border="0">#}
+{#                                                                <tbody>#}
+{#                                                                <tr>#}
+{#                                                                    <td align="center" valign="top" style="font-style: italic">#}
+{#                                                                        Some Write up#}
+{#                                                                    </td>#}
+{#                                                                </tr>#}
+{#                                                                </tbody>#}
+{#                                                            </table>#}
+{#                                                        </td>#}
+{#                                                    </tr>#}
+{#                                                    </tbody>#}
+{#                                                </table>#}
+{#                                                <table width="68%" align="right" border="0" cellpadding="0" cellspacing="0">#}
+{#                                                    <tbody>#}
+{#                                                    <tr>#}
+{#                                                        <td valign="top">#}
+{#                                                            <table align="center" cellpadding="0" cellspacing="0" border="0" width="100%">#}
+{#                                                                <tbody>#}
+{#                                                                <tr>#}
+{#                                                                    <td valign="top"#}
+{#                                                                        style="font-family: Calibri , Trebuchet , Arial , sans serif;font-size: 17.0px;line-height: 22.0px;color: rgb(51,51,51);">#}
+{#                                                                        <table width="100%" cellspacing="0" cellpadding="0" border="0">#}
+{#                                                                            <tbody>#}
+{#                                                                            <tr>#}
+{#                                                                                <td align="center" style="padding: 0.0px 0.0px 30.0px 0.0px;">#}
+{#                                                                                    <table width="100%" cellpadding="0" cellspacing="0" border="0">#}
+{#                                                                                        <tbody>#}
+{#                                                                                        <tr>#}
+{#                                                                                            <td valign="top"#}
+{#                                                                                                style="font-family: Calibri , Trebuchet , Arial , sans serif;font-size: 17.0px;line-height: 22.0px;color: rgb(51,51,51);">#}
+{#                                                                                                Another write up#}
+{#                                                                                            </td>#}
+{#                                                                                        </tr>#}
+{#                                                                                        </tbody>#}
+{#                                                                                    </table>#}
+{#                                                                                </td>#}
+{#                                                                            </tr>#}
+{#                                                                            </tbody>#}
+{#                                                                        </table>#}
+{#                                                                    </td>#}
+{#                                                                </tr>#}
+{#                                                                </tbody>#}
+{#                                                            </table>#}
+{#                                                        </td>#}
+{#                                                    </tr>#}
+{#                                                    </tbody>#}
+{#                                                </table>#}
+{#                                            </td>#}
+{#                                        </tr>#}
+{#                                        </tbody>#}
+{#                                    </table>#}
+
+
+                                </td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </td>
+
+                </tr>
+                </tbody>
+            </table>
+
+        </td>
+        <td bgcolor="#ffffff" style="font-size: 0.0px;">&nbsp;</td>
+    </tr>
+    </tbody>
+</table>

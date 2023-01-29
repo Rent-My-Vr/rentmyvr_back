@@ -1,0 +1,40 @@
+{% extends 'contact/base.html' %}
+
+{% load static bootstrap4 %}
+
+{% block contents %}
+
+    <ul class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'core:dashboard' %}">Dashboard</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'contact:index' %}">Contacts</a></li>
+        <li class="breadcrumb-item"><span>Add Permission Group</span></li>
+    </ul>
+
+
+    <div class="content-i">
+        <div class="content-box">
+            <div class="element-wrapper">
+                <h6 class="element-header">
+                    <i class="fa fa-id-card-o"></i> Contact Manager
+                </h6>
+                <div class="element-box col">
+                    <h5 class="form-header">
+                        <i class="fa fa-id-card-o"></i> New Permission Group
+                        <small><a href="{% url 'contact:permission-grouplist' %}" title="Manage Contacts" data-toggle='tooltip' class="float-right">Permission Group</a></small>
+                    </h5>
+                    <div class="form-desc">
+                        {#                            <a href="{% url 'contact:profile-add' %}" title="Add New Contact" data-toggle='tooltip'>Add New</a>#}
+                    </div>
+
+                    <div class="row justify-content-md-center">
+                        <div class="col col-lg-8 mt-2">
+                            {% include 'contact/permission-groupform.html' %}
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
