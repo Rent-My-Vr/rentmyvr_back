@@ -43,7 +43,9 @@ def sendMail(subject, message, recipients, fail_silently=settings.DEBUG,
     if connection is None:
         # log.warning(f"Try Again.... Result: {result}")
         connection = mail.get_connection()
-        print("*********************")
+        print("************************************************************************************")
+        print(message)
+        print("************************************************************************************")
         print(vars(connection))
         try:
             mail.send_mail(subject=subject, message=message, from_email=connection.username, connection=mail.get_connection(),

@@ -191,6 +191,7 @@ class UserManager(DjangoBaseUserManager):
         #     else:
         #         raise ValueError('Email number is already in use')
 
+        print(' ++++ password: ', password)
         email = self.normalize_email(email)
         username = self.model.normalize_username(username)
         user = self.model(username=username, email=email, phone=phone, **extra_fields)
@@ -244,6 +245,9 @@ class AbstractUser(DjangoAbstractUser):
     # ASK = "Asia/Kolkata" # Temporarily added.
     # TZONES = ((HI, "HI"), (AK, "AK"), (PAC, "PAC"), (AZ, "AZ"), (MTN, "MTN"), (CEN, "CEN"), (EAS, "EAS"), (ATL, "ATL"), (ASK, "ASK"))
 
+    BASIC = 'basic'
+    ADMIN = 'admin'
+    POSITIONS = ((BASIC, _('Basic')), (ADMIN, _('Admin')))
     BOOL_CHOICES = ((True, 'Active'), (False, 'Inactive'))
 
     username_validator = UnicodeUsernameValidator()
@@ -270,6 +274,7 @@ class AbstractUser(DjangoAbstractUser):
     email_verified = models.BooleanField(_('email verified'), default=False)
     phone_verified = models.BooleanField(_('phone verified'), default=False)
     # remember_me = models.BooleanField(_('remember me'), default=False)
+    position = models.CharField(max_length=32, verbose_name="position", choices=POSITIONS, default=BASIC)
     is_manager = models.BooleanField(_('manager'), help_text="This is company's superuser", default=False)
     last_login_signature = models.ForeignKey('Audit', related_name='signatures', on_delete=models.SET_NULL,
                                              related_query_name='signature', null=True, default=None, blank=True)
@@ -415,6 +420,11 @@ class User(AbstractUser):
     ACCOUNT_ACTIVATION = "Account Activation"
     NEW_REG_PASS_SET = "New Reg Password Set"
     PASSWORD_RESET = "Password Reset"
+    VERIFY_EMAIL = "Verify Email"
+    VERIFY_PHONE = "Verify Phone"
+    
+    EMAIL_CHANNEL = 'email'
+    PHONE_CHANNEL = 'phone'
 
     """
     Concrete class of AbstractUser.
@@ -489,14 +499,14 @@ class User(AbstractUser):
         cache.set(f"access_token_password_{self.id}_email_{token}", data, timeout=60*60*24)
         return token
 
-    def send_access_token(self, token_length, domain, channel="email", action="Verify Email", extra={}):
+    def send_access_token(self, token_length, domain, channel=EMAIL_CHANNEL, action=VERIFY_EMAIL, extra={}):
         token = random_with_N_digits(token_length)
         session_key = random_with_N_digits(12)
         # TODO: TO use this for multiple purpose
         data = {"token": token, "id": self.id, "action": action, "channel": channel, "extra": extra} 
 
         # user = UserModel.objects.filter(id=settings.EMAIL_PROCESSOR_ID).first()
-        if channel.lower() == "email":
+        if channel.lower() == User.EMAIL_CHANNEL:
             html_message = render_to_string('auths/mail_templates/token.html', {
                 'first_name': self.first_name,
                 'activation_link': f"{domain}{self.password_reset_confirm_link}",
@@ -505,16 +515,14 @@ class User(AbstractUser):
                 'project_title': settings.PROJECT_TITLE.title()
             })
 
-            print(f"access_token_{self.id}_{session_key}")
-            print(data)
-
             from core.tasks import sendMail
             sendMail.apply_async(kwargs={'subject': User.ACCOUNT_ACTIVATION, "message": html_message,
                                         "recipients": [f"'{self.full_name}' <{self.email}>"],
                                         "fail_silently": settings.DEBUG, "connection": None})
 
-            cache.delete_pattern(f"access_token_{self.id}_email_*")
-            cache.set(f"access_token_{self.id}_email_{session_key}", data, timeout=60*10)
+            print(f"access_token_{self.id}_{User.EMAIL_CHANNEL}_{session_key}")
+            cache.delete_pattern(f"access_token_{self.id}_{User.EMAIL_CHANNEL}_*")
+            cache.set(f"access_token_{self.id}_{User.EMAIL_CHANNEL}_{session_key}", data, timeout=60*10)
             return session_key
 
     def __str__(self):

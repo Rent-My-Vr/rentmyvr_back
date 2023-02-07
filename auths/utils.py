@@ -18,6 +18,8 @@ class TokenGenerator(PasswordResetTokenGenerator):
 
     def check_token(self, user, token, channel="email", session_key=""):
         data = cache.get(f"access_token_{user.id}_{channel}_{session_key}")
+        # print(f"access_token_{user.id}_{channel}_{session_key}")
+        # print('----Data:  ', data)
         if (data and token == data['token']) or data == token:
             cache.delete_pattern(f"access_token_{user.id}_{channel}_*")
             return data

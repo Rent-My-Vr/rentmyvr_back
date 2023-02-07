@@ -27,6 +27,7 @@ UserModel = get_user_model()
 AUTO_MANAGE = True
 SELECT_EMPTY = ('', '------')
 
+
 class BaseModel(models.Model):
     """
     BaseModel
@@ -162,29 +163,88 @@ class Address(UntrackedModel):
         verbose_name_plural = _('Addresses')
 
 
+class Company(UntrackedModel):
+    ref = models.CharField(max_length=16, verbose_name="Ref", unique=True)
+    name = models.CharField(max_length=254, verbose_name="Company Name", unique=True)
+    website = models.CharField(max_length=254, verbose_name="Website", default='', blank=True, null=True)
+    note = models.CharField(max_length=254, verbose_name="Note", default='', blank=True, null=True)
+    address = models.ForeignKey(Address, related_name='company_address', on_delete=models.CASCADE, null=True, blank=True)
+    email = models.CharField(max_length=128, verbose_name="email", default='', blank=True, null=True)
+    phone = models.CharField(max_length=16, verbose_name="phone", default='', blank=True, null=True)
+    logo = models.ImageField(blank=True, null=True, default=None)
+    # url = models.URLField(max_length=254, verbose_name="Facebook", default='', blank=True, null=True)
+    facebook = models.URLField(max_length=254, verbose_name="Facebook", default='', blank=True, null=True)
+    instagram = models.URLField(max_length=254, verbose_name="Instagram", default='', blank=True, null=True)
+    tiktok = models.URLField(max_length=254, verbose_name="TikTok", default='', blank=True, null=True)
+    twitter = models.URLField(max_length=254, verbose_name="Twitter", default='', blank=True, null=True)
+    google_business = models.URLField(max_length=254, verbose_name="GoogleBusiness", default='', blank=True, null=True)
+    yelp = models.URLField(max_length=254, verbose_name="Yelp", default='', blank=True, null=True)
+
+    def save(self, *args, **kwargs):
+        if not self.created:
+            try:
+                coy = Company.objects.latest('created')
+                x = int(coy.ref[1:])
+            except Company.DoesNotExist:
+                x = 0
+            x += 1
+            self.ref = f'K0{x}' if x < 10 else f'K{x}'
+        return super(Company, self).save(*args, **kwargs)
+
+    def __str__(self):
+        return self.name
+
+    def get_admin_url(self):
+        return reverse('admin:{}_{}_change'.format(self._meta.app_label, self._meta.model_name), args=(self.pk, ))
+
+    class Meta:
+        ordering = ('name', )
+        managed = AUTO_MANAGE
+        verbose_name = _('Company')
+        verbose_name_plural = _('Companies')
+
+
 class InterestedEMail(StampedModel):
 
     email = models.CharField(max_length=24, verbose_name="Email", unique=True)
     
     class Meta:
         ordering = ('email',)
-        verbose_name = _('InterestedEMail')
-        verbose_name_plural = _('InterestedEMails')
+        verbose_name = _('Interested EMail')
+        verbose_name_plural = _('Interested EMails')
 
 
     def __str__(self):
-        return self.label
+        return self.email
+
+
+class Portfolio(TrackedModel):
+
+    name = models.CharField(max_length=128, verbose_name="name")
+    company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name='company_portfolios')
     
-    
-class Profile(StampedUpdaterModel):
+    class Meta:
+        unique_together = ('company', 'name')
+        ordering = ('company__name', 'name')
+        verbose_name = _('Portfolio')
+        verbose_name_plural = _('Portfolios')
+
+
+    def __str__(self):
+        return self.email
+
+
+class Profile(TrackedModel):
     """
     Profile model:
     """
 
+    ref = models.CharField(max_length=16, verbose_name="Ref", unique=True, blank=False, null=False)
     user = models.OneToOneField(UserModel, on_delete=models.CASCADE, related_name='user_profile')
+    company = models.ForeignKey(Company, on_delete=models.CASCADE, blank=True, null=True, default=None, related_name='company_profiles')
+    address = models.ForeignKey(Address, on_delete=models.CASCADE, blank=True, null=True, default=None, related_name='address_profiles')
     # position = models.CharField(max_length=32, verbose_name="Position", choices=POSITIONS, default="Worker")
     # status = models.CharField(max_length=32, verbose_name="Status", choices=STATUS, default=UNAVAILABLE)
-    address = models.ForeignKey(Address, on_delete=models.CASCADE, blank=True, null=True, default=None, related_name='user_address')
     # projects = models.ManyToManyField('Project')
     # timezone = models.CharField(_('timezone'), max_length=128, blank=True, null=True, default="America/Denver")
     # avatar_image = models.ImageField(upload_to=profile_upload_path, blank=True, null=True, 
@@ -201,16 +261,16 @@ class Profile(StampedUpdaterModel):
     def __str__(self):
         return self.fullname
 
-    # def __eq__(self, other):
-    #     return self.id == other.id
-    
-    # def __lt__(self, other):
-    #     return self.created < other.created
-    
-    # @classmethod
-    # def profiles(cls, user):
-        # return Profile.objects.filter(company=user.company)
-    
+    def save(self, *args, **kwargs):
+        if not self.created:
+            try:
+                profile = Profile.objects.latest('created')
+                x = int(profile.ref[1:]) + 1 if profile else 1
+            except Profile.DoesNotExist:
+                x = 1
+            self.ref = f'U{x:04}'
+        return super(Profile, self).save(*args, **kwargs)
+
     @property
     def fullname(self):
         return f"{self.user.full_name if self.pk else self.user.email}"
@@ -222,9 +282,6 @@ class Profile(StampedUpdaterModel):
     @classmethod
     def get_list_url(cls):
         return reverse('core:profile-list')
-
-    # def get_absolute_url(self):
-    #     return reverse('core:profile-detail', kwargs={'pk': self.pk})
 
     def get_update_url(self):
         return reverse('core:profile-edit', kwargs={'pk': self.pk})
@@ -240,5 +297,4 @@ class Profile(StampedUpdaterModel):
 
     def get_short_dict(self):
         return {"id": f"{self.id}", "value": self.fullname, "type": self.__class__.__name__}
-
 

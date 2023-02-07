@@ -16,7 +16,7 @@ class UserAdmin(DjangoUserAdmin):
     add_form = SignupForm
     form = UserAdminUpdateForm
     model = UserModel
-    list_display = ['first_name', 'last_name', 'email', 'phone', 'email_verified', 'is_manager',
+    list_display = ['first_name', 'last_name', 'email', 'phone', 'position', 'email_verified', 'is_manager',
                     'is_staff', 'is_superuser', 'is_active', 'last_login_signature', 'failed_attempts', 'last_password_change']
     # list_display = ['email', 'username', 'phone', 'first_name', 'last_name', 'email_verified', 'last_login_signature',
     #                 'failed_attempts', 'last_password_change', 'force_password_change', 'avatar_url']
@@ -30,7 +30,7 @@ class UserAdmin(DjangoUserAdmin):
     readonly_fields = ('last_login', 'date_joined', 'last_password_change',)
 
     fieldsets = (
-        (None, {'fields': ('email', 'password')}),
+        (None, {'fields': ('email', 'password', 'position')}),
         # (_('Personal info'), {'fields': ('first_name', 'last_name', 'phone', 'avatar_image', 'avatar_thumbnail', 'avatar_url', 'timezone')}),
         (_('Personal info'), {'fields': ('first_name', 'last_name', 'phone', )}),
         (_('Permissions'), {'fields': ('is_active', 'email_verified', 'is_manager', 'is_staff', 'is_superuser', 'groups', 'user_permissions')}),

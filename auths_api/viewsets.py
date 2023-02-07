@@ -47,8 +47,7 @@ from auths.models import CustomGroup
 from auths.custom_exception import ActivationRequired
 
 from auths_api import serializers
-from auths_api.serializers import SavvybizGroupSerializer, PermissionSerializer, UserLoginSerializer, EmptySerializer, \
-    UserSerializer, PasswordResetSerializer as MyPasswordResetSerializer
+from auths_api.serializers import SavvybizGroupSerializer, PermissionSerializer, UserPasswordChangeSerializer, UserSerializer, PasswordResetSerializer as MyPasswordResetSerializer
 from auths_api.utils import authenticate
 
 from sesame.utils import get_token
@@ -62,6 +61,7 @@ if 'allauth' in settings.INSTALLED_APPS:
     from allauth.utils import build_absolute_uri
 
 from .mixins import ApiErrorsMixin, PublicApiMixin, ApiAuthMixin
+from core.custom_permission import IsAuthenticatedOrCreate
 
 
 # https://stackoverflow.com/questions/53276279/how-to-add-tokenauthentication-authentication-classes-to-django-fbv
@@ -358,7 +358,7 @@ class ActivationRequestView(viewsets.ViewSet):
 
             request_url = f"{domain}{reverse('auths_api:activation-send', args=(user.pk,))}"
 
-            print('Domain: ', domain, 'Action: ', action, 'Channel: ', channel, 'request_url: ', request_url, 'Code Base: ', settings.CODE_BASED_ACTIVATION)
+            print('Domain: ', domain, '\nAction: ', act, '\nChannel: ', channel, '\nRequest_url: ', request_url, '\nCode Base: ', settings.CODE_BASED_ACTIVATION)
             if settings.CODE_BASED_ACTIVATION:
                 print(111)
                 extra = {}
@@ -415,6 +415,7 @@ class ActivationRequestView(viewsets.ViewSet):
         reset_url: URL to set User's password
         """ 
         try:
+            print('***********')
             # uid = force_text(urlsafe_base64_decode(uidb64))
             # user = UserModel.objects.get(pk=force_text(urlsafe_base64_decode(uuid)))
             user = UserModel.objects.get(pk=uuid)
@@ -422,39 +423,53 @@ class ActivationRequestView(viewsets.ViewSet):
             log.error(err)
             user = None
 
+        print('---------')
+        print(user)
         if user is not None:
             from core.models import Profile
             member = Profile.objects.filter(user=user).first()
             if isinstance(request.data, dict):
                 token = request.data.get('token', None) 
            
+            
             if token is None:
                 return Response({"message": "Token is required"}, status=status.HTTP_400_BAD_REQUEST)
-            channel = request.data.get("channel", "email")
+            channel = request.data.get("channel", UserModel.EMAIL_CHANNEL)
 
-            messages = 'Invalid or expipred token!' if member else "Report to admin about this error `User with missing Profile details`"
-            
-            # print("Token:  "+token)
             data = account_activation_token.check_token(user, int(token), channel, session_key)
-
-            act = "Verify Email"
+            print('Data:  ', data)
+            
+            if getattr(settings, "PROFILE_IS_REQUIRED", False):
+                if not member:
+                    data = False
+                    message = "Report to admin about this error `User with missing Profile details`"
+                else:
+                    messages = 'Invalid or expired token!' 
+            else:
+                messages = 'Invalid or expired token!'
+            
+            print('Session Key:  ', session_key)
+            print('Token:  ', token)
+            print('Channel:  ', channel)
+            print('Data:  ', data)
+            act = UserModel.VERIFY_EMAIL
             if isinstance(data, dict):
                 act = data['action']
 
-            if act in ["Account Activation", "Verify Phone", "Verify Email"]:
+            if act in [UserModel.ACCOUNT_ACTIVATION, UserModel.VERIFY_PHONE, UserModel.VERIFY_EMAIL]:
             # if getattr(settings, "AUTH_ACTIVATION_REQUIRE_PROFILE", False):
-                if member and data:
-                    if act == "Account Activation":
+                if data:
+                    if act == UserModel.ACCOUNT_ACTIVATION:
                         user.is_active = True
-                    if hasattr(user, "email_verified") and channel == "email":
+                    if hasattr(user, "email_verified") and channel == UserModel.EMAIL_CHANNEL:
                         user.email_verified = True
-                    if hasattr(user, "phone_verified") and channel == "phone":
+                    if hasattr(user, "phone_verified") and channel == UserModel.PHONE_CHANNEL:
                         user.phone_verified = True
                     user.save()
                     return Response({"message": "ok", "user": UserSerializer(user).data}, status=status.HTTP_200_OK)
                 else:
                     return Response({"message": messages}, status=status.HTTP_400_BAD_REQUEST)
-            elif data and act == "Password Reset":
+            elif data and act == UserModel.PASSWORD_RESET:
                 
                 return Response({"message": "ok", "reset_url": data['extra']['reset_url']}, status=status.HTTP_200_OK)
                 # return redirect('core:dashboard')
@@ -591,10 +606,8 @@ class PasswordChange(DJ_PasswordResetConfirmView):
             )
 
 
-
-
 class UserViewSet(viewsets.ModelViewSet):
-    permission_classes = (IsAuthenticated, )
+    permission_classes = (IsAuthenticatedOrCreate, )
     authentication_classes = (TokenAuthentication,)
 
     def get_queryset(self):
@@ -613,7 +626,85 @@ class UserViewSet(viewsets.ModelViewSet):
 
         return queryset
 
-    serializer_class = UserSerializer
+    def get_serializer_class(self):
+        # print('********', self.request.method, "   ", self.action)
+        if self.action == 'update_picture':
+            return UserPasswordChangeSerializer
+        return UserSerializer
+
+    def perform_create(self, serializer): 
+        return serializer.save() 
+    
+    def create(self, request, *args, **kwargs):
+        data = request.data.copy()
+        client_reset_link = data.get('client_reset_link', None)
+        is_password_generated = not data.get('password', None)
+        data['password'] = UserModel.objects.make_random_password() if is_password_generated else data['password']
+        # print(data)
+        # data['address'] = data['address'] if data.get('address', None) else None
+        serializer = self.get_serializer(data=data)
+        serializer.is_valid(raise_exception=True)
+
+        user = self.perform_create(serializer)
+
+        headers = self.get_success_headers(serializer.data)
+
+        domain = get_domain(request)
+        # send_access_token(self, token_length, domain, channel=UserModel.EMAIL_CHANNEL, action="Verify Email", extra={})
+
+        print('------------')
+        print(data)
+        print(is_password_generated)
+        if is_password_generated:
+            user.force_password_change = True
+            user.save()
+            messages = f"Account Registration successful, activation link has been sent to: '{user.email}'"
+            user.send_registration_password(domain, client_reset_link)
+            return Response({"message": messages, "user": serializer.data}, status=status.HTTP_201_CREATED, headers=headers)
+        else:
+            act = UserModel.ACCOUNT_ACTIVATION
+            session_key = user.send_access_token(settings.AUTH_TOKEN_LENGTH, domain, UserModel.EMAIL_CHANNEL, act)
+            request_url = f"{domain}{reverse('auths_api:activation-send', args=(user.pk,))}?action={act}&channel={UserModel.EMAIL_CHANNEL}"
+            activation_url = f"{domain}{reverse('auths_api:activation-activate', args=(user.pk, session_key))}"
+            user.set_password(data['password'])
+            user.save()
+            
+            messages = f"Account activation Token successfully sent to '{user.email}'"
+            data = {
+                    "message": messages,
+                    "user": serializer.data,
+                    "resend_url": request_url,
+                    "activation_url": activation_url
+                }
+            return Response(data, status=status.HTTP_201_CREATED, headers=headers)
+
+    @action(methods=['post', 'patch'], detail=True, url_path='password/change', url_name='password-change')
+    def password_change(self, request, *args, **kwargs):
+        print('*****====*****', kwargs['pk'])
+        user = request.user
+        print(' 1 -----', user.id)
+        instance = self.get_object()
+        print(' 2 -----', instance.id)
+        if user.id != instance.id and user.position != UserModel.ADMIN:
+            return Response({'detail': _('Sorry you are unauthorised to do this')}, status=status.HTTP_401_UNAUTHORIZED)
+        
+        if user.id != instance.id and user.position == UserModel.ADMIN:
+            if request.data['new_password1'] == request.data['new_password2'] :
+                user.set_password(request.data['new_password1']);
+                user.save()
+                return Response({'detail': _('Password has been changed successfully.')}, status=status.HTTP_200_OK)
+            else:
+                return Response({'detail': _('New Password 1 & 2 must be uniquely the same')}, status=status.HTTP_400_BAD_REQUEST)
+        elif user.id == instance.id:
+            if user.check_password(request.data['old_password']):
+                if request.data['new_password1'] == request.data['new_password2'] :
+                    user.set_password(request.data['new_password1']);
+                    user.save()
+                    return Response({'detail': _('Password has been changed successfully.')}, status=status.HTTP_200_OK)
+                else:
+                    return Response({'detail': _('New Password 1 & 2 must be uniquely the same')}, status=status.HTTP_400_BAD_REQUEST)
+            else:
+                return Response({'detail': _('Old Password not correct')}, status=status.HTTP_400_BAD_REQUEST)
 
     @action(methods=['get'], detail=False, url_path='me', url_name='me')
     def me(self, request, *args, **kwargs):
@@ -626,7 +717,7 @@ class UserViewSet(viewsets.ModelViewSet):
 
 
 
-DOMAIN = settings.DOMAIN
+DOMAIN_URL = settings.DOMAIN_URL
 AUTH_CALLBACK_URL = '/accounts/social/{}/login/callback/'
 CONNECT_CALLBACK_URL = '/users/social/{}/connect/'
 
@@ -635,7 +726,7 @@ class GoogleConnect(SocialConnectView):
     adapter_class = GoogleOAuth2Adapter
     client_class = OAuth2Client
     serializer_class = SocialLoginSerializer
-    callback_url = f"{DOMAIN}{CONNECT_CALLBACK_URL.format('google')}"
+    callback_url = f"{DOMAIN_URL}{CONNECT_CALLBACK_URL.format('google')}"
     
     
 class GoogleLogin(SocialLoginView):
@@ -643,7 +734,7 @@ class GoogleLogin(SocialLoginView):
     adapter_class = GoogleOAuth2Adapter
     client_class = OAuth2Client
     serializer_class = SocialLoginSerializer
-    callback_url = f"{DOMAIN}{AUTH_CALLBACK_URL.format('google')}"
+    callback_url = f"{DOMAIN_URL}{AUTH_CALLBACK_URL.format('google')}"
 
     def get_serializer(self, *args, **kwargs):
         serializer_class = self.get_serializer_class()
@@ -654,7 +745,7 @@ class FacebookConnect(SocialConnectView):
     adapter_class = FacebookOAuth2Adapter
     client_class = OAuth2Client
     serializer_class = SocialLoginSerializer
-    callback_url = f"{DOMAIN}{CONNECT_CALLBACK_URL.format('facebook')}"
+    callback_url = f"{DOMAIN_URL}{CONNECT_CALLBACK_URL.format('facebook')}"
     
 
 # class FacebookLogin(SocialLoginView):
@@ -757,7 +848,7 @@ class AppleConnect(SocialConnectView):
     client_class = AppleOAuth2Client
     serializer_class = SocialLoginSerializer
     # serializer_class = CustomAppleSocialLoginSerializer
-    callback_url = "{}{}".format(DOMAIN, CONNECT_CALLBACK_URL.format('apple'))
+    callback_url = "{}{}".format(DOMAIN_URL, CONNECT_CALLBACK_URL.format('apple'))
     
     
 class AppleLogin(SocialLoginView):
@@ -765,7 +856,7 @@ class AppleLogin(SocialLoginView):
     client_class = AppleOAuth2Client
     serializer_class = SocialLoginSerializer
     # serializer_class = CustomAppleSocialLoginSerializer
-    callback_url = "{}{}".format(DOMAIN, AUTH_CALLBACK_URL.format('apple'))
+    callback_url = "{}{}".format(DOMAIN_URL, AUTH_CALLBACK_URL.format('apple'))
 
     def get_serializer(self, *args, **kwargs):
         serializer_class = self.get_serializer_class()

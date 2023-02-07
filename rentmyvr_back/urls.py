@@ -64,6 +64,9 @@ urlpatterns = [
     path('', include('core.urls')),
     path('api/core/', include('core_api.urls')),
 
+    path('directory/', include('directory.urls')),
+    path('api/directory/', include('directory_api.urls')),
+
 ]
 
 if settings.DEBUG:

@@ -110,15 +110,15 @@ class UserUpdateSerializer(UserSerializer):
 class UserSerializerClean(serializers.ModelSerializer):
     # from core_api.serializers import TimezoneSerializerLite
     # timezone = TimezoneSerializerLite()
-    fullname = serializers.SerializerMethodField()
+    name = serializers.SerializerMethodField()
 
-    def get_fullname(self, obj):
+    def get_name(self, obj):
         return f"{obj.full_name if obj.pk else obj.email}"
 
     class Meta:
         model = UserModel
-        fields = ('id', 'first_name', 'last_name', 'fullname', 'email', 'phone', 'is_active', 'is_staff',
-                  'is_superuser', 'is_manager', 'timezone', 'email_verified')
+        fields = ('id', 'first_name', 'last_name', 'name', 'email', 'phone', 'position', 'is_active', 'is_staff',
+                  'is_superuser', 'is_manager', 'email_verified')
         read_only_fields = ('id',)
         extra_kwargs = {'password': {'write_only': True}}
 
@@ -131,6 +131,24 @@ class UserNameSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserModel
         fields = ('id', 'name')
+
+class UserPasswordChangeSerializer(serializers.ModelSerializer):
+    old_password = serializers.SerializerMethodField()
+    password1 = serializers.SerializerMethodField()
+    password2 = serializers.SerializerMethodField()
+    
+    def get_old_password(self, obj):
+        return obj.password
+   
+    def get_password1(self, obj):
+        return obj.password
+   
+    def get_password2(self, obj):
+        return obj.password
+
+    class Meta:
+        model = UserModel
+        fields = ('id', 'old_password', 'password1', 'password2')
 
 
 class UserShortSerializer(serializers.ModelSerializer):

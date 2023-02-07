@@ -52,7 +52,8 @@ SYSTEM_USER_ID = '975381fd-d8a4-40be-81c2-27e172194bf8'
 CODE_BASED_ACTIVATION = True
 IS_MULTITENANT = False
 
-DOMAIN = config('DOMAIN', default='https://api.rentmyvr.com')
+DOMAIN = config('DOMAIN', default='rentmyvr.com')
+DOMAIN_URL = config('DOMAIN_URL', default=f'https://{DOMAIN}')
 AUTH_TOKEN_LENGTH = 4
 
 APPEND_SLASH = True
@@ -116,9 +117,11 @@ EMAIL_CONNECTIONS = {
 INSTALLED_APPS = [
     'auths.apps.AuthsConfig',
     'core.apps.CoreConfig',
+    'directory.apps.DirectoryConfig',
 
     'auths_api.apps.AuthsApiConfig',
     'core_api.apps.CoreApiConfig',
+    'directory_api.apps.DirectoryApiConfig',
 
     'django.contrib.admin',
     'django.contrib.auth',
@@ -164,6 +167,7 @@ AUTH_REQUIRE_PHONE = False
 AUTH_USER_MODEL = "auths.User"
 AUTH_AUTO_GENERATE_PASSWORD_ON_CREATE = True
 AUTH_TRACK_CLIENT = True
+PROFILE_IS_REQUIRED = False
 # DEFAULT_BACKEND = 'auths.overrides.auth_backend.SDBackend'
 
 
