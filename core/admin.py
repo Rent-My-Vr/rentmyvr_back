@@ -4,9 +4,27 @@ from .models import *
 from .forms import *
 
 
+@admin.register(City)
+class CityAdmin(admin.ModelAdmin):
+    list_filter = ('enabled', 'state_name', 'country_name')
+    list_display = ('name', 'state_name', 'country_name', 'enabled')
+
+
 @admin.register(Address)
 class AddressAdmin(admin.ModelAdmin):
     list_display = ('street', 'number', 'city', 'zip_code', 'more_info', 'enabled')
+
+
+@admin.register(Country)
+class CountryAdmin(admin.ModelAdmin):
+    list_filter = ('enabled', 'region', 'subregion', 'currency_name')
+    list_display = ('name', 'capital', 'enabled', 'iso2', 'iso3', 'numeric_code', 'phone_code', 'currency', 'currency_name', 'currency_symbol', 'tld', 'native', 'region', 'subregion', 'latitude', 'longitude', 'emoji', 'emojiU')
+
+
+@admin.register(State)
+class StateAdmin(admin.ModelAdmin):
+    list_filter = ('enabled', 'country_name')
+    list_display = ('name', 'enabled', 'country_name', 'latitude', 'longitude')
 
 
 @admin.register(Profile)

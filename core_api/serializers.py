@@ -20,6 +20,28 @@ log.setLevel(settings.LOGGING_LEVEL)
 UserModel = get_user_model()
 
 
+class CountrySerializer(serializers.ModelSerializer):
+    pass
+
+    class Meta:
+        model = Country
+        exclude = ('enabled', )
+
+
+class StateSerializer(serializers.ModelSerializer):
+    
+    class Meta:
+        model = State
+        exclude = ('enabled', )
+
+
+class CitySerializer(serializers.ModelSerializer):
+    
+    class Meta:
+        model = City
+        exclude = ('enabled', )
+
+
 class AddressSerializer(serializers.ModelSerializer):
     # updated_by_id = serializers.SerializerMethodField()
 

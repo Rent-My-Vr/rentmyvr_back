@@ -18,8 +18,6 @@ from django.template.defaultfilters import filesizeformat
 # from django_mysql.models import ListCharField
 
 
-# Create your models here.
-
 log = logging.getLogger(f"{__package__}.*")
 log.setLevel(settings.LOGGING_LEVEL)
 
@@ -143,13 +141,87 @@ class UntrackedModel(StampedModel):
         abstract = True
 
 
+class Country(UntrackedModel):
+    name = models.CharField(max_length=254, verbose_name="Name", unique=True)
+    iso3 = models.CharField(max_length=8, verbose_name="Iso3")
+    iso2 = models.CharField(max_length=8, verbose_name="Iso2")
+    numeric_code = models.CharField(max_length=32, verbose_name="Numeric Code")
+    phone_code = models.CharField(max_length=32, verbose_name="Phone Code")
+    capital = models.CharField(max_length=254, verbose_name="Capital", null=True, blank=True, default='')
+    currency = models.CharField(max_length=8, verbose_name="Currency")
+    currency_name = models.CharField(max_length=254, verbose_name="Currency Name")
+    currency_symbol = models.CharField(max_length=32, verbose_name="Currency Symbol")
+    tld = models.CharField(max_length=10, verbose_name="TLD")
+    native = models.CharField(max_length=254, verbose_name="Native", null=True, blank=True, default='')
+    region = models.CharField(max_length=128, verbose_name="Region", null=True, blank=True, default='')
+    subregion = models.CharField(max_length=128, verbose_name="Subregion", null=True, blank=True, default='')
+    latitude = models.CharField(max_length=16, verbose_name="Latitude")
+    longitude = models.CharField(max_length=16, verbose_name="Longitude")
+    emoji = models.CharField(max_length=16, verbose_name="Emoji")
+    emojiU = models.CharField(max_length=64, verbose_name="EmojiU")
+    timezones = models.JSONField()
+    
+    def __str__(self):
+        return self.name
+
+    def get_admin_url(self):
+        return reverse('admin:{}_{}_change'.format(self._meta.app_label, self._meta.model_name), args=(self.pk, ))
+
+    class Meta:
+        ordering = ('name', )
+        managed = AUTO_MANAGE
+        verbose_name = _('Country')
+        verbose_name_plural = _('Countries')
+
+
+class State(UntrackedModel):
+    name = models.CharField(max_length=254, verbose_name="Name")
+    country_name = models.CharField(max_length=254, verbose_name="Country Name")
+    code = models.CharField(max_length=8, verbose_name="code")
+    latitude = models.CharField(max_length=16, verbose_name="Latitude", null=True, blank=True, default='')
+    longitude = models.CharField(max_length=16, verbose_name="Longitude", null=True, blank=True, default='')
+    
+    def __str__(self):
+        return self.name
+
+    def get_admin_url(self):
+        return reverse('admin:{}_{}_change'.format(self._meta.app_label, self._meta.model_name), args=(self.pk, ))
+
+    class Meta:
+        unique_together = ('name', 'country_name')
+        ordering = ('country_name', 'name')
+        managed = AUTO_MANAGE
+        verbose_name = _('State')
+        verbose_name_plural = _('States')
+
+
+class City(UntrackedModel):
+    name = models.CharField(max_length=254, verbose_name="Name")
+    state_name = models.CharField(max_length=254, verbose_name="State Name")
+    country_name = models.CharField(max_length=254, verbose_name="Country Name", default='United States')
+    
+    def __str__(self):
+        return self.name
+
+    def get_admin_url(self):
+        return reverse('admin:{}_{}_change'.format(self._meta.app_label, self._meta.model_name), args=(self.pk, ))
+
+    class Meta:
+        unique_together = ('name', 'state_name', 'country_name')
+        ordering = ('country_name', 'name')
+        managed = AUTO_MANAGE
+        verbose_name = _('City')
+        verbose_name_plural = _('Cities')
+
+
 class Address(UntrackedModel):
-    street = models.CharField(max_length=254, verbose_name="Address")
+    country = models.CharField(max_length=254, verbose_name="Country")
+    street = models.CharField(max_length=254, verbose_name="Street")
     number = models.CharField(max_length=254, verbose_name="Number")
-    city = models.CharField(max_length=32, verbose_name="city")
+    city = models.CharField(max_length=32, verbose_name="City")
     zip_code = models.CharField(max_length=10, verbose_name="Zip Code")
     more_info = models.CharField(max_length=254, verbose_name="Additional Info", null=True, blank=True, default='')
-    
+
     def __str__(self):
         return 'No. {}, {}, {}, {}'.format(self.number, self.street, self.city, self.zip_code)
 
@@ -212,22 +284,6 @@ class InterestedEMail(StampedModel):
         ordering = ('email',)
         verbose_name = _('Interested EMail')
         verbose_name_plural = _('Interested EMails')
-
-
-    def __str__(self):
-        return self.email
-
-
-class Portfolio(TrackedModel):
-
-    name = models.CharField(max_length=128, verbose_name="name")
-    company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name='company_portfolios')
-    
-    class Meta:
-        unique_together = ('company', 'name')
-        ordering = ('company__name', 'name')
-        verbose_name = _('Portfolio')
-        verbose_name_plural = _('Portfolios')
 
 
     def __str__(self):

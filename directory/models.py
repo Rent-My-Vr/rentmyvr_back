@@ -30,9 +30,23 @@ AUTO_MANAGE = True
 SELECT_EMPTY = ('', '------')
 
 
+def property_image_upload_path(instance, filename):
+    path = f'uploads/rental/property/images/'
+    filename = f"{instance.id}.{filename.split('.')[-1]}"
+    import os
+    return os.path.join(path, filename)
+
+
+def property_video_upload_path(instance, filename):
+    path = f'uploads/rental/property/videos/'
+    filename = f"{instance.id}.{filename.split('.')[-1]}"
+    import os
+    return os.path.join(path, filename)
+
+
 class Accessibility(StampedModel):
 
-    name = models.CharField(max_length=128, verbose_name="name")
+    name = models.CharField(max_length=128, verbose_name="name", unique=True)
     
     class Meta:
         ordering = ('name',)
@@ -46,7 +60,7 @@ class Accessibility(StampedModel):
 
 class Activity(StampedModel):
 
-    name = models.CharField(max_length=128, verbose_name="name")
+    name = models.CharField(max_length=128, verbose_name="name", unique=True)
     
     class Meta:
         ordering = ('name',)
@@ -60,7 +74,7 @@ class Activity(StampedModel):
 
 class Bathroom(StampedModel):
 
-    name = models.CharField(max_length=128, verbose_name="name")
+    name = models.CharField(max_length=128, verbose_name="name", unique=True)
     
     class Meta:
         ordering = ('name',)
@@ -73,8 +87,61 @@ class Bathroom(StampedModel):
 
 
 class BookingSite(StampedModel):
+    AIR_BNB = 'air-bnb'
+    VRBO = 'vrbo'
+    GOOGLE_VACATION_RENTAL = 'google-vacation-rental'
+    FLIPKEY = 'flipkey'
+    WINDMU = 'windmu'
+    BOOKING = 'booking'
+    EXPEDIA = 'expedia'
+    HOUSETRIP = 'housetrip'
+    RENT_BY_OWNER = 'rent-by-owner'
+    HOLIDAY_LETTINGS = 'holidaylettings'
+    TRAVELOKA = 'traveloka'
+    TRIP = 'trip'
+    AGODA = 'agoda'
+    GLAMPING = 'glamping'
+    DESPEGAR_DECOLAR = 'despegar-decolar'
+    EDREAMS = 'edreams'
+    PEGIPEGI = 'pegipegi'
+    RAKUTEN = 'rakuten'
+    RIPARIDE = 'riparide'
+    ANYPLACE = 'anyplace'
+    FURNITURE_FINDERS = 'furniturefinders'
+    NINE_FLATS = '9flats'
+    COLIVING = 'coliving'
+    INSTANT_WORLD_BOOKING = 'instant-world-booking'
+    ONLY_APARTMENTS = 'only-apartments'
 
-    name = models.CharField(max_length=24, verbose_name="name")
+    NAMES = (
+                (AIR_BNB, 'Air BNB'),
+                (VRBO, 'VRBO'),
+                (GOOGLE_VACATION_RENTAL, 'Google Vacation Rental'),
+                (FLIPKEY, 'Flipkey'),
+                (WINDMU, 'Windmu'),
+                (BOOKING, 'Booking.com'),
+                (EXPEDIA, 'Expedia'),
+                (HOUSETRIP, 'Housetrip'),
+                (RENT_BY_OWNER, 'Rent By Owner'),
+                (HOLIDAY_LETTINGS, 'HolidayLettings'),
+                (TRAVELOKA, 'Traveloka'),
+                (TRIP, 'Trip.com'),
+                (AGODA, 'Agoda'),
+                (GLAMPING, 'Glamping.com'),
+                (DESPEGAR_DECOLAR, 'Despegar/Decolar'),
+                (EDREAMS, 'eDreams'),
+                (PEGIPEGI, 'PegiPegi'),
+                (RAKUTEN, 'Rakuten'),
+                (RIPARIDE, 'Riparide'),
+                (ANYPLACE, 'Anyplace'),
+                (FURNITURE_FINDERS, 'FurnitureFinders'),
+                (NINE_FLATS, '9flats'),
+                (COLIVING, 'Coliving.com'),
+                (INSTANT_WORLD_BOOKING, 'Instant World Booking'),
+                (ONLY_APARTMENTS, 'Only-Apartments')
+                )
+
+    name = models.CharField(max_length=24, verbose_name="name", choices=NAMES)
     site = models.URLField(max_length=254, verbose_name="site")
     
     class Meta:
@@ -84,17 +151,17 @@ class BookingSite(StampedModel):
 
 
     def __str__(self):
-        return self.email
+        return self.name
 
 
 class Entertainment(StampedModel):
 
-    name = models.CharField(max_length=128, verbose_name="name")
+    name = models.CharField(max_length=128, verbose_name="name", unique=True)
     
     class Meta:
         ordering = ('name',)
-        verbose_name = _('Kitchen')
-        verbose_name_plural = _('Kitchens')
+        verbose_name = _('Entertainment')
+        verbose_name_plural = _('Entertainments')
 
 
     def __str__(self):
@@ -145,7 +212,7 @@ class Feature(StampedModel):
 
 class Kitchen(StampedModel):
 
-    name = models.CharField(max_length=128, verbose_name="name")
+    name = models.CharField(max_length=128, verbose_name="name", unique=True)
     
     class Meta:
         ordering = ('name',)
@@ -159,7 +226,7 @@ class Kitchen(StampedModel):
 
 class Laundry(StampedModel):
 
-    name = models.CharField(max_length=128, verbose_name="name")
+    name = models.CharField(max_length=128, verbose_name="name", unique=True)
     
     class Meta:
         ordering = ('name',)
@@ -173,7 +240,7 @@ class Laundry(StampedModel):
 
 class Outside(StampedModel):
 
-    name = models.CharField(max_length=128, verbose_name="name")
+    name = models.CharField(max_length=128, verbose_name="name", unique=True)
     
     class Meta:
         ordering = ('name',)
@@ -187,7 +254,7 @@ class Outside(StampedModel):
 
 class Parking(StampedModel):
 
-    name = models.CharField(max_length=128, verbose_name="name")
+    name = models.CharField(max_length=128, verbose_name="name", unique=True)
     
     class Meta:
         ordering = ('name',)
@@ -201,7 +268,7 @@ class Parking(StampedModel):
 
 class PoolSpa(StampedModel):
 
-    name = models.CharField(max_length=128, verbose_name="name")
+    name = models.CharField(max_length=128, verbose_name="name", unique=True)
     
     class Meta:
         ordering = ('name',)
@@ -212,6 +279,23 @@ class PoolSpa(StampedModel):
     def __str__(self):
         return self.name
  
+
+class Portfolio(TrackedModel):
+
+    name = models.CharField(max_length=128, verbose_name="name")
+    company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name='company_portfolios')
+    properties = models.ManyToManyField('Property', blank=False)
+    
+    class Meta:
+        unique_together = ('company', 'name')
+        ordering = ('company__name', 'name')
+        verbose_name = _('Portfolio')
+        verbose_name_plural = _('Portfolios')
+
+
+    def __str__(self):
+        return self.name
+
  
 class Safety(StampedModel):
 
@@ -252,9 +336,9 @@ class Service(StampedModel):
 
 
     def __str__(self):
-        return self.email
-         
-
+        return self.name
+ 
+  
 class Property(StampedUpdaterModel):
     """
     Property model:
@@ -362,34 +446,73 @@ class Property(StampedUpdaterModel):
                     (PRIVATE_ROOM, 'Private Room'),
                     (CASITA_SEP_GUEST_QUARTERS, 'Casita/Sep Guest Quarters'))
     
+    BEDROOM = 'bedroom'
+    CASITA = 'casita'
+    DEN = 'den'
+    OFFICE = 'office' 
+    LIVING_ROOM = 'living-room'
+    FAMILY_ROOM = 'family-room'
+    LOFT = 'loft'
+    STUDIO = 'studio'
+    
+    ROOM_TYPES = (
+                    (BEDROOM, 'Bedroom'),
+                    (CASITA, 'Casita'),
+                    (DEN, 'Den'),
+                    (OFFICE, 'Office'),
+                    (LIVING_ROOM, 'Living Room'),
+                    (FAMILY_ROOM, 'Family Room'),
+                    (LOFT, 'Loft'),
+                    (STUDIO, 'Studio')
+                )
+    
+    KING_BED = 'king-bed'
+    QUEEN_BED = 'queen-bed'
+    DOUBLE_BED = 'double-bed'
+    TWIN_SINGLE_BED = 'twin-single-bed'
+    FUTON = 'futon'
+    SOFA_SLEEPER = 'sofa-sleeper'
+    COT = 'cot'
+    TRUNDLE = 'trundle'
+    BUNK_BED = 'bunk-bed'
+    AIR_MATTRESS_FLOOR_MATTRESS = 'air-mattress-floor-mattress'
+    
+    SLEEPER_TYPES = (
+        (KING_BED, 'King Bed'),
+        (QUEEN_BED, 'Queen Bed'),
+        (DOUBLE_BED, 'Double Bed'),
+        (TWIN_SINGLE_BED, 'Twin/Single Bed'),
+        (FUTON, 'Futon'),
+        (SOFA_SLEEPER, 'Sofa Sleeper'),
+        (COT, 'Cot'),
+        (TRUNDLE, 'Trundle'),
+        (BUNK_BED, 'Bunk Bed'),
+        (AIR_MATTRESS_FLOOR_MATTRESS, 'Air Mattress/Floor Mattress')
+    )
+    
     ref = models.CharField(max_length=16, verbose_name="Ref", unique=True)
-    name = models.CharField(max_length=254, verbose_name="Name", unique=True)
-    video = models.FileField(blank=True, null=True, default=None)
-    virtual_tour = models.FileField(blank=True, null=True, default=None)
-    type = models.CharField(max_length=254, verbose_name="Type", choices=TYPES, default='', blank=True, null=True)
-    space = models.CharField(max_length=254, verbose_name="Booked Space", choices=BOOKED_SPACE, default='', blank=True, null=True)
-    hosted_by = models.CharField(max_length=254, verbose_name="Hosted By", default='', blank=True, null=True)
+    name = models.CharField(max_length=254, verbose_name="Name")
+    video = models.FileField(upload_to="property_video_upload_path", blank=True, null=True, default=None)
+    virtual_tour = models.FileField(upload_to="property_video_upload_path", blank=True, null=True, default=None)
+    type = models.CharField(max_length=254, verbose_name="Type", choices=TYPES)
+    space = models.CharField(max_length=254, verbose_name="Booked Space", choices=BOOKED_SPACE)
+    hosted_by = models.CharField(max_length=254, verbose_name="Hosted By")
     no_of_guest = models.IntegerField(verbose_name="No of Guest")
     no_of_bedrooms = models.IntegerField(verbose_name="No of Bedrooms")
     no_of_bathrooms = models.IntegerField(verbose_name="No of Bathrooms")
     is_pet_allowed = models.BooleanField(default=True, )
     suitability = models.BooleanField(default=True, )
-    description = models.TextField(verbose_name="Description", default='', blank=True, null=True)
+    description = models.TextField(verbose_name="Description")
     host_note = models.TextField(verbose_name="Host Notes", default='', blank=True, null=True)
+    room_type = models.CharField(max_length=32, verbose_name="Room Type", choices=ROOM_TYPES)
+    sleeper_type = models.CharField(max_length=32, verbose_name="Sleeper Type", choices=SLEEPER_TYPES)
     
-    price_night = models.DecimalField(verbose_name="Ave $ Per Night", max_digits=9, decimal_places=2)
-    address = models.ForeignKey(Address, related_name='property_address', on_delete=models.CASCADE, null=True, blank=True)
+    price_night = models.DecimalField(verbose_name="Ave $ Per Night", max_digits=9, decimal_places=2, default=0.0)
+    address = models.ForeignKey(Address, related_name='property_address', on_delete=models.CASCADE)
     email = models.CharField(max_length=128, verbose_name="email", default='', blank=True, null=True)
     phone = models.CharField(max_length=16, verbose_name="phone", default='', blank=True, null=True)
     logo = models.ImageField(blank=True, null=True, default=None)
-    # url = models.URLField(max_length=254, verbose_name="Facebook", default='', blank=True, null=True)
-    facebook = models.URLField(max_length=254, verbose_name="Facebook", default='', blank=True, null=True)
-    instagram = models.URLField(max_length=254, verbose_name="Instagram", default='', blank=True, null=True)
-    tiktok = models.URLField(max_length=254, verbose_name="TikTok", default='', blank=True, null=True)
-    twitter = models.URLField(max_length=254, verbose_name="Twitter", default='', blank=True, null=True)
-    google_business = models.URLField(max_length=254, verbose_name="GoogleBusiness", default='', blank=True, null=True)
-    yelp = models.URLField(max_length=254, verbose_name="Yelp", default='', blank=True, null=True)
-
+    
     accessibility = models.ManyToManyField(Accessibility, blank=True)
     activities = models.ManyToManyField(Activity, blank=True)
     bathrooms = models.ManyToManyField(Bathroom, blank=True)
@@ -404,19 +527,20 @@ class Property(StampedUpdaterModel):
     parking = models.ManyToManyField(Parking, blank=True)
     pool_spas = models.ManyToManyField(PoolSpa, blank=True)
     safeties = models.ManyToManyField(Safety, blank=True)
+    # social_media_links = models.ManyToManyField(SocialMediaLink, blank=True)
     spaces = models.ManyToManyField(Space, blank=True)
     services = models.ManyToManyField(Service, blank=True)
     
     def save(self, *args, **kwargs):
         if not self.created:
             try:
-                coy = Company.objects.latest('created')
-                x = int(coy.ref[1:])
-            except Company.DoesNotExist:
+                prop = Property.objects.latest('created')
+                x = int(prop.ref[1:])
+            except Property.DoesNotExist:
                 x = 0
             x += 1
-            self.ref = f'K0{x}' if x < 10 else f'K{x}'
-        return super(Company, self).save(*args, **kwargs)
+            self.ref = f'P{str(x).zfill(7)}'
+        return super(Property, self).save(*args, **kwargs)
 
     def __str__(self):
         return self.name
@@ -427,9 +551,50 @@ class Property(StampedUpdaterModel):
     class Meta:
         ordering = ('name', )
         managed = AUTO_MANAGE
-        verbose_name = _('Company')
-        verbose_name_plural = _('Companies')
+        verbose_name = _('Property')
+        verbose_name_plural = _('Properties')
 
   
-       
+class PropertyPhoto(StampedUpdaterModel):
+    # type = models.CharField(max_length=254, verbose_name="type", choices=Property.TYPES)
+    property = models.ForeignKey(Property, verbose_name="Property", related_name="pictures", on_delete=models.CASCADE)
+    image = models.ImageField(upload_to="property_image_upload_path")
+    
+    def __str__(self):
+        return f'{self.type} ({self.property})'
+        
+
+class SocialMediaLink(StampedModel):
+    FACEBOOK = 'facebook'
+    INSTAGRAM = 'instagram'
+    TIKTOK = 'tiktok'
+    YOUTUBE = 'youtube'
+    TWITTER = 'twitter'
+    GOOGLE_BUSINESS = 'google-business'
+    YELP = 'yelp'
+
+    MEDIAS = (
+                (FACEBOOK, 'Facebook'),
+                (INSTAGRAM, 'Instagram'),
+                (TIKTOK, 'TikTok'),
+                (YOUTUBE, 'YouTube'),
+                (TWITTER, 'Twitter'),
+                (GOOGLE_BUSINESS, 'GoogleBusiness'),
+                (YELP, 'Yelp')
+            )
+
+    name = models.CharField(max_length=24, verbose_name="name", choices=MEDIAS)
+    site = models.URLField(max_length=254, verbose_name="site")
+    property = models.ForeignKey(Property, verbose_name="Property", related_name="links", on_delete=models.CASCADE)
+
+    class Meta:
+        ordering = ('name',)
+        verbose_name = _('Social Media Link')
+        verbose_name_plural = _('Social Media Links')
+
+
+    def __str__(self):
+        return self.name
+
+  
 

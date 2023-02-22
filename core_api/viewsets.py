@@ -78,6 +78,119 @@ class AddressViewSet(viewsets.ModelViewSet, AchieveModelMixin):
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
+class CountryViewSet(viewsets.ModelViewSet, AchieveModelMixin):
+    permission_classes = (AllowAny, )
+    # permission_classes = (IsAuthenticated, )
+    authentication_classes = (TokenAuthentication,)
+    parser_classes = (JSONParser, MultiPartParser)
+        
+    def get_queryset(self):
+        """
+        This view should return a list of all the Company for
+        the user as determined by currently logged in user.
+        """
+        return Country.objects.filter(enabled=True)
+ 
+    def get_serializer_class(self):
+        if self.action in ['retrieve',]:
+            return CountrySerializer
+        return CountrySerializer
+
+    @action(methods=['post'], detail=False, url_path='bulk/add', url_name='bulk-add')
+    def select_list(self, request, *args, **kwargs):
+        with transaction.atomic():
+            data = request.data.copy()
+            
+            print('-------')
+            print(data)
+            x = 0
+            for d in data:
+                serializer = self.get_serializer(data=d)
+                serializer.is_valid(raise_exception=True)
+                self.perform_create(serializer)
+                x += 1
+
+            headers = self.get_success_headers(serializer.data)
+
+            return Response({'message': f'{x} Countries created successfully'}, status=status.HTTP_201_CREATED, headers=headers)
+            # return Response({}, status=status.HTTP_201_CREATED)
+
+
+class StateViewSet(viewsets.ModelViewSet, AchieveModelMixin):
+    permission_classes = (AllowAny, )
+    # permission_classes = (IsAuthenticated, )
+    authentication_classes = (TokenAuthentication,)
+    parser_classes = (JSONParser, MultiPartParser)
+        
+    def get_queryset(self):
+        """
+        This view should return a list of all the Company for
+        the user as determined by currently logged in user.
+        """
+        return State.objects.filter(enabled=True)
+ 
+    def get_serializer_class(self):
+        if self.action in ['retrieve',]:
+            return StateSerializer
+        return StateSerializer
+
+    @action(methods=['post'], detail=False, url_path='bulk/add', url_name='bulk-add')
+    def bulk_add(self, request, *args, **kwargs):
+        with transaction.atomic():
+            data = request.data.copy()
+            x = 0
+            for d in data:
+                serializer = self.get_serializer(data=d)
+                serializer.is_valid(raise_exception=True)
+                self.perform_create(serializer)
+                x += 1
+
+            headers = self.get_success_headers(serializer.data)
+
+            return Response({'message': f'{x} City created successfully'}, status=status.HTTP_201_CREATED, headers=headers)
+
+
+class CityViewSet(viewsets.ModelViewSet, AchieveModelMixin):
+    permission_classes = (AllowAny, )
+    # permission_classes = (IsAuthenticated, )
+    authentication_classes = (TokenAuthentication,)
+    parser_classes = (JSONParser, MultiPartParser)
+        
+    def get_queryset(self):
+        """
+        This view should return a list of all the Company for
+        the user as determined by currently logged in user.
+        """
+        return City.objects.filter(enabled=True)
+ 
+    def get_serializer_class(self):
+        if self.action in ['retrieve',]:
+            return CitySerializer
+        return CitySerializer
+
+    @action(methods=['post'], detail=False, url_path='bulk/add', url_name='bulk-add')
+    def select_list(self, request, *args, **kwargs):
+        with transaction.atomic():
+            data = request.data.copy()
+            
+            print('-------')
+            # print(data)
+            x = 0
+            for d in data:
+                try:
+                    serializer = self.get_serializer(data=d)
+                    serializer.is_valid(raise_exception=False)
+                    self.perform_create(serializer)
+                    x += 1
+                except AssertionError:
+                    print(f'Not adding {d}')
+
+            headers = self.get_success_headers(serializer.data)
+
+            return Response({'message': f'{x} State created successfully'}, status=status.HTTP_201_CREATED, headers=headers)
+            # return Response({}, status=status.HTTP_201_CREATED)
+
+
 class CompanyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
     serializer_class = CompanySerializer
     permission_classes = (IsAuthenticated, )
@@ -182,48 +295,49 @@ class ProfileViewSet(viewsets.ModelViewSet, AchieveModelMixin):
         return Response(self.get_serializer(instance=r).data)
 
     def create(self, request, *args, **kwargs):
-        data = request.data.copy()
-        
-        print('-------')
-        print(data)
-        profile_reset_link = data.get('profile_reset_link', None)
-        is_password_generated = not data['user'].get('password', None)
-        data['user']['password'] = UserModel.objects.make_random_password() if is_password_generated else data['user']['password']
-        # print(data)
-        # data['address'] = data['address'] if data.get('address', None) else None
-        serializer = self.get_serializer(data=data)
-        print(type(serializer))
-        print('----- b4')
-        serializer.is_valid(raise_exception=True)
-        print('----- after')
-        profile = self.perform_create(serializer)
+        with transaction.atomic():
+            data = request.data.copy()
+            
+            print('-------')
+            print(data)
+            profile_reset_link = data.get('profile_reset_link', None)
+            is_password_generated = not data['user'].get('password', None)
+            data['user']['password'] = UserModel.objects.make_random_password() if is_password_generated else data['user']['password']
+            # print(data)
+            # data['address'] = data['address'] if data.get('address', None) else None
+            serializer = self.get_serializer(data=data)
+            print(type(serializer))
+            print('----- b4')
+            serializer.is_valid(raise_exception=True)
+            print('----- after')
+            profile = self.perform_create(serializer)
 
-        headers = self.get_success_headers(serializer.data)
+            headers = self.get_success_headers(serializer.data)
 
-        # print(user)
-        user = profile.user
-        domain = get_domain(request)
-        # send_access_token(self, token_length, domain, channel="email", action="Verify Email", extra={})
+            # print(user)
+            user = profile.user
+            domain = get_domain(request)
+            # send_access_token(self, token_length, domain, channel="email", action="Verify Email", extra={})
 
-        if is_password_generated:
-            user.force_password_change = True
-            user.save()
-            messages = f"Account Registration successful, activation link has been sent to: '{user.email}'"
-            user.send_registration_password(domain, profile_reset_link)
-            return Response({"message": messages, "user": serializer.data}, status=status.HTTP_201_CREATED, headers=headers)
-        else:
-            session_key = user.send_access_token(settings.AUTH_TOKEN_LENGTH, domain, "email", UserModel.ACCOUNT_ACTIVATION)
-            request_url = f"{domain}{reverse('auths_api:activation-send', args=(user.pk,))}?action={UserModel.ACCOUNT_ACTIVATION}&channel={UserModel.EMAIL_CHANNEL}"
-            activation_url = f"{domain}{reverse('auths_api:activation-activate', args=(user.pk, session_key))}"
+            if is_password_generated:
+                user.force_password_change = True
+                user.save()
+                messages = f"Account Registration successful, activation link has been sent to: '{user.email}'"
+                user.send_registration_password(domain, profile_reset_link)
+                return Response({"message": messages, "user": serializer.data}, status=status.HTTP_201_CREATED, headers=headers)
+            else:
+                session_key = user.send_access_token(settings.AUTH_TOKEN_LENGTH, domain, "email", UserModel.ACCOUNT_ACTIVATION)
+                request_url = f"{domain}{reverse('auths_api:activation-send', args=(user.pk,))}?action={UserModel.ACCOUNT_ACTIVATION}&channel={UserModel.EMAIL_CHANNEL}"
+                activation_url = f"{domain}{reverse('auths_api:activation-activate', args=(user.pk, session_key))}"
 
-            messages = f"Account activation Token successfully sent to '{user.email}'"
-            data = {
-                    "message": messages,
-                    "user": serializer.data,
-                    "resend_url": request_url,
-                    "activation_url": activation_url
-                }
-            return Response(data, status=status.HTTP_201_CREATED, headers=headers)
+                messages = f"Account activation Token successfully sent to '{user.email}'"
+                data = {
+                        "message": messages,
+                        "user": serializer.data,
+                        "resend_url": request_url,
+                        "activation_url": activation_url
+                    }
+                return Response(data, status=status.HTTP_201_CREATED, headers=headers)
 
     def update(self, request, *args, **kwargs):
         with transaction.atomic():
