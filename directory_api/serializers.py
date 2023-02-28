@@ -53,7 +53,7 @@ class BookingSiteSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = BookingSite
-        fields = ('id', 'name', 'site')
+        fields = ('id', 'name', 'site', 'property')
 
 
 class EntertainmentSerializer(serializers.ModelSerializer):
@@ -154,15 +154,55 @@ class ServiceSerializer(serializers.ModelSerializer):
         fields = ('id', 'name')
 
 
+class SocialMediaLinkSerializer(serializers.ModelSerializer):
+    pass
+
+    class Meta:
+        model = SocialMediaLink
+        fields = ('id', 'name', 'site', 'property')
+
 
 class PropertySerializer(serializers.ModelSerializer):
-    # tags = serializers.PrimaryKeyRelatedField(many=True, required=False, allow_null=True, pk_field=UUIDField(format='hex_verbose'), queryset=Tag.objects.filter(enabled=True, is_approved=True))
-    # specifiers = serializers.PrimaryKeyRelatedField(many=True, required=False, allow_null=True, pk_field=UUIDField(format='hex_verbose'), queryset=Specifier.objects.filter(enabled=True, is_approved=True))
+    address = AddressSerializer(many=False, read_only=False)
+    # booking_sites = BookingSiteSerializer(many=True, read_only=False)
+    # social_media = SocialMediaLinkSerializer(many=True, read_only=False)
     
-    
+    def create(self, validated_data):
+        print('===========: ******** :============')
+        print(validated_data)
+        address_data = validated_data.pop('address')
+        accessibility = validated_data.pop('accessibility')
+        activities = validated_data.pop('activities')
+        bathrooms = validated_data.pop('bathrooms')
+        entertainments = validated_data.pop('entertainments')
+        essentials = validated_data.pop('essentials')
+        families = validated_data.pop('families')
+        features = validated_data.pop('features')
+        kitchens = validated_data.pop('kitchens')
+        laundries = validated_data.pop('laundries')
+        outsides = validated_data.pop('outsides')
+        parking = validated_data.pop('parking')
+        pool_spas = validated_data.pop('pool_spas')
+        safeties = validated_data.pop('safeties')
+        spaces = validated_data.pop('spaces')
+        services = validated_data.pop('services')
+        # social_media = validated_data.pop('social_media')
+        # booking_sites = validated_data.pop('booking_sites')
+
+        with transaction.atomic():
+            print('==== 1 ====')
+            print(address_data)
+            print('==== 2 ====')
+            print(validated_data)
+            address = Address.objects.create(**address_data)
+            print('==== 3 ====')
+            property = Property.objects.create(address=address, **validated_data)
+            print('==== 4 ====')
+            return property
+        return None
+
     class Meta:
         model = Property
-        # depth = 1
         exclude = ()
         read_only_fields = ('id', 'ref', 'enabled', 'updated', 'updated_by')
 
@@ -173,12 +213,4 @@ class PropertyPhotoSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = PropertyPhoto
-        fields = ('id', 'type', 'property', 'image')
-
-
-class SocialMediaLinkSerializer(serializers.ModelSerializer):
-    pass
-
-    class Meta:
-        model = SocialMediaLink
-        fields = ('id', 'name', 'site', 'property')
+        fields = ('id', 'property', 'image')

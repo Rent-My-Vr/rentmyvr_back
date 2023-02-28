@@ -86,74 +86,6 @@ class Bathroom(StampedModel):
         return self.name
 
 
-class BookingSite(StampedModel):
-    AIR_BNB = 'air-bnb'
-    VRBO = 'vrbo'
-    GOOGLE_VACATION_RENTAL = 'google-vacation-rental'
-    FLIPKEY = 'flipkey'
-    WINDMU = 'windmu'
-    BOOKING = 'booking'
-    EXPEDIA = 'expedia'
-    HOUSETRIP = 'housetrip'
-    RENT_BY_OWNER = 'rent-by-owner'
-    HOLIDAY_LETTINGS = 'holidaylettings'
-    TRAVELOKA = 'traveloka'
-    TRIP = 'trip'
-    AGODA = 'agoda'
-    GLAMPING = 'glamping'
-    DESPEGAR_DECOLAR = 'despegar-decolar'
-    EDREAMS = 'edreams'
-    PEGIPEGI = 'pegipegi'
-    RAKUTEN = 'rakuten'
-    RIPARIDE = 'riparide'
-    ANYPLACE = 'anyplace'
-    FURNITURE_FINDERS = 'furniturefinders'
-    NINE_FLATS = '9flats'
-    COLIVING = 'coliving'
-    INSTANT_WORLD_BOOKING = 'instant-world-booking'
-    ONLY_APARTMENTS = 'only-apartments'
-
-    NAMES = (
-                (AIR_BNB, 'Air BNB'),
-                (VRBO, 'VRBO'),
-                (GOOGLE_VACATION_RENTAL, 'Google Vacation Rental'),
-                (FLIPKEY, 'Flipkey'),
-                (WINDMU, 'Windmu'),
-                (BOOKING, 'Booking.com'),
-                (EXPEDIA, 'Expedia'),
-                (HOUSETRIP, 'Housetrip'),
-                (RENT_BY_OWNER, 'Rent By Owner'),
-                (HOLIDAY_LETTINGS, 'HolidayLettings'),
-                (TRAVELOKA, 'Traveloka'),
-                (TRIP, 'Trip.com'),
-                (AGODA, 'Agoda'),
-                (GLAMPING, 'Glamping.com'),
-                (DESPEGAR_DECOLAR, 'Despegar/Decolar'),
-                (EDREAMS, 'eDreams'),
-                (PEGIPEGI, 'PegiPegi'),
-                (RAKUTEN, 'Rakuten'),
-                (RIPARIDE, 'Riparide'),
-                (ANYPLACE, 'Anyplace'),
-                (FURNITURE_FINDERS, 'FurnitureFinders'),
-                (NINE_FLATS, '9flats'),
-                (COLIVING, 'Coliving.com'),
-                (INSTANT_WORLD_BOOKING, 'Instant World Booking'),
-                (ONLY_APARTMENTS, 'Only-Apartments')
-                )
-
-    name = models.CharField(max_length=24, verbose_name="name", choices=NAMES)
-    site = models.URLField(max_length=254, verbose_name="site")
-    
-    class Meta:
-        ordering = ('name',)
-        verbose_name = _('Booking Site')
-        verbose_name_plural = _('Booking Sites')
-
-
-    def __str__(self):
-        return self.name
-
-
 class Entertainment(StampedModel):
 
     name = models.CharField(max_length=128, verbose_name="name", unique=True)
@@ -516,7 +448,7 @@ class Property(StampedUpdaterModel):
     accessibility = models.ManyToManyField(Accessibility, blank=True)
     activities = models.ManyToManyField(Activity, blank=True)
     bathrooms = models.ManyToManyField(Bathroom, blank=True)
-    booking_sites = models.ManyToManyField(BookingSite, blank=True)
+    # booking_sites = models.ManyToManyField(BookingSite, blank=True)
     entertainments = models.ManyToManyField(Entertainment, blank=True)
     essentials = models.ManyToManyField(Essential, blank=True)
     families = models.ManyToManyField(Family, blank=True)
@@ -564,6 +496,74 @@ class PropertyPhoto(StampedUpdaterModel):
         return f'{self.type} ({self.property})'
         
 
+class BookingSite(StampedModel):
+    AIR_BNB = 'air-bnb'
+    VRBO = 'vrbo'
+    GOOGLE_VACATION_RENTAL = 'google-vacation-rental'
+    FLIPKEY = 'flipkey'
+    WINDMU = 'windmu'
+    BOOKING = 'booking'
+    EXPEDIA = 'expedia'
+    HOUSETRIP = 'housetrip'
+    RENT_BY_OWNER = 'rent-by-owner'
+    HOLIDAY_LETTINGS = 'holidaylettings'
+    TRAVELOKA = 'traveloka'
+    TRIP = 'trip'
+    AGODA = 'agoda'
+    GLAMPING = 'glamping'
+    DESPEGAR_DECOLAR = 'despegar-decolar'
+    EDREAMS = 'edreams'
+    PEGIPEGI = 'pegipegi'
+    RAKUTEN = 'rakuten'
+    RIPARIDE = 'riparide'
+    ANYPLACE = 'anyplace'
+    FURNITURE_FINDERS = 'furniturefinders'
+    NINE_FLATS = '9flats'
+    COLIVING = 'coliving'
+    INSTANT_WORLD_BOOKING = 'instant-world-booking'
+    ONLY_APARTMENTS = 'only-apartments'
+
+    NAMES = (
+                (AIR_BNB, 'Air BNB'),
+                (VRBO, 'VRBO'),
+                (GOOGLE_VACATION_RENTAL, 'Google Vacation Rental'),
+                (FLIPKEY, 'Flipkey'),
+                (WINDMU, 'Windmu'),
+                (BOOKING, 'Booking.com'),
+                (EXPEDIA, 'Expedia'),
+                (HOUSETRIP, 'Housetrip'),
+                (RENT_BY_OWNER, 'Rent By Owner'),
+                (HOLIDAY_LETTINGS, 'HolidayLettings'),
+                (TRAVELOKA, 'Traveloka'),
+                (TRIP, 'Trip.com'),
+                (AGODA, 'Agoda'),
+                (GLAMPING, 'Glamping.com'),
+                (DESPEGAR_DECOLAR, 'Despegar/Decolar'),
+                (EDREAMS, 'eDreams'),
+                (PEGIPEGI, 'PegiPegi'),
+                (RAKUTEN, 'Rakuten'),
+                (RIPARIDE, 'Riparide'),
+                (ANYPLACE, 'Anyplace'),
+                (FURNITURE_FINDERS, 'FurnitureFinders'),
+                (NINE_FLATS, '9flats'),
+                (COLIVING, 'Coliving.com'),
+                (INSTANT_WORLD_BOOKING, 'Instant World Booking'),
+                (ONLY_APARTMENTS, 'Only-Apartments')
+                )
+
+    name = models.CharField(max_length=24, verbose_name="name", choices=NAMES)
+    site = models.URLField(max_length=254, verbose_name="site")
+    property = models.ForeignKey(Property, verbose_name="Property", related_name="site_links", on_delete=models.CASCADE)
+    
+    class Meta:
+        ordering = ('name',)
+        verbose_name = _('Booking Site')
+        verbose_name_plural = _('Booking Sites')
+
+    def __str__(self):
+        return self.name
+
+
 class SocialMediaLink(StampedModel):
     FACEBOOK = 'facebook'
     INSTAGRAM = 'instagram'
@@ -585,13 +585,12 @@ class SocialMediaLink(StampedModel):
 
     name = models.CharField(max_length=24, verbose_name="name", choices=MEDIAS)
     site = models.URLField(max_length=254, verbose_name="site")
-    property = models.ForeignKey(Property, verbose_name="Property", related_name="links", on_delete=models.CASCADE)
+    property = models.ForeignKey(Property, verbose_name="Property", related_name="social_links", on_delete=models.CASCADE)
 
     class Meta:
         ordering = ('name',)
         verbose_name = _('Social Media Link')
         verbose_name_plural = _('Social Media Links')
-
 
     def __str__(self):
         return self.name

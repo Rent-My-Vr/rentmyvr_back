@@ -50,7 +50,6 @@ class AddressSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Address
-        depth = 1
         fields = ('id', 'street', 'number', 'city', 'zip_code', 'more_info')
         # read_only_fields = ('id', 'updated', 'updated_by')
 

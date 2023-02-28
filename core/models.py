@@ -199,6 +199,7 @@ class City(UntrackedModel):
     name = models.CharField(max_length=254, verbose_name="Name")
     state_name = models.CharField(max_length=254, verbose_name="State Name")
     country_name = models.CharField(max_length=254, verbose_name="Country Name", default='United States')
+    approved = models.BooleanField(default=True, )
     
     def __str__(self):
         return self.name
@@ -218,7 +219,7 @@ class Address(UntrackedModel):
     country = models.CharField(max_length=254, verbose_name="Country")
     street = models.CharField(max_length=254, verbose_name="Street")
     number = models.CharField(max_length=254, verbose_name="Number")
-    city = models.CharField(max_length=32, verbose_name="City")
+    city = models.ForeignKey(City, on_delete=models.CASCADE, verbose_name="City")
     zip_code = models.CharField(max_length=10, verbose_name="Zip Code")
     more_info = models.CharField(max_length=254, verbose_name="Additional Info", null=True, blank=True, default='')
 

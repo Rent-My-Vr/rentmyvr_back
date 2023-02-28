@@ -72,68 +72,127 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
       
     def create(self, request, *args, **kwargs):
         with transaction.atomic():
-            print('============1=============')
-            print(request.data)
-            print('============2=============')
-            print(request.POST)
-            print('============3=============')
-            print(request)
-            print('============4=============')
-            serializer = PropertySerializer(data=request.data)
+            print('============ 0 =============')
+            # print(request.data)
+            print('============ 1 =============')
+            print(request.data.getlist('pictures[]'))
+            print('============ 2 =============')
+            data = request.data.copy()
+            data['address'] = {}
+            data['address']['street'] = request.data.get('address[street]')
+            data['address']['number'] = request.data.get('address[number]')
+            data['address']['city'] = request.data.get('address[city]')
+            data['address']['zip_code'] = request.data.get('address[zip_code]')
+            data['address']['state'] = request.data.get('address[state]')
+            data['address']['city_id'] = request.data.get('address[city_id]')
+            print(data)
+            print(data.getlist('booking_sites[]'))
+            
+            booking_sites_set = set()
+            social_media_set = set()
+            for k in data.keys():
+                if f'booking_sites[' in k:
+                    print('b ---: ', k)
+                    booking_sites_set.add(re.findall(r"^booking_sites\[(\d+)\]\[\w+\]$", k)[0])
+                elif f'social_media[' in k:
+                    print('s ---: ', k)
+                    social_media_set.add(re.findall(r"^social_media\[(\d+)\]\[\w+\]$", k)[0])
+            
+            print('booking_sites_set_length: ', len(booking_sites_set))
+            print('social_media_set_length: ', len(social_media_set))
+            booking_sites = []
+            for i in range(len(booking_sites_set)):
+                d = dict()
+                d['name'] = data[f'booking_sites[{i}][name]']
+                data.pop(f'booking_sites[{i}][name]', None)
+                d['site'] = data[f'booking_sites[{i}][site]']
+                data.pop(f'booking_sites[{i}][site]', None)
+                d['label'] = data[f'booking_sites[{i}][label]']
+                data.pop(f'booking_sites[{i}][label]', None)
+                d['property'] = None
+                booking_sites.append(d)
+                # ser = BookingSiteSerializer(data=d)
+                # ser.is_valid(raise_exception=True)
+                # ser.save(updated_by_id=self.request.user.id) 
+            
+            social_media = []
+            for i in range(len(social_media_set)):
+                d = dict()
+                d['name'] = data[f'social_media[{i}][name]']
+                data.pop(f'social_media[{i}][name]', None)
+                d['site'] = data[f'social_media[{i}][site]']
+                data.pop(f'social_media[{i}][site]', None)
+                d['label'] = data[f'social_media[{i}][label]']
+                data.pop(f'social_media[{i}][label]', None)
+                d['property'] = None
+                social_media.append(d)
+                # ser = SocialMediaLinkSerializer(data=d)
+                # ser.is_valid(raise_exception=True)
+                # ser.save(updated_by_id=self.request.user.id) 
+
+            data['accessibility'] = data.getlist('accessibility[]')
+            data.pop(f'accessibility[]', None)
+            data['activities'] = data.getlist('activities[]')
+            data.pop(f'activities[]', None)
+            data['bathrooms'] = data.getlist('bathrooms[]')
+            data.pop(f'bathrooms[]', None)
+            data['entertainments'] = data.getlist('entertainments[]')
+            data.pop(f'entertainments[]', None)
+            data['essentials'] = data.getlist('essentials[]')
+            data.pop(f'essentials[]', None)
+            data['families'] = data.getlist('families[]')
+            data.pop(f'families[]', None)
+            data['features'] = data.getlist('features[]')
+            data.pop(f'features[]', None)
+            data['kitchens'] = data.getlist('kitchens[]')
+            data.pop(f'kitchens[]', None)
+            data['laundries'] = data.getlist('laundries[]')
+            data.pop(f'laundries[]', None)
+            data['outsides'] = data.getlist('outsides[]')
+            data.pop(f'outsides[]', None)
+            data['parking'] = data.getlist('parking[]')
+            data.pop(f'parking[]', None)
+            data['pool_spas'] = data.getlist('pool_spas[]')
+            data.pop(f'pool_spas[]', None)
+            data['safeties'] = data.getlist('safeties[]')
+            data.pop(f'safeties[]', None)
+            data['spaces'] = data.getlist('spaces[]')
+            data.pop(f'spaces[]', None)
+            data['services'] = data.getlist('services[]')
+            data.pop(f'services[]', None)
+            
+            data.pop("address[street]", None)
+            data.pop("address[number]", None)
+            data.pop("address[city]", None)
+            data.pop("address[zip_code]", None)
+            data.pop("address[state]", None)
+            data.pop("address[city_id]", None)
+            data = data.dict()
+            data['booking_sites'] = booking_sites
+            data['social_media'] = social_media
+            print('============ 3 =============')
+            print(data)
+            if not data.get('video'):
+                data['logo'] = None
+                data['video'] = None
+                data['virtual_tour'] = None
+            print('----------------')
+            print(data.get('address'))
+            print('============ 4 =============')
+            serializer = PropertySerializer(data=data)
+            print('============ 5 =============')
             serializer.is_valid(raise_exception=True)
+            print('============ 6 =============')
             instance = self.perform_create(serializer)
-            for p in request.data['pictures']:
-                ser = PropertyPhotoSerializer(data={'image': p, "property": instance})
+            print('============ 7 =============')
+            print(instance)
+            print(type(instance))
+            for p in request.data.getlist('pictures[]'):
+                ser = PropertyPhotoSerializer(data={'image': p, "property": instance.id})
                 ser.is_valid(raise_exception=True)
                 pic = self.perform_create(ser)
-            
-            # data = request.data.copy()
-            # print(data)
-            # data['name'] = template.name
-            # data['category'] = str(template.category.id)
-            # x = 0
-            # for t_id in map(lambda x: str(x.id), template.tags.filter(enabled=True, is_approved=True)):
-            #     data[f'tags.{x}'] = t_id
-            #     x += 1
-            # data['time_per_unit'] = template.time_per_unit
-            # data['worker_per_unit'] = template.worker_per_unit
-            # data['measurement_unit'] = template.measurement_unit
-            # data['container_type'] = json.dumps(template.container_type)
-            # data['note'] = data['note'] if data['note'] else template.note
-            # data['instructions'] = template.instructions
-            # serializer = WorkActivitySerializer(data=data)
-            # serializer.is_valid(raise_exception=True)
-            # instance = self.perform_create(serializer)
-            # if instance.report.status == WorkReport.MISSING:
-            #     instance.report.status = WorkReport.INCOMPLETE
-            #     instance.report.save()
-            # delay_set = set()
-            # activity_set = set()
-            # for k in data.keys():
-            #     if f'delay_images.' in k:
-            #         delay_set.add(re.findall(r"^delay_images\.(\d+)\.\w", k)[0])
-            #     elif f'activity_images.' in k:
-            #         activity_set.add(re.findall(r"^activity_images\.(\d+)\.\w", k)[0])
-            # print('delay_length: ', len(delay_set))
-            # for i in range(len(delay_set)):
-            #     d = dict()
-            #     d['type'] = data[f'delay_images.{i}.type'] 
-            #     d['image'] = data[f'delay_images.{i}.image'] 
-            #     d['activity'] = instance.id
-            #     ser = WorkActivityPhotoSerializer(data=d)
-            #     ser.is_valid(raise_exception=True)
-            #     ser.save(updated_by_id=self.request.user.id) 
-            # print('activity_length: ', len(activity_set))
-            # for i in range(len(activity_set)):
-            #     d = dict()
-            #     d['type'] = data[f'activity_images.{i}.type'] 
-            #     d['image'] = data[f'activity_images.{i}.image'] 
-            #     d['activity'] = instance.id
-            #     ser = WorkActivityPhotoSerializer(data=d)
-            #     ser.is_valid(raise_exception=True)
-            #     ser.save(updated_by_id=self.request.user.id)   
-            # headers = self.get_success_headers(serializer.data)
-            return Response(PropertySerializer(instance).data, status=status.HTTP_201_CREATED, headers=headers)
+            print('============ 8 =============')
+            return Response(PropertySerializer(instance).data, status=status.HTTP_201_CREATED)
 
     def update(self, request, *args, **kwargs):
         with transaction.atomic():
