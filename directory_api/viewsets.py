@@ -325,3 +325,13 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             'features': features,
             'activities': activities
             }, status=status.HTTP_201_CREATED)
+
+    @action(methods=['get'], detail=False, url_path='fixed/items', url_name='fixed-items')
+    def fixed_items(self, request, *args, **kwargs):
+        
+        return Response({
+            'types': Property.TYPES, 
+            'booked_spaces': Property.BOOKED_SPACE, 
+            'room_types': Property.ROOM_TYPES,
+            'sleeper_types': Property.SLEEPER_TYPES
+            }, status=status.HTTP_201_CREATED)
