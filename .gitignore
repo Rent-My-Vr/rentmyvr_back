@@ -14,7 +14,8 @@ db.*
 venv/*
 .env/*
 .venv/*
-
+media/*
+static/*
 
 # Distribution / packaging
 .Python
