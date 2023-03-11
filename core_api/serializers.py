@@ -54,6 +54,15 @@ class AddressSerializer(serializers.ModelSerializer):
         # read_only_fields = ('id', 'updated', 'updated_by')
 
 
+class AddressDetailSerializer(serializers.ModelSerializer):
+    city = CitySerializer(many=False, read_only=True)
+
+    class Meta:
+        model = Address
+        fields = ('id', 'street', 'number', 'city', 'zip_code', 'more_info')
+        # read_only_fields = ('id', 'updated', 'updated_by')
+
+
 class CompanySerializer(serializers.ModelSerializer):
     pass
 
@@ -91,7 +100,12 @@ class ProfileSerializer(serializers.ModelSerializer):
             address = None
             if address_data:
                 address = Address.objects.create(**address_data)
-            profile = Profile.objects.create(user=user, address=address, **validated_data)
+            # print(" +++++ *** 1 *** +++++ ")
+            # print(user.id)
+            # print(validated_data)
+            # print(" +++++ *** 2 *** +++++ ")
+            profile = Profile.objects.create(user=user, address=address, updated_by_id=user.id) #, **validated_data)
+            # print(" +++++ *** 3 *** +++++ ")
             return profile
         return None
 

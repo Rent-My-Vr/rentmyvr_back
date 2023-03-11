@@ -553,7 +553,7 @@ class BookingSite(StampedModel):
 
     name = models.CharField(max_length=24, verbose_name="name", choices=NAMES)
     site = models.URLField(max_length=254, verbose_name="site")
-    property = models.ForeignKey(Property, verbose_name="Property", related_name="site_links", on_delete=models.CASCADE)
+    property = models.ForeignKey(Property, verbose_name="Property", related_name="booking_sites", on_delete=models.CASCADE)
     
     class Meta:
         ordering = ('name',)
@@ -585,7 +585,7 @@ class SocialMediaLink(StampedModel):
 
     name = models.CharField(max_length=24, verbose_name="name", choices=MEDIAS)
     site = models.URLField(max_length=254, verbose_name="site")
-    property = models.ForeignKey(Property, verbose_name="Property", related_name="social_links", on_delete=models.CASCADE)
+    property = models.ForeignKey(Property, verbose_name="Property", related_name="social_media", on_delete=models.CASCADE)
 
     class Meta:
         ordering = ('name',)
