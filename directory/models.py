@@ -496,6 +496,19 @@ class PropertyPhoto(StampedUpdaterModel):
         return f'{self.type} ({self.property})'
         
 
+class Booker(StampedModel):
+    name = models.CharField(max_length=24, verbose_name="name", unique=True)
+    base = models.CharField(max_length=24, verbose_name="base site", unique=True)
+    
+    class Meta:
+        ordering = ('name',)
+        verbose_name = _('Booker')
+        verbose_name_plural = _('Bookers')
+
+    def __str__(self):
+        return self.name
+
+
 class BookingSite(StampedModel):
     AIR_BNB = 'air-bnb'
     VRBO = 'vrbo'
