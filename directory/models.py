@@ -497,8 +497,8 @@ class PropertyPhoto(StampedUpdaterModel):
         
 
 class Booker(StampedModel):
-    name = models.CharField(max_length=24, verbose_name="name", unique=True)
-    base = models.CharField(max_length=24, verbose_name="base site", unique=True)
+    name = models.CharField(max_length=128, verbose_name="name", unique=True)
+    base = models.CharField(max_length=256, verbose_name="base site", default='', blank=True, null=True)
     
     class Meta:
         ordering = ('name',)
