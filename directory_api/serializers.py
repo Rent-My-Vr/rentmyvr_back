@@ -129,6 +129,21 @@ class PoolSpaSerializer(serializers.ModelSerializer):
         fields = ('id', 'name')
 
 
+
+class SleeperSerializer(serializers.ModelSerializer):
+    
+    class Meta:
+        model = Sleeper
+        fields = ('id', 'name', )
+
+
+class RoomTypeSerializer(serializers.ModelSerializer):
+    
+    class Meta:
+        model = RoomType
+        fields = ('id', 'name', 'sleepers', 'property')
+
+
 class SafetySerializer(serializers.ModelSerializer):
     pass
 
@@ -137,14 +152,12 @@ class SafetySerializer(serializers.ModelSerializer):
         fields = ('id', 'name')
 
 
-
 class SpaceSerializer(serializers.ModelSerializer):
     pass
 
     class Meta:
         model = Space
         fields = ('id', 'name')
-
 
 
 class ServiceSerializer(serializers.ModelSerializer):
@@ -175,6 +188,7 @@ class PropertySerializer(serializers.ModelSerializer):
     booking_sites = BookingSiteSerializer(many=True, read_only=False)
     social_media = SocialMediaLinkSerializer(many=True, read_only=False)
     pictures = PropertyPhotoSerializer(many=True, read_only=True)
+    room_types = RoomTypeSerializer(many=True, read_only=True)
     
     def create(self, validated_data):
         print('===========: ******** :============')
@@ -282,10 +296,10 @@ class PropertyDetailSerializer(serializers.ModelSerializer):
     booking_sites = BookingSiteSerializer(many=True, read_only=True)
     social_media = SocialMediaLinkSerializer(many=True, read_only=True)
     pictures = PropertyPhotoSerializer(many=True, read_only=True)
+    room_types = RoomTypeSerializer(many=True, read_only=True)
     
     class Meta:
         model = Property
         exclude = ()
         read_only_fields = ('id', 'ref', 'enabled', 'updated', 'updated_by')
-
-
+        

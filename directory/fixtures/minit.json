@@ -1,0 +1,102 @@
+[
+{
+    "model": "directory.sleeper",
+    "pk": "16f475dd-dc8e-45ee-adf3-dd04dfa86b6c",
+    "fields": {
+        "updated": "2023-03-13T15:36:50.434Z",
+        "created": "2023-03-13T15:36:50.434Z",
+        "enabled": true,
+        "name": "Air Mattress/Floor Mattress"
+    }
+},
+{
+    "model": "directory.sleeper",
+    "pk": "191caad1-4d4f-4164-8f0b-e85ce4fb6467",
+    "fields": {
+        "updated": "2023-03-13T15:36:05.426Z",
+        "created": "2023-03-13T15:36:05.427Z",
+        "enabled": true,
+        "name": "Twin/Single Bed"
+    }
+},
+{
+    "model": "directory.sleeper",
+    "pk": "49d33795-f08c-4847-bece-6732be5d6541",
+    "fields": {
+        "updated": "2023-03-13T15:35:41.651Z",
+        "created": "2023-03-13T15:35:41.651Z",
+        "enabled": true,
+        "name": "King Bed"
+    }
+},
+{
+    "model": "directory.sleeper",
+    "pk": "4e0a7755-b7c9-46ea-970a-7ede8cda31b9",
+    "fields": {
+        "updated": "2023-03-13T15:36:23.708Z",
+        "created": "2023-03-13T15:36:23.709Z",
+        "enabled": true,
+        "name": "Cot"
+    }
+},
+{
+    "model": "directory.sleeper",
+    "pk": "6d664b76-70f7-4f92-b9ed-09129a314a3b",
+    "fields": {
+        "updated": "2023-03-13T15:35:58.138Z",
+        "created": "2023-03-13T15:35:58.138Z",
+        "enabled": true,
+        "name": "Double Bed"
+    }
+},
+{
+    "model": "directory.sleeper",
+    "pk": "7ad1fb02-d04d-46ea-bd11-1e9a2556f330",
+    "fields": {
+        "updated": "2023-03-13T15:36:17.629Z",
+        "created": "2023-03-13T15:36:17.629Z",
+        "enabled": true,
+        "name": "Sofa Sleeper"
+    }
+},
+{
+    "model": "directory.sleeper",
+    "pk": "b14b680e-3ef1-4cc7-a61e-f8c78a72bdb1",
+    "fields": {
+        "updated": "2023-03-13T15:36:10.763Z",
+        "created": "2023-03-13T15:36:10.763Z",
+        "enabled": true,
+        "name": "Futon"
+    }
+},
+{
+    "model": "directory.sleeper",
+    "pk": "d160222b-bcc0-43c9-bb50-32e376262ea6",
+    "fields": {
+        "updated": "2023-03-13T15:35:50.574Z",
+        "created": "2023-03-13T15:35:50.575Z",
+        "enabled": true,
+        "name": "Queen Bed"
+    }
+},
+{
+    "model": "directory.sleeper",
+    "pk": "fc074832-c610-413b-b645-4508f4f041fb",
+    "fields": {
+        "updated": "2023-03-13T15:36:36.426Z",
+        "created": "2023-03-13T15:36:36.426Z",
+        "enabled": true,
+        "name": "Bunk Bed"
+    }
+},
+{
+    "model": "directory.sleeper",
+    "pk": "ffd822f4-2ed0-417e-8cf6-67a8348fe701",
+    "fields": {
+        "updated": "2023-03-13T15:36:28.839Z",
+        "created": "2023-03-13T15:36:28.839Z",
+        "enabled": true,
+        "name": "Trundle"
+    }
+}
+]
