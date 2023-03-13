@@ -227,7 +227,7 @@ class Portfolio(TrackedModel):
 
     def __str__(self):
         return self.name
-
+  
  
 class Safety(StampedModel):
 
@@ -237,6 +237,20 @@ class Safety(StampedModel):
         ordering = ('name',)
         verbose_name = _('Safety')
         verbose_name_plural = _('Safeties')
+
+
+    def __str__(self):
+        return self.name
+    
+ 
+class Sleeper(StampedModel):
+
+    name = models.CharField(max_length=64, verbose_name="name", unique=True)
+    
+    class Meta:
+        ordering = ('name',)
+        verbose_name = _('Sleeper')
+        verbose_name_plural = _('Sleepers')
 
 
     def __str__(self):
@@ -275,7 +289,7 @@ class Property(StampedUpdaterModel):
     """
     Property model:
     """
-
+    APARTMENT = 'apartment'
     BARN = 'barn'
     BED_AND_BREAKFAST = 'bed-and-breakfast'
     BOAT = 'boat'
@@ -302,14 +316,19 @@ class Property(StampedUpdaterModel):
     HOTEL = 'hotel'
     HOUSE = 'house'
     HOUSEBOAT = 'houseboat'
+    HUT = 'hut'
+    LIGHTHOUSE = 'lighthouse'
     LODGE = 'lodge'
+    MANSION = 'mansion'
     MINSUS = 'minsus'
     RESORT = 'resort'
     RIAD = 'riad'
+    RV = 'rv'
     RYOKAN = 'ryokan'
     SHEPHERDS_HUT = 'shepherds-hut'
     SPECIALTY = 'specialty'
     STUDIO = 'studio'
+    SUITE = 'suite'
     TENT = 'tent'
     TINY_HOME = 'tiny-home'
     TOWER = 'tower'
@@ -323,6 +342,7 @@ class Property(StampedUpdaterModel):
     YURT = 'yurt'
 
     TYPES = (
+                (APARTMENT, 'Apartment'),
                 (BARN, 'Barn'),
                 (BED_AND_BREAKFAST, 'Bed and Breakfast'),
                 (BOAT, 'Boat'),
@@ -349,14 +369,19 @@ class Property(StampedUpdaterModel):
                 (HOTEL, 'Hotel'),
                 (HOUSE, 'House'),
                 (HOUSEBOAT, 'Houseboat'),
+                (HUT, 'Hut'),
+                (LIGHTHOUSE, 'Lighthouse'),
                 (LODGE, 'Lodge'),
+                (MANSION, 'Mansion'),
                 (MINSUS, 'Minsus'),
                 (RESORT, 'Resort'),
                 (RIAD, 'Riad'),
+                (RV, 'RV'),
                 (RYOKAN, 'Ryokan'),
                 (SHEPHERDS_HUT, "Shepherd's Hut"),
                 (SPECIALTY, 'Specialty'),
                 (STUDIO, 'Studio'),
+                (SUITE, 'Suite'),
                 (TENT, 'Tent'),
                 (TINY_HOME, 'Tiny Home'),
                 (TOWER, 'Tower'),
@@ -377,26 +402,6 @@ class Property(StampedUpdaterModel):
     BOOKED_SPACE = ((ENTIRE_HOUSE, 'Entire House'),
                     (PRIVATE_ROOM, 'Private Room'),
                     (CASITA_SEP_GUEST_QUARTERS, 'Casita/Sep Guest Quarters'))
-    
-    BEDROOM = 'bedroom'
-    CASITA = 'casita'
-    DEN = 'den'
-    OFFICE = 'office' 
-    LIVING_ROOM = 'living-room'
-    FAMILY_ROOM = 'family-room'
-    LOFT = 'loft'
-    STUDIO = 'studio'
-    
-    ROOM_TYPES = (
-                    (BEDROOM, 'Bedroom'),
-                    (CASITA, 'Casita'),
-                    (DEN, 'Den'),
-                    (OFFICE, 'Office'),
-                    (LIVING_ROOM, 'Living Room'),
-                    (FAMILY_ROOM, 'Family Room'),
-                    (LOFT, 'Loft'),
-                    (STUDIO, 'Studio')
-                )
     
     KING_BED = 'king-bed'
     QUEEN_BED = 'queen-bed'
@@ -422,6 +427,11 @@ class Property(StampedUpdaterModel):
         (AIR_MATTRESS_FLOOR_MATTRESS, 'Air Mattress/Floor Mattress')
     )
     
+    
+    STABILITY = (
+        
+    )
+    
     ref = models.CharField(max_length=16, verbose_name="Ref", unique=True)
     name = models.CharField(max_length=254, verbose_name="Name")
     video = models.FileField(upload_to="property_video_upload_path", blank=True, null=True, default=None)
@@ -436,8 +446,8 @@ class Property(StampedUpdaterModel):
     suitability = models.BooleanField(default=True, )
     description = models.TextField(verbose_name="Description")
     host_note = models.TextField(verbose_name="Host Notes", default='', blank=True, null=True)
-    room_type = models.CharField(max_length=32, verbose_name="Room Type", choices=ROOM_TYPES)
-    sleeper_type = models.CharField(max_length=32, verbose_name="Sleeper Type", choices=SLEEPER_TYPES)
+    # room_type = models.CharField(max_length=32, verbose_name="Room Type", choices=ROOM_TYPES)
+    # sleeper_type = models.CharField(max_length=32, verbose_name="Sleeper Type", choices=SLEEPER_TYPES)
     
     price_night = models.DecimalField(verbose_name="Ave $ Per Night", max_digits=9, decimal_places=2, default=0.0)
     address = models.ForeignKey(Address, related_name='property_address', on_delete=models.CASCADE)
@@ -486,6 +496,41 @@ class Property(StampedUpdaterModel):
         verbose_name = _('Property')
         verbose_name_plural = _('Properties')
 
+
+class RoomType(StampedModel):
+    
+    BEDROOM = 'bedroom'
+    CASITA = 'casita'
+    DEN = 'den'
+    OFFICE = 'office' 
+    LIVING_ROOM = 'living-room'
+    FAMILY_ROOM = 'family-room'
+    LOFT = 'loft'
+    STUDIO = 'studio'
+    
+    ROOM_TYPES = (
+                    (BEDROOM, 'Bedroom'),
+                    (CASITA, 'Casita'),
+                    (DEN, 'Den'),
+                    (OFFICE, 'Office'),
+                    (LIVING_ROOM, 'Living Room'),
+                    (FAMILY_ROOM, 'Family Room'),
+                    (LOFT, 'Loft'),
+                    (STUDIO, 'Studio')
+                )
+    
+    name = models.CharField(max_length=32, verbose_name="Room Type", choices=ROOM_TYPES)
+    sleepers = models.ManyToManyField(Sleeper, blank=True)
+    property = models.ForeignKey(Property, verbose_name="Property", related_name="room_types", on_delete=models.CASCADE)
+    
+    class Meta:
+        ordering = ('name',)
+        verbose_name = _('Room Type')
+        verbose_name_plural = _('Room Types')
+
+    def __str__(self):
+        return self.name
+ 
   
 class PropertyPhoto(StampedUpdaterModel):
     # type = models.CharField(max_length=254, verbose_name="type", choices=Property.TYPES)

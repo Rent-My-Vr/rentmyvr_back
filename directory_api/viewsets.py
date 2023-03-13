@@ -299,6 +299,7 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
     @action(methods=['get'], detail=False, url_path='form/items', url_name='form-items')
     def form_items(self, request, *args, **kwargs):
         services = ServiceSerializer(Service.objects.filter(enabled=True), many=True).data
+        sleepers = SleeperSerializer(Sleeper.objects.filter(enabled=True), many=True).data
         spaces = SpaceSerializer(Space.objects.filter(enabled=True), many=True).data
         bathrooms = BathroomSerializer(Bathroom.objects.filter(enabled=True), many=True).data
         kitchens = KitchenSerializer(Kitchen.objects.filter(enabled=True), many=True).data
@@ -316,6 +317,7 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
         activities = ActivitySerializer(Activity.objects.filter(enabled=True), many=True).data
 
         return Response({
+            'sleepers': sleepers, 
             'services': services, 
             'spaces': spaces, 
             'bathrooms': bathrooms,
