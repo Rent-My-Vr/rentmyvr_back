@@ -1,4 +1,5 @@
 import json
+import copy
 import logging
 from uuid import UUID
 from inspect import Attribute
@@ -60,8 +61,8 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
         return queryset
  
     def get_serializer_class(self):
-        if self.action in ['create', 'update']:
-            return PropertySerializer
+        if self.action in ['retrieve']:
+            return PropertyDetailSerializer
         return PropertySerializer
 
     def perform_create(self, serializer):
@@ -75,9 +76,14 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             print('============ 0 =============')
             # print(request.data)
             print('============ 1 =============')
-            print(request.data.getlist('pictures[]'))
+            
+            # pictures = request.data.getlist('pictures[]')
+            # print(pictures)
             print('============ 2 =============')
-            data = request.data.copy()
+            data = copy.deepcopy(request.data)
+            print(data)
+            # data = request.data.copy()
+            print('============ 3 =============')
             data['address'] = {}
             data['address']['street'] = request.data.get('address[street]')
             data['address']['number'] = request.data.get('address[number]')
@@ -85,6 +91,7 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             data['address']['zip_code'] = request.data.get('address[zip_code]')
             data['address']['state'] = request.data.get('address[state]')
             data['address']['city_id'] = request.data.get('address[city_id]')
+            
             print(data)
             print(data.getlist('booking_sites[]'))
             

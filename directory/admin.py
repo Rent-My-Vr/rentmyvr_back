@@ -21,9 +21,9 @@ class BathroomAdmin(admin.ModelAdmin):
 
 
 
-@admin.register(BookingSite)
-class BookingSiteAdmin(admin.ModelAdmin):
-    list_display = ('id', 'name', 'enabled', 'created', 'updated')
+@admin.register(Booker)
+class BookerAdmin(admin.ModelAdmin):
+    list_display = ('id', 'name', 'base', 'enabled', 'created', 'updated')
 
 
 

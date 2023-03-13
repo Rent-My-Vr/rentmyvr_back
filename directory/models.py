@@ -496,6 +496,19 @@ class PropertyPhoto(StampedUpdaterModel):
         return f'{self.type} ({self.property})'
         
 
+class Booker(StampedModel):
+    name = models.CharField(max_length=128, verbose_name="name", unique=True)
+    base = models.CharField(max_length=256, verbose_name="base site", default='', blank=True, null=True)
+    
+    class Meta:
+        ordering = ('name',)
+        verbose_name = _('Booker')
+        verbose_name_plural = _('Bookers')
+
+    def __str__(self):
+        return self.name
+
+
 class BookingSite(StampedModel):
     AIR_BNB = 'air-bnb'
     VRBO = 'vrbo'
@@ -553,7 +566,7 @@ class BookingSite(StampedModel):
 
     name = models.CharField(max_length=24, verbose_name="name", choices=NAMES)
     site = models.URLField(max_length=254, verbose_name="site")
-    property = models.ForeignKey(Property, verbose_name="Property", related_name="site_links", on_delete=models.CASCADE)
+    property = models.ForeignKey(Property, verbose_name="Property", related_name="booking_sites", on_delete=models.CASCADE)
     
     class Meta:
         ordering = ('name',)
@@ -585,7 +598,7 @@ class SocialMediaLink(StampedModel):
 
     name = models.CharField(max_length=24, verbose_name="name", choices=MEDIAS)
     site = models.URLField(max_length=254, verbose_name="site")
-    property = models.ForeignKey(Property, verbose_name="Property", related_name="social_links", on_delete=models.CASCADE)
+    property = models.ForeignKey(Property, verbose_name="Property", related_name="social_media", on_delete=models.CASCADE)
 
     class Meta:
         ordering = ('name',)

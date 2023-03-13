@@ -8,6 +8,7 @@ from django.contrib.auth import get_user_model
 from pyparsing import empty
 from rest_framework import serializers
 from rest_framework.authtoken.models import Token
+from rest_framework.fields import UUIDField
 
 from django.contrib.auth.models import Permission
 
@@ -49,8 +50,8 @@ class BathroomSerializer(serializers.ModelSerializer):
 
 
 class BookingSiteSerializer(serializers.ModelSerializer):
-    pass
-
+    property = serializers.PrimaryKeyRelatedField(required=False, allow_null=True, pk_field=UUIDField(format='hex_verbose'), queryset=Property.objects.filter(enabled=True))
+    
     class Meta:
         model = BookingSite
         fields = ('id', 'name', 'site', 'property')
@@ -155,21 +156,30 @@ class ServiceSerializer(serializers.ModelSerializer):
 
 
 class SocialMediaLinkSerializer(serializers.ModelSerializer):
-    pass
-
+    property = serializers.PrimaryKeyRelatedField(required=False, allow_null=True, pk_field=UUIDField(format='hex_verbose'), queryset=Property.objects.filter(enabled=True))
+    
     class Meta:
         model = SocialMediaLink
         fields = ('id', 'name', 'site', 'property')
 
 
+class PropertyPhotoSerializer(serializers.ModelSerializer):
+    
+    class Meta:
+        model = PropertyPhoto
+        fields = ('id', 'property', 'image')
+
+
 class PropertySerializer(serializers.ModelSerializer):
     address = AddressSerializer(many=False, read_only=False)
-    # booking_sites = BookingSiteSerializer(many=True, read_only=False)
-    # social_media = SocialMediaLinkSerializer(many=True, read_only=False)
+    booking_sites = BookingSiteSerializer(many=True, read_only=False)
+    social_media = SocialMediaLinkSerializer(many=True, read_only=False)
+    pictures = PropertyPhotoSerializer(many=True, read_only=True)
     
     def create(self, validated_data):
         print('===========: ******** :============')
         print(validated_data)
+        print('===========: ******** :============')
         address_data = validated_data.pop('address')
         accessibility = validated_data.pop('accessibility')
         activities = validated_data.pop('activities')
@@ -186,18 +196,78 @@ class PropertySerializer(serializers.ModelSerializer):
         safeties = validated_data.pop('safeties')
         spaces = validated_data.pop('spaces')
         services = validated_data.pop('services')
-        # social_media = validated_data.pop('social_media')
-        # booking_sites = validated_data.pop('booking_sites')
+        social_media = validated_data.pop('social_media')
+        booking_sites = validated_data.pop('booking_sites')
+        # pictures = validated_data.pop('pictures')
 
         with transaction.atomic():
             print('==== 1 ====')
             print(address_data)
             print('==== 2 ====')
             print(validated_data)
+            print('==== 22 ====')
+            print(social_media)
+            print('==== 222 ====')
+            print(booking_sites)
             address = Address.objects.create(**address_data)
             print('==== 3 ====')
             property = Property.objects.create(address=address, **validated_data)
+            for b in booking_sites:
+                b['property'] = property
+                BookingSite.objects.create(**b)
+            for s in social_media:
+                s['property'] = property
+                SocialMediaLink.objects.create(**s)
+            # for p in pictures:
+            #     s['property'] = property
+            #     SocialMediaLink.objects.create(**s)
+            property.accessibility.add(*accessibility)
+            property.activities.add(*activities)
+            property.bathrooms.add(*bathrooms)
+            property.entertainments.add(*entertainments)
+            property.essentials.add(*essentials)
+            property.families.add(*families)
+            property.features.add(*features)
+            property.kitchens.add(*kitchens)
+            property.laundries.add(*laundries)
+            property.outsides.add(*outsides)
+            property.parking.add(*parking)
+            property.pool_spas.add(*pool_spas)
+            property.safeties.add(*safeties)
+            property.spaces.add(*spaces)
+            property.services.add(*services)
             print('==== 4 ====')
+            print(accessibility)
+            # for it in accessibility:
+            #     Accessibility.objects.create(property=property, **it)
+            # for it in activities:
+            #     Activity.objects.create(property=property, **it)
+            # for it in bathrooms:
+            #     Bathroom.objects.create(property=property, **it)
+            # for it in entertainments:
+            #     Entertainment.objects.create(property=property, **it)
+            # for it in essentials:
+            #     Essential.objects.create(property=property, **it)
+            # for it in families:
+            #     Family.objects.create(property=property, **it)
+            # for it in features:
+            #     Feature.objects.create(property=property, **it)
+            # for it in kitchens:
+            #     Kitchen.objects.create(property=property, **it)
+            # for it in laundries:
+            #     Laundry.objects.create(property=property, **it)
+            # for it in outsides:
+            #     Outside.objects.create(property=property, **it)
+            # for it in parking:
+            #     Parking.objects.create(property=property, **it)
+            # for it in pool_spas:
+            #     PoolSpa.objects.create(property=property, **it)
+            # for it in safeties:
+            #     Safety.objects.create(property=property, **it)
+            # for it in spaces:
+            #     Space.objects.create(property=property, **it)
+            # for it in services:
+            #     Service.objects.create(property=property, **it)
             return property
         return None
 
@@ -207,10 +277,15 @@ class PropertySerializer(serializers.ModelSerializer):
         read_only_fields = ('id', 'ref', 'enabled', 'updated', 'updated_by')
 
 
-
-class PropertyPhotoSerializer(serializers.ModelSerializer):
-    pass
-
+class PropertyDetailSerializer(serializers.ModelSerializer):
+    address = AddressDetailSerializer(many=False, read_only=True)
+    booking_sites = BookingSiteSerializer(many=True, read_only=True)
+    social_media = SocialMediaLinkSerializer(many=True, read_only=True)
+    pictures = PropertyPhotoSerializer(many=True, read_only=True)
+    
     class Meta:
-        model = PropertyPhoto
-        fields = ('id', 'property', 'image')
+        model = Property
+        exclude = ()
+        read_only_fields = ('id', 'ref', 'enabled', 'updated', 'updated_by')
+
+
