@@ -49,6 +49,14 @@ class BathroomSerializer(serializers.ModelSerializer):
         fields = ('id', 'name')
 
 
+class BookerSerializer(serializers.ModelSerializer):
+    
+    class Meta:
+        model = Booker
+        fields = ('id', 'name', 'base')
+
+
+
 class BookingSiteSerializer(serializers.ModelSerializer):
     property = serializers.PrimaryKeyRelatedField(required=False, allow_null=True, pk_field=UUIDField(format='hex_verbose'), queryset=Property.objects.filter(enabled=True))
     
