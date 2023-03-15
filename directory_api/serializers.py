@@ -138,6 +138,7 @@ class SleeperSerializer(serializers.ModelSerializer):
 
 
 class RoomTypeSerializer(serializers.ModelSerializer):
+    property = serializers.PrimaryKeyRelatedField(required=False, allow_null=True, pk_field=UUIDField(format='hex_verbose'), queryset=Property.objects.filter(enabled=True))
     
     class Meta:
         model = RoomType
@@ -188,7 +189,7 @@ class PropertySerializer(serializers.ModelSerializer):
     booking_sites = BookingSiteSerializer(many=True, read_only=False)
     social_media = SocialMediaLinkSerializer(many=True, read_only=False)
     pictures = PropertyPhotoSerializer(many=True, read_only=True)
-    room_types = RoomTypeSerializer(many=True, read_only=True)
+    room_types = RoomTypeSerializer(many=True, read_only=False)
     
     def create(self, validated_data):
         print('===========: ******** :============')
@@ -212,6 +213,8 @@ class PropertySerializer(serializers.ModelSerializer):
         services = validated_data.pop('services')
         social_media = validated_data.pop('social_media')
         booking_sites = validated_data.pop('booking_sites')
+        validated_data.pop('room_types')
+        # room_types = validated_data.pop('room_types')
         # pictures = validated_data.pop('pictures')
 
         with transaction.atomic():
@@ -226,6 +229,9 @@ class PropertySerializer(serializers.ModelSerializer):
             address = Address.objects.create(**address_data)
             print('==== 3 ====')
             property = Property.objects.create(address=address, **validated_data)
+            # for r in room_types:
+            #     r['property'] = property
+            #     RoomType.objects.create(**r)
             for b in booking_sites:
                 b['property'] = property
                 BookingSite.objects.create(**b)

@@ -97,16 +97,52 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             
             booking_sites_set = set()
             social_media_set = set()
+            room_types_set = set()
+            max_sleeper = 0
             for k in data.keys():
                 if f'booking_sites[' in k:
-                    print('b ---: ', k)
                     booking_sites_set.add(re.findall(r"^booking_sites\[(\d+)\]\[\w+\]$", k)[0])
                 elif f'social_media[' in k:
-                    print('s ---: ', k)
                     social_media_set.add(re.findall(r"^social_media\[(\d+)\]\[\w+\]$", k)[0])
-            
+                elif f'room_types[' in k:
+                    r = re.findall(r"^room_types\[(\d+)\]\[(\w+)\]\[(\d+)\]\[(\w+)\]$", k)
+                    print('\n*************: ', k)
+                    print(r)
+                    print(len(r))
+                    if len(r) > 0:
+                        r = r[0]
+                        print('===1b. ---: ', k)
+                        max_sleeper = int(r[2]) if int(r[2]) > max_sleeper else max_sleeper
+                    else:
+                        print('==2b. ---: ', k)
+                        print(re.findall(r"^room_types\[(\d+)\]\[\w+\]$", k))
+                        room_types_set.add(re.findall(r"^room_types\[(\d+)\]\[\w+\]$", k)[0])
+
             print('booking_sites_set_length: ', len(booking_sites_set))
             print('social_media_set_length: ', len(social_media_set))
+            print('room_types_set_length: ', len(room_types_set))
+            print('max_sleeper: ', max_sleeper)
+            
+            room_types = []
+            for i in range(len(room_types_set)):
+                d = dict()
+                d['name'] = data[f'room_types[{i}][name]']
+                data.pop(f'room_types[{i}][name]', None)
+                d['label'] = data[f'room_types[{i}][label]']
+                data.pop(f'room_types[{i}][label]', None)
+                d['property'] = None
+                
+                d['sleepers'] = []
+                for j in range(max_sleeper):
+                    d['sleepers'].append(data[f'room_types[{i}][sleepers][{j}][id]'])
+                    # d['sleepers'].append({
+                    #     "id": data[f'room_types[{i}][sleepers][{j}][id]'],
+                    #     "name": data[f'room_types[{i}][sleepers][{j}][name]']
+                    # })
+                    data.pop(f'room_types[{i}][sleepers][{j}][id]', None)
+                    data.pop(f'room_types[{i}][sleepers][{j}][name]', None)
+                room_types.append(d)
+            
             booking_sites = []
             for i in range(len(booking_sites_set)):
                 d = dict()
@@ -177,6 +213,7 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             data = data.dict()
             data['booking_sites'] = booking_sites
             data['social_media'] = social_media
+            data['room_types'] = room_types
             print('============ 3 =============')
             print(data)
             if not data.get('video'):
@@ -194,6 +231,13 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             print('============ 7 =============')
             print(instance)
             print(type(instance))
+            for rtd in room_types:
+                rtd['property'] = instance.id
+                ser = RoomTypeSerializer(data=rtd)
+                ser.is_valid(raise_exception=True)
+                rt = ser.save()
+                print(rt)
+                print(RoomTypeSerializer(instance=rt).data)
             for p in request.data.getlist('pictures[]'):
                 ser = PropertyPhotoSerializer(data={'image': p, "property": instance.id})
                 ser.is_valid(raise_exception=True)
@@ -341,6 +385,6 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
         return Response({
             'types': Property.TYPES, 
             'booked_spaces': Property.BOOKED_SPACE, 
-            'room_types': Property.ROOM_TYPES,
+            # 'room_types': Property.ROOM_TYPES,
             'sleeper_types': Property.SLEEPER_TYPES
             }, status=status.HTTP_201_CREATED)

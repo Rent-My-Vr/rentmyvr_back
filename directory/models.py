@@ -432,10 +432,16 @@ class Property(StampedUpdaterModel):
         
     )
     
+    STANDARD = "standard"
+    PREMIUM = "premium"
+    SUBSCRIPTIONS = ((STANDARD, "Standard"), (PREMIUM, "Premium"))
+    
     ref = models.CharField(max_length=16, verbose_name="Ref", unique=True)
     name = models.CharField(max_length=254, verbose_name="Name")
     video = models.FileField(upload_to="property_video_upload_path", blank=True, null=True, default=None)
     virtual_tour = models.FileField(upload_to="property_video_upload_path", blank=True, null=True, default=None)
+    is_draft = models.BooleanField(verbose_name="is draft", default=False)
+    subscription = models.CharField(max_length=254, verbose_name="Subscription", choices=SUBSCRIPTIONS, default=STANDARD)
     type = models.CharField(max_length=254, verbose_name="Type", choices=TYPES)
     space = models.CharField(max_length=254, verbose_name="Booked Space", choices=BOOKED_SPACE)
     hosted_by = models.CharField(max_length=254, verbose_name="Hosted By", blank=True, null=True, default=None)
@@ -451,6 +457,8 @@ class Property(StampedUpdaterModel):
     
     price_night = models.DecimalField(verbose_name="Ave $ Per Night", max_digits=9, decimal_places=2, default=0.0)
     address = models.ForeignKey(Address, related_name='property_address', on_delete=models.CASCADE)
+    hide_phone = models.BooleanField(default=False, )
+    hide_email = models.BooleanField(default=False, )
     email = models.CharField(max_length=128, verbose_name="email", default='', blank=True, null=True)
     phone = models.CharField(max_length=16, verbose_name="phone", default='', blank=True, null=True)
     logo = models.ImageField(blank=True, null=True, default=None)
