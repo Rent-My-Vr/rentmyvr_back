@@ -112,7 +112,7 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             data.pop("address[city_id]", None)
             data.pop("address[hidden]", None)
             
-            # print(data)
+            print(data)
             # print(data.get('booking_sites[]'))
             
             booking_sites_set = set()
@@ -121,6 +121,7 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             room_types_dict = dict()
             max_sleeper = 0
             for k in data.keys():
+                print(k)
                 if f'booking_sites[' in k:
                     booking_sites_set.add(re.findall(r"^booking_sites\[(\d+)\]\[\w+\]", k)[0])
                 elif f'social_media[' in k:
@@ -140,12 +141,12 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
                         if room_types_dict.get(d, -10) == -10:
                             room_types_dict[d] = 0
 
-            # print('booking_sites_set: ', booking_sites_set)
-            # print('booking_sites_set_length: ', len(booking_sites_set))
-            # print('social_media_set_length: ', len(social_media_set))
-            # print('room_types_set_length: ', len(room_types_set))
-            # print('room_types_dict: ', room_types_dict)
-            # print('max_sleeper: ', max_sleeper)
+            print('booking_sites_set: ', booking_sites_set)
+            print('booking_sites_set_length: ', len(booking_sites_set))
+            print('social_media_set_length: ', len(social_media_set))
+            print('room_types_set_length: ', len(room_types_set))
+            print('room_types_dict: ', room_types_dict)
+            print('max_sleeper: ', max_sleeper)
             
             room_types = []
             for i in range(len(room_types_dict.keys())):
@@ -158,13 +159,16 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
                 
                 d['sleepers'] = []
                 for j in range(room_types_dict[str(i)]+1):
-                    d['sleepers'].append(data[f'room_types[{i}][sleepers][{j}][id]'])
-                    # d['sleepers'].append({
-                    #     "id": data[f'room_types[{i}][sleepers][{j}][id]'],
-                    #     "name": data[f'room_types[{i}][sleepers][{j}][name]']
-                    # })
-                    data.pop(f'room_types[{i}][sleepers][{j}][id]', None)
-                    data.pop(f'room_types[{i}][sleepers][{j}][name]', None)
+                    try:
+                        d['sleepers'].append(data[f'room_types[{i}][sleepers][{j}][id]'])
+                        # d['sleepers'].append({
+                        #     "id": data[f'room_types[{i}][sleepers][{j}][id]'],
+                        #     "name": data[f'room_types[{i}][sleepers][{j}][name]']
+                        # })
+                        data.pop(f'room_types[{i}][sleepers][{j}][id]', None)
+                        data.pop(f'room_types[{i}][sleepers][{j}][name]', None)
+                    except KeyError as ke:
+                        pass
                 room_types.append(d)
             
             booking_sites = []
