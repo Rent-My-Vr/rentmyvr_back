@@ -222,6 +222,7 @@ class Address(UntrackedModel):
     city = models.ForeignKey(City, on_delete=models.CASCADE, verbose_name="City")
     zip_code = models.CharField(max_length=10, verbose_name="Zip Code")
     more_info = models.CharField(max_length=254, verbose_name="Additional Info", null=True, blank=True, default='')
+    hidden = models.BooleanField(default=False, )
 
     def __str__(self):
         return 'No. {}, {}, {}, {}'.format(self.number, self.street, self.city, self.zip_code)

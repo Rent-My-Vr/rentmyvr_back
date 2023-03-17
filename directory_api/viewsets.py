@@ -74,66 +74,90 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
     def create(self, request, *args, **kwargs):
         with transaction.atomic():
             print('============ 0 =============')
-            # print(request.data)
+            print(request.data)
             print('============ 1 =============')
             
+            data = dict()
+            for d in list(request.data.keys()):
+                data[d] = request.data.getlist(d) if '[]' in d else request.data[d]
             # pictures = request.data.getlist('pictures[]')
             # print(pictures)
             print('============ 2 =============')
-            data = copy.deepcopy(request.data)
+            # data = copy.deepcopy(request.data)
             print(data)
             # data = request.data.copy()
-            print('============ 3 =============')
+            print('============ 3333 =============')
             data['address'] = {}
             data['address']['street'] = request.data.get('address[street]')
             data['address']['number'] = request.data.get('address[number]')
-            data['address']['city'] = request.data.get('address[city]')
+            data['address']['city'] = dict()
+            data['address']['city']['id'] = request.data.get('address[city][id]', None)
+            data['address']['city']['name'] = request.data.get('address[city][name]')
+            data['address']['city']['state_name'] = request.data.get('address[city][state_name]')
+            data['address']['city']['approved'] = True if data['address']['city']['id'] else False
             data['address']['zip_code'] = request.data.get('address[zip_code]')
             data['address']['state'] = request.data.get('address[state]')
             data['address']['city_id'] = request.data.get('address[city_id]')
+            data['address']['hidden'] = request.data.get('address[hidden]')
             
-            print(data)
-            print(data.getlist('booking_sites[]'))
+            
+            data.pop("address[street]", None)
+            data.pop("address[number]", None)
+            data.pop("address[city]", None)
+            data.pop("address[city][id]", None)
+            data.pop("address[city][name]", None)
+            data.pop("address[city][state_name]", None)
+            data.pop("address[zip_code]", None)
+            data.pop("address[state]", None)
+            data.pop("address[city_id]", None)
+            data.pop("address[hidden]", None)
+            
+            # print(data)
+            # print(data.get('booking_sites[]'))
             
             booking_sites_set = set()
             social_media_set = set()
             room_types_set = set()
+            room_types_dict = dict()
             max_sleeper = 0
             for k in data.keys():
                 if f'booking_sites[' in k:
-                    booking_sites_set.add(re.findall(r"^booking_sites\[(\d+)\]\[\w+\]$", k)[0])
+                    booking_sites_set.add(re.findall(r"^booking_sites\[(\d+)\]\[\w+\]", k)[0])
                 elif f'social_media[' in k:
                     social_media_set.add(re.findall(r"^social_media\[(\d+)\]\[\w+\]$", k)[0])
                 elif f'room_types[' in k:
                     r = re.findall(r"^room_types\[(\d+)\]\[(\w+)\]\[(\d+)\]\[(\w+)\]$", k)
-                    print('\n*************: ', k)
-                    print(r)
-                    print(len(r))
                     if len(r) > 0:
                         r = r[0]
-                        print('===1b. ---: ', k)
-                        max_sleeper = int(r[2]) if int(r[2]) > max_sleeper else max_sleeper
+                        # max_sleeper = int(r[2]) if int(r[2]) > max_sleeper else max_sleeper
+                        if room_types_dict.get(r[0], -10) == -10:
+                            room_types_dict[r[0]] = int(r[2])
+                        else:
+                            room_types_dict[r[0]] = room_types_dict[r[0]] if room_types_dict[r[0]] > int(r[2]) else int(r[2])
                     else:
-                        print('==2b. ---: ', k)
-                        print(re.findall(r"^room_types\[(\d+)\]\[\w+\]$", k))
-                        room_types_set.add(re.findall(r"^room_types\[(\d+)\]\[\w+\]$", k)[0])
+                        # room_types_set.add(re.findall(r"^room_types\[(\d+)\]\[\w+\]$", k)[0])
+                        d = re.findall(r"^room_types\[(\d+)\]\[\w+\]$", k)[0]
+                        if room_types_dict.get(d, -10) == -10:
+                            room_types_dict[d] = 0
 
-            print('booking_sites_set_length: ', len(booking_sites_set))
-            print('social_media_set_length: ', len(social_media_set))
-            print('room_types_set_length: ', len(room_types_set))
-            print('max_sleeper: ', max_sleeper)
+            # print('booking_sites_set: ', booking_sites_set)
+            # print('booking_sites_set_length: ', len(booking_sites_set))
+            # print('social_media_set_length: ', len(social_media_set))
+            # print('room_types_set_length: ', len(room_types_set))
+            # print('room_types_dict: ', room_types_dict)
+            # print('max_sleeper: ', max_sleeper)
             
             room_types = []
-            for i in range(len(room_types_set)):
+            for i in range(len(room_types_dict.keys())):
                 d = dict()
                 d['name'] = data[f'room_types[{i}][name]']
-                data.pop(f'room_types[{i}][name]', None)
                 d['label'] = data[f'room_types[{i}][label]']
-                data.pop(f'room_types[{i}][label]', None)
                 d['property'] = None
+                data.pop(f'room_types[{i}][name]', None)
+                data.pop(f'room_types[{i}][label]', None)
                 
                 d['sleepers'] = []
-                for j in range(max_sleeper):
+                for j in range(room_types_dict[str(i)]+1):
                     d['sleepers'].append(data[f'room_types[{i}][sleepers][{j}][id]'])
                     # d['sleepers'].append({
                     #     "id": data[f'room_types[{i}][sleepers][{j}][id]'],
@@ -146,13 +170,19 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             booking_sites = []
             for i in range(len(booking_sites_set)):
                 d = dict()
-                d['name'] = data[f'booking_sites[{i}][name]']
-                data.pop(f'booking_sites[{i}][name]', None)
                 d['site'] = data[f'booking_sites[{i}][site]']
-                data.pop(f'booking_sites[{i}][site]', None)
-                d['label'] = data[f'booking_sites[{i}][label]']
-                data.pop(f'booking_sites[{i}][label]', None)
+                d['booker'] = data[f'booking_sites[{i}][booker]']
+                # d['booker']['id'] = data[f'booking_sites[{i}][booker][id]']
+                # d['booker']['base'] = data[f'booking_sites[{i}][booker][base]']
+                # d['booker']['name'] = data[f'booking_sites[{i}][booker][name]']
                 d['property'] = None
+                
+                data.pop(f'booking_sites[{i}][site]', None)
+                data.pop(f'booking_sites[{i}][booker]', None)
+                # data.pop(f'booking_sites[{i}][booker][id]', None)
+                # data.pop(f'booking_sites[{i}][booker][base]', None)
+                # data.pop(f'booking_sites[{i}][booker][name]', None)
+                
                 booking_sites.append(d)
                 # ser = BookingSiteSerializer(data=d)
                 # ser.is_valid(raise_exception=True)
@@ -173,44 +203,37 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
                 # ser.is_valid(raise_exception=True)
                 # ser.save(updated_by_id=self.request.user.id) 
 
-            data['accessibility'] = data.getlist('accessibility[]')
+            data['accessibility'] = data.get('accessibility[]')
             data.pop(f'accessibility[]', None)
-            data['activities'] = data.getlist('activities[]')
+            data['activities'] = data.get('activities[]')
             data.pop(f'activities[]', None)
-            data['bathrooms'] = data.getlist('bathrooms[]')
+            data['bathrooms'] = data.get('bathrooms[]')
             data.pop(f'bathrooms[]', None)
-            data['entertainments'] = data.getlist('entertainments[]')
+            data['entertainments'] = data.get('entertainments[]')
             data.pop(f'entertainments[]', None)
-            data['essentials'] = data.getlist('essentials[]')
+            data['essentials'] = data.get('essentials[]')
             data.pop(f'essentials[]', None)
-            data['families'] = data.getlist('families[]')
+            data['families'] = data.get('families[]')
             data.pop(f'families[]', None)
-            data['features'] = data.getlist('features[]')
+            data['features'] = data.get('features[]')
             data.pop(f'features[]', None)
-            data['kitchens'] = data.getlist('kitchens[]')
+            data['kitchens'] = data.get('kitchens[]')
             data.pop(f'kitchens[]', None)
-            data['laundries'] = data.getlist('laundries[]')
+            data['laundries'] = data.get('laundries[]')
             data.pop(f'laundries[]', None)
-            data['outsides'] = data.getlist('outsides[]')
+            data['outsides'] = data.get('outsides[]')
             data.pop(f'outsides[]', None)
-            data['parking'] = data.getlist('parking[]')
+            data['parking'] = data.get('parking[]')
             data.pop(f'parking[]', None)
-            data['pool_spas'] = data.getlist('pool_spas[]')
+            data['pool_spas'] = data.get('pool_spas[]')
             data.pop(f'pool_spas[]', None)
-            data['safeties'] = data.getlist('safeties[]')
+            data['safeties'] = data.get('safeties[]')
             data.pop(f'safeties[]', None)
-            data['spaces'] = data.getlist('spaces[]')
+            data['spaces'] = data.get('spaces[]')
             data.pop(f'spaces[]', None)
-            data['services'] = data.getlist('services[]')
+            data['services'] = data.get('services[]')
             data.pop(f'services[]', None)
             
-            data.pop("address[street]", None)
-            data.pop("address[number]", None)
-            data.pop("address[city]", None)
-            data.pop("address[zip_code]", None)
-            data.pop("address[state]", None)
-            data.pop("address[city_id]", None)
-            data = data.dict()
             data['booking_sites'] = booking_sites
             data['social_media'] = social_media
             data['room_types'] = room_types
@@ -342,7 +365,11 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
 
     @action(methods=['get'], detail=False, url_path='form/items', url_name='form-items')
     def form_items(self, request, *args, **kwargs):
-        bookers = BookerSerializer(Booker.objects.filter(enabled=True), many=True).data
+        orderedDict = BookerSerializer(Booker.objects.filter(enabled=True), many=True).data
+        data = list(map(lambda d: dict(d), orderedDict))
+        sort_order = {x['name']: i for i, x in enumerate(data) if 'Additional' not in x['name'] or 'Direct Booking' not in x['name']}
+        data.sort(key=lambda x: sort_order.get(x["name"], 1000 if 'Additional' in x["name"] else -10))
+        bookers = data
         services = ServiceSerializer(Service.objects.filter(enabled=True), many=True).data
         sleepers = SleeperSerializer(Sleeper.objects.filter(enabled=True), many=True).data
         sleepers = SleeperSerializer(Sleeper.objects.filter(enabled=True), many=True).data

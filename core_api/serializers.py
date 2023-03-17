@@ -55,7 +55,7 @@ class AddressSerializer(serializers.ModelSerializer):
 
 
 class AddressDetailSerializer(serializers.ModelSerializer):
-    city = CitySerializer(many=False, read_only=True)
+    city = CitySerializer(many=False, read_only=False)
 
     class Meta:
         model = Address

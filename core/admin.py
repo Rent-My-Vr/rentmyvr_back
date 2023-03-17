@@ -6,13 +6,13 @@ from .forms import *
 
 @admin.register(City)
 class CityAdmin(admin.ModelAdmin):
-    list_filter = ('enabled', 'state_name', 'country_name')
-    list_display = ('name', 'state_name', 'country_name', 'enabled')
+    list_filter = ('enabled', 'state_name', 'country_name', 'approved')
+    list_display = ('name', 'state_name', 'country_name', 'approved', 'enabled')
 
 
 @admin.register(Address)
 class AddressAdmin(admin.ModelAdmin):
-    list_display = ('street', 'number', 'city', 'zip_code', 'more_info', 'enabled')
+    list_display = ('street', 'number', 'city', 'zip_code', 'hidden', 'more_info', 'enabled')
 
 
 @admin.register(Country)

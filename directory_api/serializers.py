@@ -32,7 +32,6 @@ class AccessibilitySerializer(serializers.ModelSerializer):
         fields = ('id', 'name')
 
 
-
 class ActivitySerializer(serializers.ModelSerializer):
     pass
 
@@ -56,13 +55,21 @@ class BookerSerializer(serializers.ModelSerializer):
         fields = ('id', 'name', 'base')
 
 
-
 class BookingSiteSerializer(serializers.ModelSerializer):
     property = serializers.PrimaryKeyRelatedField(required=False, allow_null=True, pk_field=UUIDField(format='hex_verbose'), queryset=Property.objects.filter(enabled=True))
     
     class Meta:
         model = BookingSite
-        fields = ('id', 'name', 'site', 'property')
+        fields = ('id', 'booker', 'site', 'property')
+
+
+class BookingSiteFullSerializer(serializers.ModelSerializer):
+    property = serializers.PrimaryKeyRelatedField(required=False, allow_null=True, pk_field=UUIDField(format='hex_verbose'), queryset=Property.objects.filter(enabled=True))
+    booker = BookerSerializer(many=False, read_only=False)
+    
+    class Meta:
+        model = BookingSite
+        fields = ('id', 'booker', 'site', 'property')
 
 
 class EntertainmentSerializer(serializers.ModelSerializer):
@@ -202,7 +209,7 @@ class PropertyPhotoSerializer(serializers.ModelSerializer):
 
 
 class PropertySerializer(serializers.ModelSerializer):
-    address = AddressSerializer(many=False, read_only=False)
+    address = AddressDetailSerializer(many=False, read_only=False)
     booking_sites = BookingSiteSerializer(many=True, read_only=False)
     social_media = SocialMediaLinkSerializer(many=True, read_only=False)
     pictures = PropertyPhotoSerializer(many=True, read_only=True)
@@ -243,6 +250,10 @@ class PropertySerializer(serializers.ModelSerializer):
             print(social_media)
             print('==== 222 ====')
             print(booking_sites)
+            print(address_data.get('city'))
+            print('****************************')
+            city = City.objects.get_or_create(**address_data.get('city'))
+            address_data['city'] = city[0]
             address = Address.objects.create(**address_data)
             print('==== 3 ====')
             property = Property.objects.create(address=address, **validated_data)
@@ -316,7 +327,7 @@ class PropertySerializer(serializers.ModelSerializer):
 
 class PropertyDetailSerializer(serializers.ModelSerializer):
     address = AddressDetailSerializer(many=False, read_only=True)
-    booking_sites = BookingSiteSerializer(many=True, read_only=True)
+    booking_sites = BookingSiteFullSerializer(many=True, read_only=True)
     social_media = SocialMediaLinkSerializer(many=True, read_only=True)
     pictures = PropertyPhotoSerializer(many=True, read_only=True)
     room_types = RoomTypeFullSerializer(many=True, read_only=True)

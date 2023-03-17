@@ -564,71 +564,17 @@ class Booker(StampedModel):
 
 
 class BookingSite(StampedModel):
-    AIR_BNB = 'air-bnb'
-    VRBO = 'vrbo'
-    GOOGLE_VACATION_RENTAL = 'google-vacation-rental'
-    FLIPKEY = 'flipkey'
-    WINDMU = 'windmu'
-    BOOKING = 'booking'
-    EXPEDIA = 'expedia'
-    HOUSETRIP = 'housetrip'
-    RENT_BY_OWNER = 'rent-by-owner'
-    HOLIDAY_LETTINGS = 'holidaylettings'
-    TRAVELOKA = 'traveloka'
-    TRIP = 'trip'
-    AGODA = 'agoda'
-    GLAMPING = 'glamping'
-    DESPEGAR_DECOLAR = 'despegar-decolar'
-    EDREAMS = 'edreams'
-    PEGIPEGI = 'pegipegi'
-    RAKUTEN = 'rakuten'
-    RIPARIDE = 'riparide'
-    ANYPLACE = 'anyplace'
-    FURNITURE_FINDERS = 'furniturefinders'
-    NINE_FLATS = '9flats'
-    COLIVING = 'coliving'
-    INSTANT_WORLD_BOOKING = 'instant-world-booking'
-    ONLY_APARTMENTS = 'only-apartments'
-
-    NAMES = (
-                (AIR_BNB, 'Air BNB'),
-                (VRBO, 'VRBO'),
-                (GOOGLE_VACATION_RENTAL, 'Google Vacation Rental'),
-                (FLIPKEY, 'Flipkey'),
-                (WINDMU, 'Windmu'),
-                (BOOKING, 'Booking.com'),
-                (EXPEDIA, 'Expedia'),
-                (HOUSETRIP, 'Housetrip'),
-                (RENT_BY_OWNER, 'Rent By Owner'),
-                (HOLIDAY_LETTINGS, 'HolidayLettings'),
-                (TRAVELOKA, 'Traveloka'),
-                (TRIP, 'Trip.com'),
-                (AGODA, 'Agoda'),
-                (GLAMPING, 'Glamping.com'),
-                (DESPEGAR_DECOLAR, 'Despegar/Decolar'),
-                (EDREAMS, 'eDreams'),
-                (PEGIPEGI, 'PegiPegi'),
-                (RAKUTEN, 'Rakuten'),
-                (RIPARIDE, 'Riparide'),
-                (ANYPLACE, 'Anyplace'),
-                (FURNITURE_FINDERS, 'FurnitureFinders'),
-                (NINE_FLATS, '9flats'),
-                (COLIVING, 'Coliving.com'),
-                (INSTANT_WORLD_BOOKING, 'Instant World Booking'),
-                (ONLY_APARTMENTS, 'Only-Apartments')
-                )
-
-    name = models.CharField(max_length=24, verbose_name="name", choices=NAMES)
+    booker = models.ForeignKey(Booker, verbose_name="Booker", related_name="bookers", on_delete=models.CASCADE)
     site = models.URLField(max_length=254, verbose_name="site")
     property = models.ForeignKey(Property, verbose_name="Property", related_name="booking_sites", on_delete=models.CASCADE)
     
     class Meta:
-        ordering = ('name',)
+        ordering = ('site',)
         verbose_name = _('Booking Site')
         verbose_name_plural = _('Booking Sites')
 
     def __str__(self):
-        return self.name
+        return self.booker.name
 
 
 class SocialMediaLink(StampedModel):
