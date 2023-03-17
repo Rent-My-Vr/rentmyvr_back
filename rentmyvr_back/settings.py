@@ -146,6 +146,7 @@ INSTALLED_APPS = [
     'notifications',
     'notifications_api',
 
+    'import_export',
     'corsheaders',
     'drf_yasg',
 ]

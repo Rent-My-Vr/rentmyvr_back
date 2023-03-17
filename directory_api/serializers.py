@@ -153,6 +153,15 @@ class RoomTypeSerializer(serializers.ModelSerializer):
         fields = ('id', 'name', 'sleepers', 'property')
 
 
+class RoomTypeFullSerializer(serializers.ModelSerializer):
+    property = serializers.PrimaryKeyRelatedField(required=False, allow_null=True, pk_field=UUIDField(format='hex_verbose'), queryset=Property.objects.filter(enabled=True))
+    sleepers = SleeperSerializer(many=True, read_only=False)
+    
+    class Meta:
+        model = RoomType
+        fields = ('id', 'name', 'sleepers', 'property')
+
+
 class SafetySerializer(serializers.ModelSerializer):
     pass
 
@@ -310,7 +319,23 @@ class PropertyDetailSerializer(serializers.ModelSerializer):
     booking_sites = BookingSiteSerializer(many=True, read_only=True)
     social_media = SocialMediaLinkSerializer(many=True, read_only=True)
     pictures = PropertyPhotoSerializer(many=True, read_only=True)
-    room_types = RoomTypeSerializer(many=True, read_only=True)
+    room_types = RoomTypeFullSerializer(many=True, read_only=True)
+    
+    accessibility = AccessibilitySerializer(many=True, read_only=True)
+    activities = ActivitySerializer(many=True, read_only=True)
+    bathrooms = BathroomSerializer(many=True, read_only=True)
+    entertainments = EntertainmentSerializer(many=True, read_only=True)
+    essentials = EssentialSerializer(many=True, read_only=True)
+    families = FamilySerializer(many=True, read_only=True)
+    features = FeatureSerializer(many=True, read_only=True)
+    kitchens = KitchenSerializer(many=True, read_only=True)
+    laundries = LaundrySerializer(many=True, read_only=True)
+    outsides = OutsideSerializer(many=True, read_only=True)
+    parking = ParkingSerializer(many=True, read_only=True)
+    pool_spas = PoolSpaSerializer(many=True, read_only=True)
+    safeties = SafetySerializer(many=True, read_only=True)
+    spaces = SpaceSerializer(many=True, read_only=True)
+    services = ServiceSerializer(many=True, read_only=True)
     
     class Meta:
         model = Property

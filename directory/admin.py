@@ -1,4 +1,4 @@
-# from django.contrib import admin
+from import_export import resources
 from django.contrib import admin
 from .models import *
 
@@ -68,6 +68,12 @@ class PoolSpaAdmin(admin.ModelAdmin):
     list_display = ('id', 'name', 'enabled', 'created', 'updated')
 
 
+class PropertyResource(resources.ModelResource):
+
+    class Meta:
+        model = Property
+
+        
 @admin.register(Property)
 class PropertyAdmin(admin.ModelAdmin):
     list_display = ('ref', 'name', 'video', 'virtual_tour', 'subscription', 'is_draft', 'type', 'space', 'hosted_by', 'max_no_of_guest', 'no_of_bedrooms', 'no_of_bathrooms', 'is_pet_allowed', 'suitability', 'price_night', 'address', 'email', 'phone', 'logo', 'enabled', 'created', 'updated')

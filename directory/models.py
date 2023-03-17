@@ -452,6 +452,7 @@ class Property(StampedUpdaterModel):
     suitability = models.BooleanField(default=True, )
     description = models.TextField(verbose_name="Description")
     host_note = models.TextField(verbose_name="Host Notes", default='', blank=True, null=True)
+    cancellation_policy = models.TextField(verbose_name="Cancellation Policy", default='', blank=True, null=True)
     # room_type = models.CharField(max_length=32, verbose_name="Room Type", choices=ROOM_TYPES)
     # sleeper_type = models.CharField(max_length=32, verbose_name="Sleeper Type", choices=SLEEPER_TYPES)
     
@@ -638,6 +639,7 @@ class SocialMediaLink(StampedModel):
     TWITTER = 'twitter'
     GOOGLE_BUSINESS = 'google-business'
     YELP = 'yelp'
+    PINTEREST = 'pinterest'
 
     MEDIAS = (
                 (FACEBOOK, 'Facebook'),
@@ -646,6 +648,7 @@ class SocialMediaLink(StampedModel):
                 (YOUTUBE, 'YouTube'),
                 (TWITTER, 'Twitter'),
                 (GOOGLE_BUSINESS, 'GoogleBusiness'),
+                (PINTEREST, 'Pinterest'),
                 (YELP, 'Yelp')
             )
 
