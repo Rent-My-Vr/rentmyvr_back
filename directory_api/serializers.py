@@ -209,16 +209,58 @@ class PropertyPhotoSerializer(serializers.ModelSerializer):
 
 
 class PropertySerializer(serializers.ModelSerializer):
-    address = AddressDetailSerializer(many=False, read_only=False)
+    address = AddressCreateSerializer(many=False, read_only=False)
+    # address = serializers.SerializerMethodField("get_address")
     booking_sites = BookingSiteSerializer(many=True, read_only=False)
     social_media = SocialMediaLinkSerializer(many=True, read_only=False)
     pictures = PropertyPhotoSerializer(many=True, read_only=True)
     room_types = RoomTypeSerializer(many=True, read_only=False)
     
+    # def __init__(self, *args, **kwargs):
+    #     # # Don't pass the 'fields' arg up to the superclass
+    #     # request = kwargs.get('context', {}).get('request')
+    #     # str_fields = request.GET.get('fields', '') if request else None
+    #     # fields = str_fields.split(',') if str_fields else None
+    #     # # Instantiate the superclass 
+    #     print('=================11==================')
+    #     print(kwargs['data'])
+    #     print('=================111==================')
+    #     print(kwargs['data']['address'])
+    #     # print(kwargs['data']['address']['city'].get('id', None))
+    #     print('==================1111=================', )
+    #     super(PropertySerializer, self).__init__(*args, **kwargs)
+    #     # self.address = AddressSerializer(many=False, read_only=False) if kwargs['data']['address']['city'].get('id', None) else AddressDetailSerializer(many=False, read_only=False)
+    #     # print('=================2**2================== ', type(self.address))
+    #     # if fields is not None:
+    #     #     # Drop any fields that are not specified in the `fields`
+    #     #     # argument.
+    #     #     allowed = set(fields)
+    #     #     existing = set(self.fields)
+    #     #     for field_name in existing - allowed:
+    #     #         self.fields.pop(field_name)
+       
+    # def get_address(self, obj):
+    #     request = self.context.get('request')
+    #     print('+++++++++++++++++++++++++++++++')
+    #     print(request)
+    #     print(request.data)
+    #     # serializer_context = {'request': request }
+    #     # authors = obj.authors.all()
+    #     # serializer = AuthorModelSerializer(authors, many=True, context=serializer_context)
+    #     serializer = AddressSerializer(many=False, read_only=False) if request.data['address']['city'].get('id', None) else AddressDetailSerializer(many=False, read_only=False)
+        
+    #     print(type(serializer))
+    #     print(serializer.data)
+    #     print('+++++++++++++++++++++++++++++++')
+    #     return serializer.data
+               
     def create(self, validated_data):
-        print('===========: ******** :============')
+        print('===========: ******** : 11============')
         print(validated_data)
-        print('===========: ******** :============')
+        print('===========: ******** : 22============')
+        city_data = self.context.get('city_data', {})
+        print(city_data)
+        print('===========: ******** : 33============')
         address_data = validated_data.pop('address')
         accessibility = validated_data.pop('accessibility')
         activities = validated_data.pop('activities')
@@ -250,10 +292,17 @@ class PropertySerializer(serializers.ModelSerializer):
             print(social_media)
             print('==== 222 ====')
             print(booking_sites)
+            print('==== 2222 ====')
+            print(address_data)
+            print('==== 22222 ====')
             print(address_data.get('city'))
             print('****************************')
-            city = City.objects.get_or_create(**address_data.get('city'))
-            address_data['city'] = city[0]
+            if address_data.get('city'):
+                city = address_data.get('city')
+            else:
+                city = City.objects.get_or_create(**city_data)
+                city = city[0].id
+            address_data['city_id'] = city
             address = Address.objects.create(**address_data)
             print('==== 3 ====')
             property = Property.objects.create(address=address, **validated_data)

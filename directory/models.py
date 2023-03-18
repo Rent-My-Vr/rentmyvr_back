@@ -396,12 +396,16 @@ class Property(StampedUpdaterModel):
             )
     
     ENTIRE_HOUSE = 'entire-house'
+    PARTIAL = 'partial'
     PRIVATE_ROOM = 'private-room'
     CASITA_SEP_GUEST_QUARTERS = 'casita-sep-guest-quarters'
     
-    BOOKED_SPACE = ((ENTIRE_HOUSE, 'Entire House'),
+    BOOKED_SPACE = (
+                    (CASITA_SEP_GUEST_QUARTERS, 'Casita/Sep Guest Quarters'),
+                    (ENTIRE_HOUSE, 'Entire House'),
+                    (PARTIAL, 'Partial'),
                     (PRIVATE_ROOM, 'Private Room'),
-                    (CASITA_SEP_GUEST_QUARTERS, 'Casita/Sep Guest Quarters'))
+                    )
     
     KING_BED = 'king-bed'
     QUEEN_BED = 'queen-bed'

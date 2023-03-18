@@ -90,27 +90,31 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             data['address'] = {}
             data['address']['street'] = request.data.get('address[street]')
             data['address']['number'] = request.data.get('address[number]')
+            data['address']['zip_code'] = request.data.get('address[zip_code]')
+            data['address']['state'] = request.data.get('address[state]')
+            data['address']['hidden'] = request.data.get('address[hidden]')
             data['address']['city'] = dict()
             data['address']['city']['id'] = request.data.get('address[city][id]', None)
             data['address']['city']['name'] = request.data.get('address[city][name]')
             data['address']['city']['state_name'] = request.data.get('address[city][state_name]')
             data['address']['city']['approved'] = True if data['address']['city']['id'] else False
-            data['address']['zip_code'] = request.data.get('address[zip_code]')
-            data['address']['state'] = request.data.get('address[state]')
-            data['address']['city_id'] = request.data.get('address[city_id]')
-            data['address']['hidden'] = request.data.get('address[hidden]')
-            
+            data['address']['city_data'] = data['address']['city']
+            data['address']['city'] = data['address']['city'].get('id', None) if data['address']['city'].get('id', None) else None
             
             data.pop("address[street]", None)
             data.pop("address[number]", None)
-            data.pop("address[city]", None)
-            data.pop("address[city][id]", None)
-            data.pop("address[city][name]", None)
-            data.pop("address[city][state_name]", None)
             data.pop("address[zip_code]", None)
             data.pop("address[state]", None)
             data.pop("address[city_id]", None)
             data.pop("address[hidden]", None)
+            data.pop("address[city]", None)
+            data.pop("address[city][id]", None)
+            data.pop("address[city][name]", None)
+            data.pop("address[city][state_name]", None)
+            data.pop("address[city][updated]", None)
+            data.pop("address[city][created]", None)
+            data.pop("address[city][country_name]", None)
+            data.pop("address[city][approved]", None)
             
             print(data)
             # print(data.get('booking_sites[]'))
@@ -207,56 +211,41 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
                 # ser.is_valid(raise_exception=True)
                 # ser.save(updated_by_id=self.request.user.id) 
 
-            if data.get('accessibility[]', False):
-                data['accessibility'] = data.get('accessibility[]')
-                data.pop(f'accessibility[]', None)
-            if data.get('activities[]', False):
-                data['activities'] = data.get('activities[]')
-                data.pop(f'activities[]', None)
-            if data.get('bathrooms[]', False):
-                data['bathrooms'] = data.get('bathrooms[]')
-                data.pop(f'bathrooms[]', None)
-            if data.get('entertainments[]', False):
-                data['entertainments'] = data.get('entertainments[]')
-                data.pop(f'entertainments[]', None)
-            if data.get('essentials[]', False):
-                data['essentials'] = data.get('essentials[]')
-                data.pop(f'essentials[]', None)
-            if data.get('families[]', False):
-                data['families'] = data.get('families[]')
-                data.pop(f'families[]', None)
-            if data.get('features[]', False):
-                data['features'] = data.get('features[]')
-                data.pop(f'features[]', None)
-            if data.get('kitchens[]', False):
-                data['kitchens'] = data.get('kitchens[]')
-                data.pop(f'kitchens[]', None)
-            if data.get('laundries[]', False):
-                data['laundries'] = data.get('laundries[]')
-                data.pop(f'laundries[]', None)
-            if data.get('outsides[]', False):
-                data['outsides'] = data.get('outsides[]')
-                data.pop(f'outsides[]', None)
-            if data.get('parking[]', False):
-                data['parking'] = data.get('parking[]')
-                data.pop(f'parking[]', None)
-            if data.get('pool_spas[]', False):
-                data['pool_spas'] = data.get('pool_spas[]')
-                data.pop(f'pool_spas[]', None)
-            if data.get('safeties[]', False):
-                data['safeties'] = data.get('safeties[]')
-                data.pop(f'safeties[]', None)
-            if data.get('spaces[]', False):
-                data['spaces'] = data.get('spaces[]')
-                data.pop(f'spaces[]', None)
-            if data.get('services[]', False):
-                data['services'] = data.get('services[]')
-                data.pop(f'services[]', None)
+            data['accessibility'] = data.get('accessibility[]', [])
+            data.pop(f'accessibility[]', None)
+            data['activities'] = data.get('activities[]', [])
+            data.pop(f'activities[]', None)
+            data['bathrooms'] = data.get('bathrooms[]', [])
+            data.pop(f'bathrooms[]', None)
+            data['entertainments'] = data.get('entertainments[]', [])
+            data.pop(f'entertainments[]', None)
+            data['essentials'] = data.get('essentials[]', [])
+            data.pop(f'essentials[]', None)
+            data['families'] = data.get('families[]', [])
+            data.pop(f'families[]', None)
+            data['features'] = data.get('features[]', [])
+            data.pop(f'features[]', None)
+            data['kitchens'] = data.get('kitchens[]', [])
+            data.pop(f'kitchens[]', None)
+            data['laundries'] = data.get('laundries[]', [])
+            data.pop(f'laundries[]', None)
+            data['outsides'] = data.get('outsides[]', [])
+            data.pop(f'outsides[]', None)
+            data['parking'] = data.get('parking[]', [])
+            data.pop(f'parking[]', None)
+            data['pool_spas'] = data.get('pool_spas[]', [])
+            data.pop(f'pool_spas[]', None)
+            data['safeties'] = data.get('safeties[]', [])
+            data.pop(f'safeties[]', None)
+            data['spaces'] = data.get('spaces[]', [])
+            data.pop(f'spaces[]', None)
+            data['services'] = data.get('services[]', [])
+            data.pop(f'services[]', None)
             
             data['booking_sites'] = booking_sites
             data['social_media'] = social_media
             data['room_types'] = room_types
-            print('============ 3 =============')
+            print('============ *3* =============')
             print(data)
             if not data.get('video'):
                 data['logo'] = None
@@ -265,7 +254,7 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             print('----------------')
             print(data.get('address'))
             print('============ 4 =============')
-            serializer = PropertySerializer(data=data)
+            serializer = PropertySerializer(data=data, context={'city_data': data['address']['city_data']})
             print('============ 5 =============')
             serializer.is_valid(raise_exception=True)
             print('============ 6 =============')
