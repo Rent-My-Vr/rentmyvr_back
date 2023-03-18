@@ -207,36 +207,51 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
                 # ser.is_valid(raise_exception=True)
                 # ser.save(updated_by_id=self.request.user.id) 
 
-            data['accessibility'] = data.get('accessibility[]')
-            data.pop(f'accessibility[]', None)
-            data['activities'] = data.get('activities[]')
-            data.pop(f'activities[]', None)
-            data['bathrooms'] = data.get('bathrooms[]')
-            data.pop(f'bathrooms[]', None)
-            data['entertainments'] = data.get('entertainments[]')
-            data.pop(f'entertainments[]', None)
-            data['essentials'] = data.get('essentials[]')
-            data.pop(f'essentials[]', None)
-            data['families'] = data.get('families[]')
-            data.pop(f'families[]', None)
-            data['features'] = data.get('features[]')
-            data.pop(f'features[]', None)
-            data['kitchens'] = data.get('kitchens[]')
-            data.pop(f'kitchens[]', None)
-            data['laundries'] = data.get('laundries[]')
-            data.pop(f'laundries[]', None)
-            data['outsides'] = data.get('outsides[]')
-            data.pop(f'outsides[]', None)
-            data['parking'] = data.get('parking[]')
-            data.pop(f'parking[]', None)
-            data['pool_spas'] = data.get('pool_spas[]')
-            data.pop(f'pool_spas[]', None)
-            data['safeties'] = data.get('safeties[]')
-            data.pop(f'safeties[]', None)
-            data['spaces'] = data.get('spaces[]')
-            data.pop(f'spaces[]', None)
-            data['services'] = data.get('services[]')
-            data.pop(f'services[]', None)
+            if data.get('accessibility[]', False):
+                data['accessibility'] = data.get('accessibility[]')
+                data.pop(f'accessibility[]', None)
+            if data.get('activities[]', False):
+                data['activities'] = data.get('activities[]')
+                data.pop(f'activities[]', None)
+            if data.get('bathrooms[]', False):
+                data['bathrooms'] = data.get('bathrooms[]')
+                data.pop(f'bathrooms[]', None)
+            if data.get('entertainments[]', False):
+                data['entertainments'] = data.get('entertainments[]')
+                data.pop(f'entertainments[]', None)
+            if data.get('essentials[]', False):
+                data['essentials'] = data.get('essentials[]')
+                data.pop(f'essentials[]', None)
+            if data.get('families[]', False):
+                data['families'] = data.get('families[]')
+                data.pop(f'families[]', None)
+            if data.get('features[]', False):
+                data['features'] = data.get('features[]')
+                data.pop(f'features[]', None)
+            if data.get('kitchens[]', False):
+                data['kitchens'] = data.get('kitchens[]')
+                data.pop(f'kitchens[]', None)
+            if data.get('laundries[]', False):
+                data['laundries'] = data.get('laundries[]')
+                data.pop(f'laundries[]', None)
+            if data.get('outsides[]', False):
+                data['outsides'] = data.get('outsides[]')
+                data.pop(f'outsides[]', None)
+            if data.get('parking[]', False):
+                data['parking'] = data.get('parking[]')
+                data.pop(f'parking[]', None)
+            if data.get('pool_spas[]', False):
+                data['pool_spas'] = data.get('pool_spas[]')
+                data.pop(f'pool_spas[]', None)
+            if data.get('safeties[]', False):
+                data['safeties'] = data.get('safeties[]')
+                data.pop(f'safeties[]', None)
+            if data.get('spaces[]', False):
+                data['spaces'] = data.get('spaces[]')
+                data.pop(f'spaces[]', None)
+            if data.get('services[]', False):
+                data['services'] = data.get('services[]')
+                data.pop(f'services[]', None)
             
             data['booking_sites'] = booking_sites
             data['social_media'] = social_media
