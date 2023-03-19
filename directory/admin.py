@@ -76,7 +76,7 @@ class PropertyResource(resources.ModelResource):
         
 @admin.register(Property)
 class PropertyAdmin(admin.ModelAdmin):
-    list_display = ('ref', 'name', 'video', 'virtual_tour', 'subscription', 'is_draft', 'type', 'space', 'hosted_by', 'max_no_of_guest', 'no_of_bedrooms', 'no_of_bathrooms', 'is_pet_allowed', 'suitability', 'price_night', 'address', 'email', 'phone', 'logo', 'enabled', 'created', 'updated')
+    list_display = ('ref', 'name', 'video', 'virtual_tour', 'subscription', 'is_draft', 'type', 'space', 'hosted_by', 'max_no_of_guest', 'no_of_bedrooms', 'no_of_bathrooms', 'is_pet_allowed', 'suitabilities', 'price_night', 'address', 'email', 'phone', 'logo', 'enabled', 'created', 'updated')
 
 
 @admin.register(RoomType)
