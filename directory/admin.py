@@ -1,6 +1,9 @@
 from import_export import resources
 from django.contrib import admin
 from .models import *
+from import_export.fields import Field
+from import_export.admin import ImportExportModelAdmin
+from import_export.widgets import ForeignKeyWidget
 
 
 @admin.register(Accessibility)
@@ -69,9 +72,23 @@ class PoolSpaAdmin(admin.ModelAdmin):
 
 
 class PropertyResource(resources.ModelResource):
+    # author = Field(
+    #     column_name='author',
+    #     attribute='author',
+    #     widget=ForeignKeyWidget(Address, field='name'))
+    
+    def before_import_row(self, row, **kwargs):
+        number = row["number"]
+        street = row["street"]
+        Address.objects.get_or_create(name=number, defaults={"number": number, "street": street})
 
     class Meta:
         model = Property
+        fields = ('is_draft', 'name', 'author', 'price', 'type', 'space', 'hosted_by', 'max_no_of_guest', 'no_of_bedrooms', 'no_of_bathrooms', 'is_pet_allowed', )
+
+
+class BookAdmin(ImportExportModelAdmin):
+    resource_classes = [PropertyResource]
 
         
 @admin.register(Property)

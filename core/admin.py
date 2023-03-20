@@ -24,7 +24,7 @@ class CountryAdmin(admin.ModelAdmin):
 @admin.register(State)
 class StateAdmin(admin.ModelAdmin):
     list_filter = ('enabled', 'country_name')
-    list_display = ('name', 'enabled', 'country_name', 'latitude', 'longitude')
+    list_display = ('name', 'code', 'enabled', 'country_name', 'latitude', 'longitude')
 
 
 @admin.register(Profile)
