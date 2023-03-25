@@ -486,6 +486,8 @@ class Property(StampedUpdaterModel):
     spaces = models.ManyToManyField(Space, blank=True)
     services = models.ManyToManyField(Service, blank=True)
     
+    imported = models.BooleanField(default=False, )
+    
     def save(self, *args, **kwargs):
         if not self.created:
             try:

@@ -364,7 +364,7 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
                 d = dict()
                 d['id'] = data.get(f'room_types[{i}][id]', None)
                 d['name'] = data[f'room_types[{i}][name]']
-                d['label'] = data[f'room_types[{i}][label]']
+                d['label'] = data.get(f'room_types[{i}][label]', None)
                 d['property'] = None
                 data.pop(f'room_types[{i}][id]', None)
                 data.pop(f'room_types[{i}][name]', None)
