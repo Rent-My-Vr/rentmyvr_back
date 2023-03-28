@@ -616,11 +616,10 @@ class PropertyViewSet(viewsets.ModelViewSet):
         queryset = Property.objects.all()
 
         page = self.paginate_queryset(queryset)
-        print('Pagination: ', page)
+        # print('Pagination: ', page)
         if page is not None:
-            size = request.query_params.get('size', page.page_size_query_param)
+            size = request.query_params.get('size', None)
             print(size)
-            print(page.page_size_query_param)
             # page.page_size_query_param = 
             serializer = self.get_serializer(page, many=True)
             return self.get_paginated_response(serializer.data)
