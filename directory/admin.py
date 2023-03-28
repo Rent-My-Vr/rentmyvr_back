@@ -90,6 +90,8 @@ class PropertyResource(resources.ModelResource):
     email = Field(column_name='Email', attribute='email')
     phone = Field(column_name='Phone', attribute='phone')
     hosted_by = Field(column_name='Hosted By', attribute='hosted_by')
+    imported = Field(column_name='imported', attribute='imported')
+    import_id = Field(column_name='property_id', attribute='import_id')
     
     def __init__(self):
         print("\n 111 ****  __init__(self) ")
@@ -185,7 +187,7 @@ class PropertyResource(resources.ModelResource):
          
     class Meta:
         model = Property
-        fields = ('id', 'is_draft', 'name', 'author', 'price', 'type', 'space', 'hosted_by', 'max_no_of_guest', 'no_of_bedrooms', 'no_of_bathrooms', 'is_pet_allowed', 'address', 'imported')
+        fields = ('id', 'ref', 'is_draft', 'name', 'author', 'price', 'type', 'space', 'hosted_by', 'max_no_of_guest', 'no_of_bedrooms', 'no_of_bathrooms', 'is_pet_allowed', 'address', 'imported', 'import_id')
 
 
 class BookAdmin(ImportExportModelAdmin):

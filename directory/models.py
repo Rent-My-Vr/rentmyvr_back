@@ -501,6 +501,7 @@ class Property(StampedUpdaterModel):
     services = models.ManyToManyField(Service, blank=True)
     
     imported = models.BooleanField(default=False, )
+    import_id = models.CharField(max_length=128, verbose_name="import id", default='', blank=True, null=True)
     
     def save(self, *args, **kwargs):
         if not self.created:
