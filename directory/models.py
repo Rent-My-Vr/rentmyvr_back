@@ -395,13 +395,31 @@ class Property(StampedUpdaterModel):
                 (YURT, 'Yurt')
             )
     
-    ENTIRE_HOUSE = 'entire-house'
-    PRIVATE_ROOM = 'private-room'
-    CASITA_SEP_GUEST_QUARTERS = 'casita-sep-guest-quarters'
+    # ENTIRE_HOUSE = 'entire-house'
+    # PARTIAL = 'partial'
+    # PRIVATE_ROOM = 'private-room'
+    # CASITA_SEP_GUEST_QUARTERS = 'casita-sep-guest-quarters'
     
-    BOOKED_SPACE = ((ENTIRE_HOUSE, 'Entire House'),
-                    (PRIVATE_ROOM, 'Private Room'),
-                    (CASITA_SEP_GUEST_QUARTERS, 'Casita/Sep Guest Quarters'))
+    # BOOKED_SPACE = (
+    #                 (CASITA_SEP_GUEST_QUARTERS, 'Casita/Sep Guest Quarters'),
+    #                 (ENTIRE_HOUSE, 'Entire House'),
+    #                 (PARTIAL, 'Partial'),
+    #                 (PRIVATE_ROOM, 'Private Room'),
+    #                 )
+    
+    ENTIRE_HOUSE = 'entire'
+    LOWER = 'lower'
+    PARTIAL = 'partial'
+    UPPER = 'upper'
+    PRIVATE_ROOM = 'room'
+    # CASITA_SEP_GUEST_QUARTERS = 'casita-sep-guest-quarters'
+    
+    BOOKED_SPACE = ((ENTIRE_HOUSE, 'Entire'),
+                    (LOWER, 'Lower'),
+                    (PARTIAL, 'Partial'),
+                    (PRIVATE_ROOM, 'Room'),
+                    (UPPER, 'Upper'),
+                    )
     
     KING_BED = 'king-bed'
     QUEEN_BED = 'queen-bed'
@@ -432,25 +450,34 @@ class Property(StampedUpdaterModel):
         
     )
     
+    STANDARD = "standard"
+    PREMIUM = "premium"
+    SUBSCRIPTIONS = ((STANDARD, "Standard"), (PREMIUM, "Premium"))
+    
     ref = models.CharField(max_length=16, verbose_name="Ref", unique=True)
     name = models.CharField(max_length=254, verbose_name="Name")
     video = models.FileField(upload_to="property_video_upload_path", blank=True, null=True, default=None)
     virtual_tour = models.FileField(upload_to="property_video_upload_path", blank=True, null=True, default=None)
+    is_draft = models.BooleanField(verbose_name="is draft", default=False)
+    subscription = models.CharField(max_length=254, verbose_name="Subscription", choices=SUBSCRIPTIONS, default=STANDARD)
     type = models.CharField(max_length=254, verbose_name="Type", choices=TYPES)
     space = models.CharField(max_length=254, verbose_name="Booked Space", choices=BOOKED_SPACE)
     hosted_by = models.CharField(max_length=254, verbose_name="Hosted By", blank=True, null=True, default=None)
     max_no_of_guest = models.IntegerField(verbose_name="Max No of Guest")
     no_of_bedrooms = models.IntegerField(verbose_name="No of Bedrooms")
-    no_of_bathrooms = models.IntegerField(verbose_name="No of Bathrooms")
+    no_of_bathrooms = models.DecimalField(verbose_name="No of Bathrooms", max_digits=4, decimal_places=1, default=0.0)
     is_pet_allowed = models.BooleanField(default=True, )
-    suitability = models.BooleanField(default=True, )
+    suitabilities = models.JSONField(default=list)
     description = models.TextField(verbose_name="Description")
     host_note = models.TextField(verbose_name="Host Notes", default='', blank=True, null=True)
+    cancellation_policy = models.TextField(verbose_name="Cancellation Policy", default='', blank=True, null=True)
     # room_type = models.CharField(max_length=32, verbose_name="Room Type", choices=ROOM_TYPES)
     # sleeper_type = models.CharField(max_length=32, verbose_name="Sleeper Type", choices=SLEEPER_TYPES)
     
     price_night = models.DecimalField(verbose_name="Ave $ Per Night", max_digits=9, decimal_places=2, default=0.0)
     address = models.ForeignKey(Address, related_name='property_address', on_delete=models.CASCADE)
+    hide_phone = models.BooleanField(default=False, )
+    hide_email = models.BooleanField(default=False, )
     email = models.CharField(max_length=128, verbose_name="email", default='', blank=True, null=True)
     phone = models.CharField(max_length=16, verbose_name="phone", default='', blank=True, null=True)
     logo = models.ImageField(blank=True, null=True, default=None)
@@ -473,6 +500,8 @@ class Property(StampedUpdaterModel):
     spaces = models.ManyToManyField(Space, blank=True)
     services = models.ManyToManyField(Service, blank=True)
     
+    imported = models.BooleanField(default=False, )
+    
     def save(self, *args, **kwargs):
         if not self.created:
             try:
@@ -485,7 +514,7 @@ class Property(StampedUpdaterModel):
         return super(Property, self).save(*args, **kwargs)
 
     def __str__(self):
-        return self.name
+        return f"{self.name}"
 
     def get_admin_url(self):
         return reverse('admin:{}_{}_change'.format(self._meta.app_label, self._meta.model_name), args=(self.pk, ))
@@ -538,7 +567,7 @@ class PropertyPhoto(StampedUpdaterModel):
     image = models.ImageField(upload_to="property_image_upload_path")
     
     def __str__(self):
-        return f'{self.type} ({self.property})'
+        return f"{self.image}"
         
 
 class Booker(StampedModel):
@@ -555,71 +584,17 @@ class Booker(StampedModel):
 
 
 class BookingSite(StampedModel):
-    AIR_BNB = 'air-bnb'
-    VRBO = 'vrbo'
-    GOOGLE_VACATION_RENTAL = 'google-vacation-rental'
-    FLIPKEY = 'flipkey'
-    WINDMU = 'windmu'
-    BOOKING = 'booking'
-    EXPEDIA = 'expedia'
-    HOUSETRIP = 'housetrip'
-    RENT_BY_OWNER = 'rent-by-owner'
-    HOLIDAY_LETTINGS = 'holidaylettings'
-    TRAVELOKA = 'traveloka'
-    TRIP = 'trip'
-    AGODA = 'agoda'
-    GLAMPING = 'glamping'
-    DESPEGAR_DECOLAR = 'despegar-decolar'
-    EDREAMS = 'edreams'
-    PEGIPEGI = 'pegipegi'
-    RAKUTEN = 'rakuten'
-    RIPARIDE = 'riparide'
-    ANYPLACE = 'anyplace'
-    FURNITURE_FINDERS = 'furniturefinders'
-    NINE_FLATS = '9flats'
-    COLIVING = 'coliving'
-    INSTANT_WORLD_BOOKING = 'instant-world-booking'
-    ONLY_APARTMENTS = 'only-apartments'
-
-    NAMES = (
-                (AIR_BNB, 'Air BNB'),
-                (VRBO, 'VRBO'),
-                (GOOGLE_VACATION_RENTAL, 'Google Vacation Rental'),
-                (FLIPKEY, 'Flipkey'),
-                (WINDMU, 'Windmu'),
-                (BOOKING, 'Booking.com'),
-                (EXPEDIA, 'Expedia'),
-                (HOUSETRIP, 'Housetrip'),
-                (RENT_BY_OWNER, 'Rent By Owner'),
-                (HOLIDAY_LETTINGS, 'HolidayLettings'),
-                (TRAVELOKA, 'Traveloka'),
-                (TRIP, 'Trip.com'),
-                (AGODA, 'Agoda'),
-                (GLAMPING, 'Glamping.com'),
-                (DESPEGAR_DECOLAR, 'Despegar/Decolar'),
-                (EDREAMS, 'eDreams'),
-                (PEGIPEGI, 'PegiPegi'),
-                (RAKUTEN, 'Rakuten'),
-                (RIPARIDE, 'Riparide'),
-                (ANYPLACE, 'Anyplace'),
-                (FURNITURE_FINDERS, 'FurnitureFinders'),
-                (NINE_FLATS, '9flats'),
-                (COLIVING, 'Coliving.com'),
-                (INSTANT_WORLD_BOOKING, 'Instant World Booking'),
-                (ONLY_APARTMENTS, 'Only-Apartments')
-                )
-
-    name = models.CharField(max_length=24, verbose_name="name", choices=NAMES)
-    site = models.URLField(max_length=254, verbose_name="site")
+    booker = models.ForeignKey(Booker, verbose_name="Booker", related_name="bookers", on_delete=models.CASCADE)
+    site = models.TextField(max_length=1024, verbose_name="site")
     property = models.ForeignKey(Property, verbose_name="Property", related_name="booking_sites", on_delete=models.CASCADE)
     
     class Meta:
-        ordering = ('name',)
+        ordering = ('site',)
         verbose_name = _('Booking Site')
         verbose_name_plural = _('Booking Sites')
 
     def __str__(self):
-        return self.name
+        return self.booker.name
 
 
 class SocialMediaLink(StampedModel):
@@ -630,6 +605,7 @@ class SocialMediaLink(StampedModel):
     TWITTER = 'twitter'
     GOOGLE_BUSINESS = 'google-business'
     YELP = 'yelp'
+    PINTEREST = 'pinterest'
 
     MEDIAS = (
                 (FACEBOOK, 'Facebook'),
@@ -638,11 +614,12 @@ class SocialMediaLink(StampedModel):
                 (YOUTUBE, 'YouTube'),
                 (TWITTER, 'Twitter'),
                 (GOOGLE_BUSINESS, 'GoogleBusiness'),
+                (PINTEREST, 'Pinterest'),
                 (YELP, 'Yelp')
             )
 
     name = models.CharField(max_length=24, verbose_name="name", choices=MEDIAS)
-    site = models.URLField(max_length=254, verbose_name="site")
+    site = models.TextField(max_length=1024, verbose_name="site")
     property = models.ForeignKey(Property, verbose_name="Property", related_name="social_media", on_delete=models.CASCADE)
 
     class Meta:

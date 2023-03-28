@@ -44,6 +44,8 @@ class CitySerializer(serializers.ModelSerializer):
 
 class AddressSerializer(serializers.ModelSerializer):
     # updated_by_id = serializers.SerializerMethodField()
+    # city = serializers.PrimaryKeyRelatedField(many=False, read_only=True)
+    city = serializers.PrimaryKeyRelatedField(many=False, read_only=True)
 
     # def get_updated_by_id(self, obj):
     #     return obj.updated_by.id
@@ -54,8 +56,22 @@ class AddressSerializer(serializers.ModelSerializer):
         # read_only_fields = ('id', 'updated', 'updated_by')
 
 
+class AddressCreateSerializer(serializers.ModelSerializer):
+    # updated_by_id = serializers.SerializerMethodField()
+    city = serializers.PrimaryKeyRelatedField(many=False, read_only=True)
+    city_data = CitySerializer(many=False, read_only=True)
+
+    # def get_updated_by_id(self, obj):
+    #     return obj.updated_by.id
+
+    class Meta:
+        model = Address
+        fields = ('id', 'street', 'number', 'city', 'city_data', 'zip_code', 'more_info')
+        # read_only_fields = ('id', 'updated', 'updated_by')
+
+
 class AddressDetailSerializer(serializers.ModelSerializer):
-    city = CitySerializer(many=False, read_only=True)
+    city = CitySerializer(many=False, read_only=False)
 
     class Meta:
         model = Address

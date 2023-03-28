@@ -200,6 +200,8 @@ class City(UntrackedModel):
     state_name = models.CharField(max_length=254, verbose_name="State Name")
     country_name = models.CharField(max_length=254, verbose_name="Country Name", default='United States')
     approved = models.BooleanField(default=True, )
+    imported = models.BooleanField(default=False, )
+    import_id = models.CharField(max_length=16, verbose_name="Imported Id", default='', blank=True, null=True)
     
     def __str__(self):
         return self.name
@@ -217,12 +219,15 @@ class City(UntrackedModel):
 
 class Address(UntrackedModel):
     country = models.CharField(max_length=254, verbose_name="Country")
-    street = models.CharField(max_length=254, verbose_name="Street")
-    number = models.CharField(max_length=254, verbose_name="Number")
+    street = models.CharField(max_length=254, verbose_name="Street", null=True, blank=True, default='')
+    number = models.CharField(max_length=254, verbose_name="Number", null=True, blank=True, default='')
     city = models.ForeignKey(City, on_delete=models.CASCADE, verbose_name="City")
     zip_code = models.CharField(max_length=10, verbose_name="Zip Code")
-    more_info = models.CharField(max_length=254, verbose_name="Additional Info", null=True, blank=True, default='')
-
+    more_info = models.CharField(max_length=512, verbose_name="Additional Info", null=True, blank=True, default='')
+    hidden = models.BooleanField(default=False, )
+    imported = models.BooleanField(default=False, )
+    import_id = models.CharField(max_length=16, verbose_name="Imported Id", default='', blank=True, null=True)
+    
     def __str__(self):
         return 'No. {}, {}, {}, {}'.format(self.number, self.street, self.city, self.zip_code)
 
@@ -295,7 +300,7 @@ class Profile(TrackedModel):
     """
     Profile model:
     """
-
+    
     ref = models.CharField(max_length=16, verbose_name="Ref", unique=True, blank=False, null=False)
     user = models.OneToOneField(UserModel, on_delete=models.CASCADE, related_name='user_profile')
     company = models.ForeignKey(Company, on_delete=models.CASCADE, blank=True, null=True, default=None, related_name='company_profiles')

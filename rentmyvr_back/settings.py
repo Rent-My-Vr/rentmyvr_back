@@ -146,6 +146,7 @@ INSTALLED_APPS = [
     'notifications',
     'notifications_api',
 
+    'import_export',
     'corsheaders',
     'drf_yasg',
 ]
@@ -172,6 +173,8 @@ PROFILE_IS_REQUIRED = False
 
 
 REST_FRAMEWORK = {
+    "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
+    # 'DEFAULT_PAGINATION_CLASS': 'core_api.pagination.MyPagination',
     'DEFAULT_AUTHENTICATION_CLASSES': [
        'rest_framework.authentication.TokenAuthentication',
     #    'rest_framework.authentication.SessionAuthentication',
@@ -270,7 +273,7 @@ if IS_PORTABLE_DB:
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / 'db.sqlite3',
+            'NAME': BASE_DIR/'db.sqlite3',
         }
     }
 else:
