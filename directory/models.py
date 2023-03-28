@@ -299,13 +299,17 @@ class Property(StampedUpdaterModel):
     CAMPER = 'camper'
     CARAVAN = 'caravan'
     CASA_PARTICULARS = 'casa-particulars'
+    CASITA = 'casita'
     CASTLE = 'castle'
     CAVE = 'cave'
     CHALET = 'chalet'
     CONDO = 'condo'
+    COTTA = 'cotta'
     COTTAGE = 'cottage'
     COUNTRY_HOUSE = 'country-house'
+    CSA = 'Csa'
     CYCLADIC = 'cycladic'
+    DUPLEX = 'duplex'
     DAMUSI = 'damusi'
     EARTH_HOME = 'earth-home'
     ESTATE = 'estate'
@@ -323,6 +327,7 @@ class Property(StampedUpdaterModel):
     MINSUS = 'minsus'
     RESORT = 'resort'
     RIAD = 'riad'
+    ROOM = 'room'
     RV = 'rv'
     RYOKAN = 'ryokan'
     SHEPHERDS_HUT = 'shepherds-hut'
@@ -352,14 +357,18 @@ class Property(StampedUpdaterModel):
                 (CAMPER, 'Camper'),
                 (CARAVAN, 'Caravan'),
                 (CASA_PARTICULARS, 'Casa Particulars'),
+                (CASITA, 'Casita'),
                 (CASTLE, 'Castle'),
                 (CAVE, 'Cave'),
                 (CHALET, 'Chalet'),
                 (CONDO, 'Condo'),
+                (COTTA, 'Cotta'),
                 (COTTAGE, 'Cottage'),
                 (COUNTRY_HOUSE, 'Country House'),
+                (CSA, 'Csa'),
                 (CYCLADIC, 'Cycladic'),
                 (DAMUSI, 'Damusi'),
+                (DUPLEX, 'Duplex'),
                 (EARTH_HOME, 'Earth Home'),
                 (ESTATE, 'Estate'),
                 (FARM_HOUSE, 'Farm House'),
@@ -376,6 +385,7 @@ class Property(StampedUpdaterModel):
                 (MINSUS, 'Minsus'),
                 (RESORT, 'Resort'),
                 (RIAD, 'Riad'),
+                (ROOM, 'Room'),
                 (RV, 'RV'),
                 (RYOKAN, 'Ryokan'),
                 (SHEPHERDS_HUT, "Shepherd's Hut"),
@@ -394,19 +404,19 @@ class Property(StampedUpdaterModel):
                 (YACHT, 'Yacht'),
                 (YURT, 'Yurt')
             )
-    
-    # ENTIRE_HOUSE = 'entire-house'
-    # PARTIAL = 'partial'
-    # PRIVATE_ROOM = 'private-room'
-    # CASITA_SEP_GUEST_QUARTERS = 'casita-sep-guest-quarters'
-    
-    # BOOKED_SPACE = (
-    #                 (CASITA_SEP_GUEST_QUARTERS, 'Casita/Sep Guest Quarters'),
-    #                 (ENTIRE_HOUSE, 'Entire House'),
-    #                 (PARTIAL, 'Partial'),
-    #                 (PRIVATE_ROOM, 'Private Room'),
-    #                 )
-    
+        
+        # ENTIRE_HOUSE = 'entire-house'
+        # PARTIAL = 'partial'
+        # PRIVATE_ROOM = 'private-room'
+        # CASITA_SEP_GUEST_QUARTERS = 'casita-sep-guest-quarters'
+        
+        # BOOKED_SPACE = (
+        #                 (CASITA_SEP_GUEST_QUARTERS, 'Casita/Sep Guest Quarters'),
+        #                 (ENTIRE_HOUSE, 'Entire House'),
+        #                 (PARTIAL, 'Partial'),
+        #                 (PRIVATE_ROOM, 'Private Room'),
+        #                 )
+        
     ENTIRE_HOUSE = 'entire'
     LOWER = 'lower'
     PARTIAL = 'partial'

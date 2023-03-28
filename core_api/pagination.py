@@ -37,7 +37,7 @@ class MyPaginationMixin(object):
      
      
 class MyPagination(pagination.PageNumberPagination):
-    page_size = 50
+    page_size = 100
     max_page_size = 500
 
     def get_paginated_response(self, data):
