@@ -13,7 +13,7 @@ from rest_framework.response import Response
 from rest_framework.decorators import action
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.permissions import IsAuthenticated, AllowAny
-from rest_framework import viewsets, status, mixins
+from rest_framework import viewsets, status, mixins, pagination
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser, FileUploadParser
 
 from django.db.models import Q, Prefetch
@@ -25,6 +25,7 @@ from auths_api.serializers import UserSerializer, UserUpdateSerializer
 from notifications.signals import notify
 
 from core.models import *
+from core_api.pagination import MyPagination, MyPaginationMixin
 from core.utils import send_gmail
 from directory.models import *
 
@@ -46,8 +47,11 @@ class UUIDEncoder(json.JSONEncoder):
             return obj.hex
         return json.JSONEncoder.default(self, obj)
 
-
-class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
+# class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin, MyPaginationMixin):
+class PropertyViewSet(viewsets.ModelViewSet):
+    # pagination_class = ExamplePagination
+    pagination_class = MyPagination
+    # pagination_class = api_settings.DEFAULT_PAGINATION_CLASS
     permission_classes = (IsAuthenticated, )
     authentication_classes = (TokenAuthentication,)
     parser_classes = (MultiPartParser, FormParser, JSONParser, FileUploadParser)
@@ -602,6 +606,41 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             print('============ 8 =============')
             return Response(PropertySerializer(instance).data, status=status.HTTP_201_CREATED)
 
+    
+    def list(self, request, *args, **kwargs):
+        p = request.query_params.get('page', None)
+        # size = request.query_params.get('size', None)
+        print('...: ',p)
+        
+        queryset = self.filter_queryset(self.get_queryset())
+        queryset = Property.objects.all()
+
+        page = self.paginate_queryset(queryset)
+        print('Pagination: ', page)
+        if page is not None:
+            size = request.query_params.get('size', page.page_size_query_param)
+            print(size)
+            print(page.page_size_query_param)
+            # page.page_size_query_param = 
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = self.get_serializer(queryset[0:2], many=True)
+        return Response(serializer.data)
+
+
+    @action(methods=['get'], detail=False, url_path='table/data', url_name='table-data')
+    def table_data(self, request, *args, **kwargs):
+        pass
+        # {
+        # data: tradesCollection,
+        # paging: {
+        #     total: tradesCollectionCount,
+        #     page: currentPage,
+        #     pages: totalPages,
+        # },
+        # }
+            
     @action(methods=['get'], detail=False, url_path='form/items', url_name='form-items')
     def form_items(self, request, *args, **kwargs):
         orderedDict = BookerSerializer(Booker.objects.filter(enabled=True), many=True).data

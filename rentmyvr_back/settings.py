@@ -173,6 +173,8 @@ PROFILE_IS_REQUIRED = False
 
 
 REST_FRAMEWORK = {
+    "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
+    # 'DEFAULT_PAGINATION_CLASS': 'core_api.pagination.MyPagination',
     'DEFAULT_AUTHENTICATION_CLASSES': [
        'rest_framework.authentication.TokenAuthentication',
     #    'rest_framework.authentication.SessionAuthentication',
