@@ -278,20 +278,20 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
 
     def update(self, request, *args, **kwargs):
         with transaction.atomic():
-            print('============ 0 =============')
+            partial = kwargs.pop('partial', False)
+            instance = self.get_object()
+            print('============ 0 update =============')
             print(request.data)
-            print('============ 1 =============')
+            print('============ 1 update =============')
             
             data = dict()
             for d in list(request.data.keys()):
                 data[d] = request.data.getlist(d) if '[]' in d else request.data[d]
             # pictures = request.data.getlist('pictures[]')
             # print(pictures)
-            print('============ 2 =============')
-            # data = copy.deepcopy(request.data)
-            print(data)
-            # data = request.data.copy()
-            print('============ 3333 =============')
+            # print('============ 2 =============')
+            # print(data)
+            # print('============ 3333 =============')
             data['address'] = {}
             data['address']['id'] = request.data.get('address[id]', None)
             data['address']['street'] = request.data.get('address[street]')
@@ -299,8 +299,11 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             data['address']['zip_code'] = request.data.get('address[zip_code]')
             data['address']['state'] = request.data.get('address[state]')
             data['address']['hidden'] = request.data.get('address[hidden]')
+            data['address']['more_info'] = request.data.get('address[more_info]')
             data['address']['city'] = dict()
             data['address']['city']['id'] = request.data.get('address[city][id]', None)
+            data['address']['city']['imported'] = request.data.get('address[city][imported]', False)
+            data['address']['city']['import_id'] = request.data.get('address[city][import_id]', None)
             data['address']['city']['name'] = request.data.get('address[city][name]')
             data['address']['city']['state_name'] = request.data.get('address[city][state_name]')
             data['address']['city']['approved'] = True if data['address']['city']['id'] else False
@@ -308,6 +311,8 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             data['address']['city'] = data['address']['city'].get('id', None) if data['address']['city'].get('id', None) else None
             
             data.pop("address[id]", None)
+            data.pop("address[imported]", None)
+            data.pop("address[more_info]", None)
             data.pop("address[street]", None)
             data.pop("address[number]", None)
             data.pop("address[zip_code]", None)
@@ -316,6 +321,8 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             data.pop("address[hidden]", None)
             data.pop("address[city]", None)
             data.pop("address[city][id]", None)
+            data.pop("address[city][imported]", None)
+            data.pop("address[city][import_id]", None)
             data.pop("address[city][name]", None)
             data.pop("address[city][state_name]", None)
             data.pop("address[city][updated]", None)
@@ -323,20 +330,28 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             data.pop("address[city][country_name]", None)
             data.pop("address[city][approved]", None)
             
-            print(data)
+            # print(data)
             # print(data.get('booking_sites[]'))
             
             booking_sites_set = set()
             social_media_set = set()
+            pictures_set = set()
+            suitabilities_set = set()
             room_types_set = set()
             room_types_dict = dict()
             max_sleeper = 0
             for k in data.keys():
-                # print(k)
+                print(k)
                 if f'booking_sites[' in k:
                     booking_sites_set.add(re.findall(r"^booking_sites\[(\d+)\]\[\w+\]", k)[0])
                 elif f'social_media[' in k:
                     social_media_set.add(re.findall(r"^social_media\[(\d+)\]\[\w+\]$", k)[0])
+                elif f'pictures[' in k:
+                    if k != 'pictures[]':
+                        pictures_set.add(re.findall(r"^pictures\[(\d+)\]", k)[0])
+                        # pictures_set.add(re.findall(r"^pictures\[(\d+)\]\[\w+\]$", k)[0])
+                elif f'suitabilities[' in k:
+                    suitabilities_set.add(re.findall(r"^suitabilities\[(\d+)\]\[\w+\]$", k)[0])
                 elif f'room_types[' in k:
                     r = re.findall(r"^room_types\[(\d+)\]\[(\w+)\]\[(\d+)\]\[(\w+)\]$", k)
                     if len(r) > 0:
@@ -355,20 +370,26 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             print('booking_sites_set: ', booking_sites_set)
             print('booking_sites_set_length: ', len(booking_sites_set))
             print('social_media_set_length: ', len(social_media_set))
+            print('pictures_set_length: ', len(pictures_set))
+            print('social_media_set_length: ', len(social_media_set))
             print('room_types_set_length: ', len(room_types_set))
             print('room_types_dict: ', room_types_dict)
             print('max_sleeper: ', max_sleeper)
             
-            room_types = []
+            id = request.data.get('id')
+            
+            rt_ids = []
             for i in range(len(room_types_dict.keys())):
                 d = dict()
                 d['id'] = data.get(f'room_types[{i}][id]', None)
                 d['name'] = data[f'room_types[{i}][name]']
                 d['label'] = data.get(f'room_types[{i}][label]', None)
-                d['property'] = None
+                d['property'] = data.get(f'room_types[{i}][property]', id)
+                
                 data.pop(f'room_types[{i}][id]', None)
                 data.pop(f'room_types[{i}][name]', None)
                 data.pop(f'room_types[{i}][label]', None)
+                data.pop(f'room_types[{i}][property]', None)
                 
                 d['sleepers'] = []
                 for j in range(room_types_dict[str(i)]+1):
@@ -378,46 +399,106 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
                         data.pop(f'room_types[{i}][sleepers][{j}][name]', None)
                     except KeyError as ke:
                         pass
-                room_types.append(d)
+                
+                inst = RoomType.objects.filter(id=d.get('id', None))
+                if len(inst) == 0:
+                    ser = RoomTypeSerializer(data=d)
+                else:
+                    inst = inst.first()
+                    ser = RoomTypeSerializer(inst, data=d, partial=partial)
+                ser.is_valid(raise_exception=True)
+                inst = ser.save()
+                rt_ids.append(inst.id)
+            RoomType.objects.filter(~Q(id__in=rt_ids), property=instance).delete()
             
-            booking_sites = []
+            b_ids = []
             for i in range(len(booking_sites_set)):
                 d = dict()
                 d['id'] = data.get(f'booking_sites[{i}][id]', None)
                 d['site'] = data[f'booking_sites[{i}][site]']
                 d['booker'] = data[f'booking_sites[{i}][booker]']
-                # d['booker']['id'] = data[f'booking_sites[{i}][booker][id]']
-                # d['booker']['base'] = data[f'booking_sites[{i}][booker][base]']
-                # d['booker']['name'] = data[f'booking_sites[{i}][booker][name]']
-                d['property'] = None
+                d['property'] = data.get(f'booking_sites[{i}][property]', id)
                 
                 data.pop(f'booking_sites[{i}][id]', None)
                 data.pop(f'booking_sites[{i}][site]', None)
                 data.pop(f'booking_sites[{i}][booker]', None)
-                # data.pop(f'booking_sites[{i}][booker][id]', None)
-                # data.pop(f'booking_sites[{i}][booker][base]', None)
-                # data.pop(f'booking_sites[{i}][booker][name]', None)
+                data.pop(f'booking_sites[{i}][property]', None)
                 
-                booking_sites.append(d)
-                # ser = BookingSiteSerializer(data=d)
-                # ser.is_valid(raise_exception=True)
-                # ser.save(updated_by_id=self.request.user.id) 
+                inst = BookingSite.objects.filter(id=d.get('id', None))
+                if len(inst) == 0:
+                    ser = BookingSiteSerializer(data=d)
+                else:
+                    inst = inst.first()
+                    ser = BookingSiteSerializer(inst, data=d, partial=partial)
+                ser.is_valid(raise_exception=True)
+                inst = ser.save()
+                b_ids.append(inst.id)
+            BookingSite.objects.filter(~Q(id__in=b_ids), property=instance).delete()
             
-            social_media = []
+            s_ids = []
             for i in range(len(social_media_set)):
                 d = dict()
                 d['id'] = data.get(f'social_media[{i}][id]', None)
                 d['name'] = data[f'social_media[{i}][name]']
-                data.pop(f'social_media[{i}][name]', None)
                 d['site'] = data[f'social_media[{i}][site]']
-                data.pop(f'social_media[{i}][site]', None)
                 d['label'] = data.get(f'social_media[{i}][label]', None)
+                d['property'] = data.get(f'social_media[{i}][property]', id)
+                
+                data.pop(f'social_media[{i}][id]', None)
+                data.pop(f'social_media[{i}][name]', None)
+                data.pop(f'social_media[{i}][site]', None)
                 data.pop(f'social_media[{i}][label]', None)
-                d['property'] = None
-                social_media.append(d)
-                # ser = SocialMediaLinkSerializer(data=d)
-                # ser.is_valid(raise_exception=True)
-                # ser.save(updated_by_id=self.request.user.id) 
+                data.pop(f'social_media[{i}][property]', None)
+                
+                inst = SocialMediaLink.objects.filter(id=d.get('id', None))
+                if len(inst) == 0:
+                    ser = SocialMediaLinkSerializer(data=d)
+                else:
+                    inst = inst.first()
+                    ser = SocialMediaLinkSerializer(inst, data=d, partial=partial)
+                ser.is_valid(raise_exception=True)
+                inst = ser.save()
+                s_ids.append(inst.id)
+            SocialMediaLink.objects.filter(~Q(id__in=s_ids), property=instance).delete()
+                
+            pi_ids = []
+            for i in range(len(pictures_set)):
+                d = dict()
+                d['id'] = data.get(f'pictures[{i}][id]', None)
+                d['property'] = data.get(f'pictures[{i}][property]', id)
+                # d['image'] = data[f'pictures[{i}][image]']
+                d['image'] = data.get(f'pictures[{i}]', None) if data.get(f'pictures[{i}]', None) else data.get(f'pictures[{i}][image]', None)
+                
+                print(d, '----------\n')
+                
+                data.pop(f'pictures[{i}]', None)
+                data.pop(f'pictures[{i}][id]', None)
+                data.pop(f'pictures[{i}][property]', None)
+                data.pop(f'pictures[{i}][image]', None)
+                
+                inst = PropertyPhoto.objects.filter(id=d.get('id', None))
+                if len(inst) == 0:
+                    ser = PropertyPhotoSerializer(data=d)
+                    ser.is_valid(raise_exception=True)
+                    inst = ser.save(updated_by_id=self.request.user.id)
+                else:
+                    inst = inst.first()
+                    # ser = PropertyPhotoSerializer(inst, data=d, partial=partial) 
+                pi_ids.append(inst.id)
+            PropertyPhoto.objects.filter(~Q(id__in=pi_ids), property=instance).delete()
+                
+            suitabilities = []
+            for i in range(len(suitabilities_set)):
+                d = dict()
+                d['id'] = data.get(f'suitabilities[{i}][id]', None)
+                d['label'] = data.get(f'suitabilities[{i}][label]', None)
+                d['days'] = data.get(f'suitabilities[{i}][days]', None)
+                
+                data.pop(f'suitabilities[{i}][id]', None)
+                data.pop(f'suitabilities[{i}][label]', None)
+                data.pop(f'suitabilities[{i}][days]', None)
+                
+                suitabilities.append(d)
 
             data['accessibility'] = data.get('accessibility[]', [])
             data.pop(f'accessibility[]', None)
@@ -450,11 +531,19 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             data['services'] = data.get('services[]', [])
             data.pop(f'services[]', None)
             
-            data['booking_sites'] = booking_sites
-            data['social_media'] = social_media
-            data['room_types'] = room_types
-            print('============ *3* =============')
+            data['booking_sites'] = []
+            data['social_media'] = []
+            data['room_types'] = []
+            # data['pictures'] = pictures
+            data['suitabilities'] = suitabilities
+            print('\n============ ******3***** =============')
             print(data)
+            print(1)
+            # print(pictures)
+            print(1)
+            print(suitabilities)
+            print('============ ******3***** =============\n')
+            
             if not data.get('video'):
                 data['logo'] = None
                 data['video'] = None
@@ -462,25 +551,54 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             print('----------------')
             print(data.get('address'))
             print('============ 4 =============')
-            serializer = PropertySerializer(data=data, context={'city_data': data['address']['city_data']})
-            print('============ 5 =============')
+            if not data.get('address').get('city_data').get('id', None):
+                print('====Create City****')
+                ser = CitySerializer(data=data.get('address').get('city_data'))
+                ser.is_valid(raise_exception=True)
+                inst = ser.save(updated_by_id=self.request.user.id)
+                data['address']['city_id'] = inst.id
+            else:
+                print('====Have City****')
+                data['address']['city_id'] = data.get('address').get('city_data').get('id')
+            
+            print(data.get('address'))
+            inst = Address.objects.filter(id=data.get('address').get('id', None)).first()
+            print(inst)
+            if inst:
+                ser = AddressSerializer(inst, data=data.get('address'), partial=partial) 
+            else:
+                ser = AddressSerializer(data=d)
+            print(1)
+            ser.is_valid(raise_exception=True)
+            print(2)
+            address = ser.save(updated_by_id=self.request.user.id)
+            print(address)
+            print(address.id)
+                
+            serializer = PropertySerializer(instance, data=data, partial=partial, context={'address_id': address.id, 'updated_by_id': self.request.user.id})
+            # serializer = self.get_serializer(instance, data=request.data, partial=partial)
+            print(3)
             serializer.is_valid(raise_exception=True)
+            print('============ 5 =============')
             print('============ 6 =============')
-            instance = self.perform_create(serializer)
+            instance = self.perform_update(serializer)
             print('============ 7 =============')
-            print(instance)
+            # print(instance__)
             print(type(instance))
-            for rtd in room_types:
-                rtd['property'] = instance.id
-                ser = RoomTypeSerializer(data=rtd)
-                ser.is_valid(raise_exception=True)
-                rt = ser.save()
-                print(rt)
-                print(RoomTypeSerializer(instance=rt).data)
-            for p in request.data.getlist('pictures[]'):
-                ser = PropertyPhotoSerializer(data={'image': p, "property": instance.id})
-                ser.is_valid(raise_exception=True)
-                pic = self.perform_create(ser)
+            
+            # print('***************pictures***************')
+            # p_ids = []
+            # for p in request.data.getlist('pictures'):
+            #     inst = PropertyPhoto.objects.filter(id=p.get('id', None))
+            #     if len(inst) == 0:
+            #         ser = PropertyPhotoSerializer(data=p)
+            #     else:
+            #         inst = inst.first()
+            #         ser = PropertyPhotoSerializer(inst, data=p, partial=partial)
+            #     ser.is_valid(raise_exception=True)
+            #     inst = ser.save()
+            #     p_ids.append(inst.id)
+            # PropertyPhoto.objects.filter(~Q(id__in=p_ids), property=instance).delete()
             print('============ 8 =============')
             return Response(PropertySerializer(instance).data, status=status.HTTP_201_CREATED)
 

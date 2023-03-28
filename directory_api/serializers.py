@@ -1,7 +1,7 @@
 from csv import field_size_limit
 from dataclasses import fields
 import logging
-
+from uuid import UUID
 from django.conf import settings
 from django.db import transaction
 from django.contrib.auth import get_user_model
@@ -366,6 +366,112 @@ class PropertySerializer(serializers.ModelSerializer):
             # for it in services:
             #     Service.objects.create(property=property, **it)
             return property
+        return None
+
+    def update(self, instance, validated_data):
+        print('===========: Update ******** : 11============')
+        print(validated_data)
+        print(instance)
+        print('===========: ******** : 22============')
+        # city_data = self.context.get('city_data', {})
+        updated_by_id = self.context.get('updated_by_id', '')
+        address_id = self.context.get('address_id', '')
+        # print(city_data)
+        print(updated_by_id, '  ===========: ******** : 33============')
+        validated_data.pop('address')
+        # address_data['city'] = city_data.get('id') if city_data.get('id', None) else None
+        accessibility = validated_data.pop('accessibility')
+        activities = validated_data.pop('activities')
+        bathrooms = validated_data.pop('bathrooms')
+        entertainments = validated_data.pop('entertainments')
+        essentials = validated_data.pop('essentials')
+        families = validated_data.pop('families')
+        features = validated_data.pop('features')
+        kitchens = validated_data.pop('kitchens')
+        laundries = validated_data.pop('laundries')
+        outsides = validated_data.pop('outsides')
+        parking = validated_data.pop('parking')
+        pool_spas = validated_data.pop('pool_spas')
+        safeties = validated_data.pop('safeties')
+        spaces = validated_data.pop('spaces')
+        services = validated_data.pop('services')
+        social_media = validated_data.pop('social_media')
+        booking_sites = validated_data.pop('booking_sites')
+        # pictures = validated_data.pop('pictures')
+        # suitabilities = validated_data.pop('suitabilities')
+        validated_data.pop('room_types')
+        # room_types = validated_data.pop('room_types')
+        # pictures = validated_data.pop('pictures')
+
+        with transaction.atomic():
+            print('==== 11 ====')
+            # print(pictures)
+            # print('==== 111 ====')
+            # print(suitabilities)
+            # print('==== 2 ====')
+            print(validated_data)
+            print('==== 22 ====')
+            # print(social_media)
+            # print('==== 222 ====')
+            # print(booking_sites)
+            # print('==== 2222 ====')
+            print(address_id)
+            # print('==== 22222 ====')
+            # print(address_data.get('city'))
+            print('****************************')
+            # if address_data.get('city'):
+            #     city = address_data.get('city')
+            # else:
+            #     city_data['updated_by_id'] = updated_by_id
+            #     print(city_data)
+            #     city = City.objects.get_or_create(id=city_data.get('id', None), defaults=city_data)
+            #     city = city[0].id
+            # address_data['city'] = None
+            # address_data['city_id'] = city
+            # address = Address.objects.update(id=address_data.get('id'), **address_data)
+            print('==== 3 ====')
+            print(validated_data)
+            # property = Property.objects.update(id=validated_data.get('id'), **validated_data)
+            property = Property.objects.filter(id=instance.id).update(address_id=address_id, **validated_data)
+            # property = instance.update(address_id=address_id, **validated_data)
+            # for r in room_types:
+            #     r['property'] = property
+            #     RoomType.objects.create(**r)
+            # for b in booking_sites:
+            #     b['property'] = instance
+            #     bb, status = BookingSite.objects.get_or_create(**b)
+            #     if not status:
+            #         print(b)
+            #         bb.updated(**b)
+            # for s in social_media:
+            #     s['property'] = instance
+            #     ss, status = SocialMediaLink.objects.get_or_create(**s)
+            #     if not status:
+            #         ss.updated(**s)
+            
+            
+            # for p in pictures:
+            #     s['property'] = property
+            #     SocialMediaLink.objects.create(**s)
+            instance.accessibility.set(accessibility)
+            instance.activities.set(activities)
+            instance.bathrooms.set(bathrooms)
+            instance.entertainments.set(entertainments)
+            instance.essentials.set(essentials)
+            instance.families.set(families)
+            instance.features.set(features)
+            instance.kitchens.set(kitchens)
+            instance.laundries.set(laundries)
+            instance.outsides.set(outsides)
+            instance.parking.set(parking)
+            instance.pool_spas.set(pool_spas)
+            instance.safeties.set(safeties)
+            instance.spaces.set(spaces)
+            instance.services.set(services)
+            print('==== 4 ====')
+            print(accessibility)
+            
+            return instance
         return None
 
     class Meta:

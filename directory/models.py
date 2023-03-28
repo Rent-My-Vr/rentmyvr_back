@@ -395,16 +395,30 @@ class Property(StampedUpdaterModel):
                 (YURT, 'Yurt')
             )
     
-    ENTIRE_HOUSE = 'entire-house'
-    PARTIAL = 'partial'
-    PRIVATE_ROOM = 'private-room'
-    CASITA_SEP_GUEST_QUARTERS = 'casita-sep-guest-quarters'
+    # ENTIRE_HOUSE = 'entire-house'
+    # PARTIAL = 'partial'
+    # PRIVATE_ROOM = 'private-room'
+    # CASITA_SEP_GUEST_QUARTERS = 'casita-sep-guest-quarters'
     
-    BOOKED_SPACE = (
-                    (CASITA_SEP_GUEST_QUARTERS, 'Casita/Sep Guest Quarters'),
-                    (ENTIRE_HOUSE, 'Entire House'),
+    # BOOKED_SPACE = (
+    #                 (CASITA_SEP_GUEST_QUARTERS, 'Casita/Sep Guest Quarters'),
+    #                 (ENTIRE_HOUSE, 'Entire House'),
+    #                 (PARTIAL, 'Partial'),
+    #                 (PRIVATE_ROOM, 'Private Room'),
+    #                 )
+    
+    ENTIRE_HOUSE = 'entire'
+    LOWER = 'lower'
+    PARTIAL = 'partial'
+    UPPER = 'upper'
+    PRIVATE_ROOM = 'room'
+    # CASITA_SEP_GUEST_QUARTERS = 'casita-sep-guest-quarters'
+    
+    BOOKED_SPACE = ((ENTIRE_HOUSE, 'Entire'),
+                    (LOWER, 'Lower'),
                     (PARTIAL, 'Partial'),
-                    (PRIVATE_ROOM, 'Private Room'),
+                    (PRIVATE_ROOM, 'Room'),
+                    (UPPER, 'Upper'),
                     )
     
     KING_BED = 'king-bed'
@@ -451,7 +465,7 @@ class Property(StampedUpdaterModel):
     hosted_by = models.CharField(max_length=254, verbose_name="Hosted By", blank=True, null=True, default=None)
     max_no_of_guest = models.IntegerField(verbose_name="Max No of Guest")
     no_of_bedrooms = models.IntegerField(verbose_name="No of Bedrooms")
-    no_of_bathrooms = models.IntegerField(verbose_name="No of Bathrooms")
+    no_of_bathrooms = models.DecimalField(verbose_name="No of Bathrooms", max_digits=4, decimal_places=1, default=0.0)
     is_pet_allowed = models.BooleanField(default=True, )
     suitabilities = models.JSONField(default=list)
     description = models.TextField(verbose_name="Description")
@@ -500,7 +514,7 @@ class Property(StampedUpdaterModel):
         return super(Property, self).save(*args, **kwargs)
 
     def __str__(self):
-        return self.name
+        return f"{self.name}"
 
     def get_admin_url(self):
         return reverse('admin:{}_{}_change'.format(self._meta.app_label, self._meta.model_name), args=(self.pk, ))
@@ -553,7 +567,7 @@ class PropertyPhoto(StampedUpdaterModel):
     image = models.ImageField(upload_to="property_image_upload_path")
     
     def __str__(self):
-        return f'{self.type} ({self.property})'
+        return f"{self.image}"
         
 
 class Booker(StampedModel):
@@ -571,7 +585,7 @@ class Booker(StampedModel):
 
 class BookingSite(StampedModel):
     booker = models.ForeignKey(Booker, verbose_name="Booker", related_name="bookers", on_delete=models.CASCADE)
-    site = models.URLField(max_length=254, verbose_name="site")
+    site = models.TextField(max_length=1024, verbose_name="site")
     property = models.ForeignKey(Property, verbose_name="Property", related_name="booking_sites", on_delete=models.CASCADE)
     
     class Meta:
@@ -605,7 +619,7 @@ class SocialMediaLink(StampedModel):
             )
 
     name = models.CharField(max_length=24, verbose_name="name", choices=MEDIAS)
-    site = models.URLField(max_length=254, verbose_name="site")
+    site = models.TextField(max_length=1024, verbose_name="site")
     property = models.ForeignKey(Property, verbose_name="Property", related_name="social_media", on_delete=models.CASCADE)
 
     class Meta:
