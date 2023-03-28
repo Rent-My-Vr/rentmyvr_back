@@ -489,6 +489,11 @@ class PropertyViewSet(viewsets.ModelViewSet):
                     inst = inst.first()
                     # ser = PropertyPhotoSerializer(inst, data=d, partial=partial) 
                 pi_ids.append(inst.id)
+            for p in request.data.getlist('pictures[]'):
+                ser = PropertyPhotoSerializer(data={'image': p, "property": instance.id})
+                ser.is_valid(raise_exception=True)
+                inst = self.perform_create(ser)
+                pi_ids.append(inst.id)
             PropertyPhoto.objects.filter(~Q(id__in=pi_ids), property=instance).delete()
                 
             suitabilities = []
@@ -613,7 +618,7 @@ class PropertyViewSet(viewsets.ModelViewSet):
         print('...: ',p)
         
         queryset = self.filter_queryset(self.get_queryset())
-        queryset = Property.objects.all()
+        queryset = Property.objects.all().order_by('created')
 
         page = self.paginate_queryset(queryset)
         # print('Pagination: ', page)
