@@ -613,23 +613,31 @@ class PropertyViewSet(viewsets.ModelViewSet):
 
     
     def list(self, request, *args, **kwargs):
-        p = request.query_params.get('page', None)
-        # size = request.query_params.get('size', None)
-        print('...: ',p)
+        page_number = request.query_params.get('page', None)
+        size = request.query_params.get('size', 0)
+        print('...: ',page_number)
         
-        queryset = self.filter_queryset(self.get_queryset())
+        # queryset = self.filter_queryset(self.get_queryset())
         queryset = Property.objects.all().order_by('created')
 
-        page = self.paginate_queryset(queryset)
-        # print('Pagination: ', page)
-        if page is not None:
-            size = request.query_params.get('size', None)
-            print(size)
-            # page.page_size_query_param = 
-            serializer = self.get_serializer(page, many=True)
-            return self.get_paginated_response(serializer.data)
-
-        serializer = self.get_serializer(queryset[0:2], many=True)
+        if size == 0 and page_number:
+            pagy = self.paginate_queryset(queryset)
+            # print('Pagination: ', page)
+            if pagy is not None:
+                size = request.query_params.get('size', None)
+                print(size) 
+                # page.page_size_query_param = 
+                serializer = self.get_serializer(pagy, many=True)
+                return self.get_paginated_response(serializer.data)
+        else:
+            page_number = int(page_number)
+            size = int(size)
+            print(page_number, '   ', page_number*size, ' ---- ', size)
+            queryset = Property.objects.all().order_by('created')[page_number*size:(page_number*size)+size]
+            serializer = self.get_serializer(queryset, many=True)
+            return Response({"data": serializer.data, "total_count": Property.objects.all().count()})
+        
+        serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
 
 
