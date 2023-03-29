@@ -596,7 +596,7 @@ class Booker(StampedModel):
 
 class BookingSite(StampedModel):
     booker = models.ForeignKey(Booker, verbose_name="Booker", related_name="bookers", on_delete=models.CASCADE)
-    site = models.TextField(max_length=1024, verbose_name="site")
+    site = models.TextField(max_length=4096, verbose_name="site")
     property = models.ForeignKey(Property, verbose_name="Property", related_name="booking_sites", on_delete=models.CASCADE)
     
     class Meta:
