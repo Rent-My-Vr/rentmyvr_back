@@ -29,7 +29,7 @@ class PriceChart(TrackedModel):
     type = models.CharField(max_length=128, verbose_name="type", choices=TYPES, default=STANDARD, null=False, blank=False)
     monthly_price = models.DecimalField(verbose_name="Monthly Price", default=0.0, null=True, blank=True, max_digits=6, decimal_places=2, help_text="Eg Pay $25 monthly")
     yearly_price = models.DecimalField(verbose_name="Yearly Price", max_digits=6, decimal_places=2, help_text="Eg Save $60 pay annually pay $240 instead of $300")
-    emails = models.JSONField(verbose_name="email", default=list, null=True, blank=True, help_text="If subsidised for selected few, place the list of emails that can access this special price")
+    emails = models.JSONField(verbose_name="emails", default=list, null=True, blank=True, help_text="If subsidised for selected few, place the list of emails that can access this special price")
     
     
     class Meta:

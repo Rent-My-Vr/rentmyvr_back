@@ -11,5 +11,5 @@ from import_export.widgets import ForeignKeyWidget
 
 @admin.register(PriceChart)
 class PriceChartAdmin(admin.ModelAdmin):
-    list_filter = ('enabled', 'category', 'type')
-    list_display = ('start', 'end', 'category', 'type', 'monthly_price', 'yearly_price', 'emails')
+    list_filter = ('enabled', 'category', 'type', 'service_type')
+    list_display = ('start', 'end', 'type', 'category', 'service_type', 'monthly_price', 'yearly_price', 'emails')
