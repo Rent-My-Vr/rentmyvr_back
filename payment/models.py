@@ -10,21 +10,26 @@ class PriceChart(TrackedModel):
         Payable Product Price
         
     """
+    PREMIUM = 'premium'
+    SERVICE_TYPES = ((PREMIUM, 'Premium'),)
+    
     STANDARD = 'standard'
     SUBSIDISED = 'subsidised'
     CATEGORIES = ((STANDARD, 'Standard'), (SUBSIDISED, 'Subsidised'))
     
     PDL = 'pdl'
     MDL = 'mdl'
-    TYPES = ((MDL, 'MDL'), (PDL, 'PDL'))
+    SETUP = 'setup'
+    TYPES = ((MDL, 'MDL'), (PDL, 'PDL'),(SETUP, 'Setup'))
     
     start = models.DateField(verbose_name="Effective From")
     end = models.DateField(verbose_name="end Date", null=True, blank=True, default=None)
+    service_type = models.CharField(max_length=128, verbose_name="Service Type", choices=SERVICE_TYPES, default=PREMIUM)
     category = models.CharField(max_length=128, verbose_name="Category", choices=CATEGORIES, default=STANDARD, null=False, blank=False)
     type = models.CharField(max_length=128, verbose_name="type", choices=TYPES, default=STANDARD, null=False, blank=False)
-    monthly_price = models.DecimalField(verbose_name="Monthly Price", max_digits=6, decimal_places=2, help_text="Eg Pay $25 monthly")
-    yearly_price = models.DecimalField(verbose_name="Yearly Price", max_digits=6, decimal_places=2, help_text="Eg Pay $20 monthly if you intend to pay for one year upfront ($240 instead of $300)")
-    emails = models.JSONField(verbose_name="email", default=dict, help_text="If subsidised for selected few, place the list of emails that can access this special price")
+    monthly_price = models.DecimalField(verbose_name="Monthly Price", default=0.0, null=True, blank=True, max_digits=6, decimal_places=2, help_text="Eg Pay $25 monthly")
+    yearly_price = models.DecimalField(verbose_name="Yearly Price", max_digits=6, decimal_places=2, help_text="Eg Save $60 pay annually pay $240 instead of $300")
+    emails = models.JSONField(verbose_name="email", default=list, null=True, blank=True, help_text="If subsidised for selected few, place the list of emails that can access this special price")
     
     
     class Meta:
@@ -93,8 +98,8 @@ class Subscription(TrackedModel):
     
     """
     ref = models.CharField(max_length=16, verbose_name="Ref", unique=True, blank=False, null=False)
-    start_date = models.DateField(verbose_name="Start Date", null=True, blank=True, default=None)
-    end_date = models.DateField(verbose_name="End Date", null=True, blank=True, default=None)
+    start_date = models.DateField(verbose_name="Start Date")
+    end_date = models.DateField(verbose_name="End Date")
     transaction = models.ForeignKey(Transaction, on_delete=models.CASCADE)
     content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
     object_id = models.PositiveIntegerField()
