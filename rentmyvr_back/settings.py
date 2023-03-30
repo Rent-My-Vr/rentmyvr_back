@@ -118,10 +118,12 @@ INSTALLED_APPS = [
     'auths.apps.AuthsConfig',
     'core.apps.CoreConfig',
     'directory.apps.DirectoryConfig',
+    'payment.apps.PaymentConfig',
 
     'auths_api.apps.AuthsApiConfig',
     'core_api.apps.CoreApiConfig',
     'directory_api.apps.DirectoryApiConfig',
+    'payment_api.apps.PaymentApiConfig',
 
     'django.contrib.admin',
     'django.contrib.auth',
