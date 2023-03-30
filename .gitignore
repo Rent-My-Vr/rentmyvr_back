@@ -21,6 +21,7 @@ static/*
 
 # Distribution / packaging
 .Python
+dump.rdb
 build/
 develop-eggs/
 dist/
