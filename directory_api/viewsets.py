@@ -1,6 +1,7 @@
 import json
 import copy
 import logging
+import requests
 from uuid import UUID
 from inspect import Attribute
 from xml import dom
@@ -40,7 +41,7 @@ log = logging.getLogger(f"{__package__}.*")
 log.setLevel(settings.LOGGING_LEVEL)
 
 
-class ContactViewSet(viewsets.ModelViewSet, AchieveModelMixin):
+class InquiryMessageViewSet(viewsets.ModelViewSet, AchieveModelMixin):
     permission_classes = (AllowAny, )
     authentication_classes = (TokenAuthentication,)
     parser_classes = (JSONParser, )
@@ -48,14 +49,14 @@ class ContactViewSet(viewsets.ModelViewSet, AchieveModelMixin):
     def get_serializer_class(self):
         # if self.action in ['create', 'update']:
         #     return ContactSerializer
-        return ContactSerializer
+        return InquiryMessageSerializer
 
     def get_queryset(self):
         """
         This view should return a list of all the Interested EMail
         """
          
-        return Contact.objects.filter(enabled=True)
+        return InquiryMessage.objects.filter(enabled=True)
  
     def perform_create(self, serializer):
         return serializer.save()
@@ -65,14 +66,23 @@ class ContactViewSet(viewsets.ModelViewSet, AchieveModelMixin):
     
     def create(self, request, *args, **kwargs):
         print(request.data)
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        instance = self.perform_create(serializer)
+        verifyServer = f"https://www.google.com/recaptcha/api/siteverify?secret={settings.RECAPTCHA_SECRET_KEY}&response={request.data.get('token')}"
+        r = requests.get(verifyServer)
+        print(r.json())
+        d = r.json()
+        # print()
+        
+        if r.status_code == 200 and d.get("success") and float(d.get("score")) > 0.5:
+            serializer = self.get_serializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            instance = self.perform_create(serializer)
 
-        headers = self.get_success_headers(serializer.data)
+            headers = self.get_success_headers(serializer.data)
 
-        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
-
+            return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+        else:
+            return Response({"message": "Recaptcha validation failed"}, status=status.HTTP_400_BAD_REQUEST)
+        
     @action(methods=['get'], detail=False, url_path='names', url_name='names')
     def names(self, request, *args, **kwargs):
         return Response(self.get_queryset().values_list('email', flat=True), status=status.HTTP_200_OK)

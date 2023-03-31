@@ -32,6 +32,8 @@ PROJECT_NAME = "rentmyvr_back"
 PROJECT_TITLE = "Rent My VR"
 COMPANY_NAME = "Rent My VR"
 
+RECAPTCHA_SECRET_KEY = config('RECAPTCHA_SECRET_KEY')
+
 DEFAULT_COY_PK = config("DEFAULT_COY_PK", default="7c665fde0492431f967ef7d3a6fe74e6")
 DEFAULT_COY_NAME = config("DEFAULT_COY_NAME", default="Rent My VR")
 

@@ -86,25 +86,24 @@ class Bathroom(StampedModel):
         return self.name
 
 
-class Contact(StampedModel):
+class InquiryMessage(StampedModel):
 
-    first_name = models.CharField(max_length=128, verbose_name="First Name")
-    last_name = models.CharField(max_length=128, verbose_name="Last Name")
+    name = models.CharField(max_length=128, verbose_name="Name")
     email = models.CharField(max_length=254, verbose_name="Email Address")
     phone = models.CharField(max_length=16, verbose_name="Phone", null=True, blank=True, default="")
     subject = models.CharField(max_length=128, verbose_name="Subject")
-    message = models.TextField(verbose_name="message")
-    property = models.ForeignKey('Property', verbose_name="message", on_delete=models.CASCADE)
+    message = models.TextField(verbose_name="Message")
+    property = models.ForeignKey('Property', verbose_name="Property", on_delete=models.CASCADE)
     sent_time = models.DateTimeField(null=True, blank=True, default=None)
     
     class Meta:
         ordering = ('subject',)
-        verbose_name = _('Contact')
-        verbose_name_plural = _('Contacts')
+        verbose_name = _('InquiryMessage')
+        verbose_name_plural = _('InquiryMessages')
 
 
     def __str__(self):
-        return self.email
+        return self.subject
 
 
 class Entertainment(StampedModel):

@@ -72,11 +72,11 @@ class BookingSiteFullSerializer(serializers.ModelSerializer):
         fields = ('id', 'booker', 'site', 'property')
 
 
-class ContactSerializer(serializers.ModelSerializer):
+class InquiryMessageSerializer(serializers.ModelSerializer):
     pass
 
     class Meta:
-        model = Contact
+        model = InquiryMessage
         exclude = ('enabled', )
 
 
