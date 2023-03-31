@@ -497,7 +497,7 @@ class Property(StampedUpdaterModel):
     no_of_bedrooms = models.IntegerField(verbose_name="No of Bedrooms")
     no_of_bathrooms = models.DecimalField(verbose_name="No of Bathrooms", max_digits=5, decimal_places=1, default=0.0)
     is_pet_allowed = models.BooleanField(default=True, )
-    suitabilities = models.JSONField(default=list)
+    suitabilities = models.JSONField(default=list, blank=True, null=True)
     description = models.TextField(verbose_name="Description")
     host_note = models.TextField(verbose_name="Host Notes", default='', blank=True, null=True)
     cancellation_policy = models.TextField(verbose_name="Cancellation Policy", default='', blank=True, null=True)
