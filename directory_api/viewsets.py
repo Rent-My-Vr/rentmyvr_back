@@ -40,12 +40,43 @@ log = logging.getLogger(f"{__package__}.*")
 log.setLevel(settings.LOGGING_LEVEL)
 
 
+class ContactViewSet(viewsets.ModelViewSet, AchieveModelMixin):
+    permission_classes = (AllowAny, )
+    authentication_classes = (TokenAuthentication,)
+    parser_classes = (JSONParser, )
+        
+    def get_serializer_class(self):
+        # if self.action in ['create', 'update']:
+        #     return ContactSerializer
+        return ContactSerializer
 
-class UUIDEncoder(json.JSONEncoder):
-    def default(self, obj):
-        if isinstance(obj, UUID):
-            return obj.hex
-        return json.JSONEncoder.default(self, obj)
+    def get_queryset(self):
+        """
+        This view should return a list of all the Interested EMail
+        """
+         
+        return Contact.objects.filter(enabled=True)
+ 
+    def perform_create(self, serializer):
+        return serializer.save()
+        
+    def perform_update(self, serializer):
+        return serializer.save()
+    
+    def create(self, request, *args, **kwargs):
+        print(request.data)
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        instance = self.perform_create(serializer)
+
+        headers = self.get_success_headers(serializer.data)
+
+        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+
+    @action(methods=['get'], detail=False, url_path='names', url_name='names')
+    def names(self, request, *args, **kwargs):
+        return Response(self.get_queryset().values_list('email', flat=True), status=status.HTTP_200_OK)
+
 
 # class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin, MyPaginationMixin):
 class PropertyViewSet(viewsets.ModelViewSet):

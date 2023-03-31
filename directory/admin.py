@@ -193,6 +193,12 @@ class PropertyResource(resources.ModelResource):
 class BookAdmin(ImportExportModelAdmin):
     resource_classes = [PropertyResource]
 
+
+@admin.register(Contact)
+class ContactAdmin(admin.ModelAdmin):
+    list_filter = ('enabled', 'property')
+    list_display = ('first_name', 'last_name', 'email', 'phone', 'property', 'enabled', 'subject', 'message', 'sent_time')
+
         
 @admin.register(Property)
 class PropertyAdmin(ImportExportModelAdmin):

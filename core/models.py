@@ -282,20 +282,6 @@ class Company(UntrackedModel):
         verbose_name_plural = _('Companies')
 
 
-class InterestedEMail(StampedModel):
-
-    email = models.CharField(max_length=24, verbose_name="Email", unique=True)
-    
-    class Meta:
-        ordering = ('email',)
-        verbose_name = _('Interested EMail')
-        verbose_name_plural = _('Interested EMails')
-
-
-    def __str__(self):
-        return self.email
-
-
 class Profile(TrackedModel):
     """
     Profile model:

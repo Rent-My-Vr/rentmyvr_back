@@ -7,6 +7,7 @@ from . import viewsets as vs
 
 router_v1 = routers.DefaultRouter()
 
+router_v1.register(r'contact', vs.ContactViewSet, basename="contact")
 router_v1.register(r'property', vs.PropertyViewSet, basename="property")
 # router_v1.register(r'category', vs.CategoryViewSet, basename="category")
 # router_v1.register(r'client', vs.ClientViewSet, basename="client")

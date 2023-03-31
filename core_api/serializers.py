@@ -88,14 +88,6 @@ class CompanySerializer(serializers.ModelSerializer):
         exclude = ('enabled', )
 
 
-class InterestedEMailSerializer(serializers.ModelSerializer):
-    pass
-
-    class Meta:
-        model = InterestedEMail
-        fields = ('email',)
-
-
 class ProfileSerializer(serializers.ModelSerializer):
     user = UserSerializer(many=False, read_only=False)
     address = AddressSerializer(many=False, read_only=True)
