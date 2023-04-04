@@ -107,9 +107,7 @@ class PropertyViewSet(viewsets.ModelViewSet):
         return queryset
  
     def get_permissions(self):
-        print(self.action)
-        print(self.action in ['form_items', 'search'])
-        if self.action in ['form_items', 'search']:
+        if self.action in ['form_items', 'search', 'retrieve']:
             return []  # This method should return iterable of permissions
         return super().get_permissions()
 
