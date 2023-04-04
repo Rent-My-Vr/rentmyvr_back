@@ -695,7 +695,8 @@ class PropertyViewSet(viewsets.ModelViewSet):
     def search(self, request, *args, **kwargs):
         data = request.data
         print('...: ', data)
-        
+        l = data.get('location')
+        print(type(l))
         point = GEOSGeometry(json.dumps(data.get('location')))
         # point = GEOSGeometry(json.dumps())
         queryset = Property.objects.filter(address__location__distance_lt=(point, 1000/40000*360))
