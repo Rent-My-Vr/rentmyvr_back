@@ -134,12 +134,14 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django.contrib.sites',
+    'django.contrib.gis',
     
     'django_celery_beat',
     
     # rest framework
     'rest_framework_xml',
     'rest_framework',
+    'rest_framework_gis',
     'rest_framework.authtoken',
     
     # all auth
@@ -276,14 +278,14 @@ IS_PORTABLE_DB = config('PORTABLE_DB', default=True, cast=bool)
 if IS_PORTABLE_DB:
     DATABASES = {
         'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
+            'ENGINE': 'django.db.backends.sqlite3' if 'django.contrib.gis' in INSTALLED_APPS else 'django.db.backends.sqlite3',
             'NAME': BASE_DIR/'db.sqlite3',
         }
     }
 else:
     DATABASES = {   
         'default': {
-            'ENGINE': 'django.db.backends.mysql',
+            'ENGINE': 'django.contrib.gis.db.backends.mysql'  if 'django.contrib.gis' in INSTALLED_APPS else 'django.db.backends.mysql',
             'NAME': config('DB_NAME', default="database"),
             'USER': config('DB_USER', default="root"),
             'PASSWORD': config('DB_PASSWORD', default="password"),

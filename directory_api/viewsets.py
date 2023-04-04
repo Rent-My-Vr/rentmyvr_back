@@ -21,6 +21,8 @@ from django.db.models import Q, Prefetch
 from datetime import datetime, timedelta
 from django.utils import timezone
 from django.contrib.auth import get_user_model
+from django.contrib.gis.geos import Point, GEOSGeometry
+from django.contrib.gis.measure import Distance  
 from auths.utils import get_domain
 from auths_api.serializers import UserSerializer, UserUpdateSerializer
 from notifications.signals import notify
@@ -88,7 +90,6 @@ class InquiryMessageViewSet(viewsets.ModelViewSet, AchieveModelMixin):
         return Response(self.get_queryset().values_list('email', flat=True), status=status.HTTP_200_OK)
 
 
-# class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin, MyPaginationMixin):
 class PropertyViewSet(viewsets.ModelViewSet):
     # pagination_class = ExamplePagination
     pagination_class = MyPagination
@@ -105,9 +106,18 @@ class PropertyViewSet(viewsets.ModelViewSet):
         queryset = Property.objects.filter(enabled=True)
         return queryset
  
+    def get_permissions(self):
+        print(self.action)
+        print(self.action in ['form_items', 'search'])
+        if self.action in ['form_items', 'search']:
+            return []  # This method should return iterable of permissions
+        return super().get_permissions()
+
     def get_serializer_class(self):
         if self.action in ['retrieve']:
             return PropertyDetailSerializer
+        elif self.action in ['list', 'search']:
+            return PropertyListSerializer
         return PropertySerializer
 
     def perform_create(self, serializer):
@@ -671,8 +681,8 @@ class PropertyViewSet(viewsets.ModelViewSet):
                 serializer = self.get_serializer(pagy, many=True)
                 return self.get_paginated_response(serializer.data)
         else:
-            page_number = int(page_number)
-            size = int(size)
+            page_number = int(page_number) if page_number else 1
+            size = int(size) if size and int(size) > 0 else 100
             print(page_number, '   ', page_number*size, ' ---- ', size)
             queryset = Property.objects.all().order_by('created')[page_number*size:(page_number*size)+size]
             serializer = self.get_serializer(queryset, many=True)
@@ -681,6 +691,69 @@ class PropertyViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
 
+    @action(methods=['post', 'get'], detail=False, url_path='search', url_name='search')
+    def search(self, request, *args, **kwargs):
+        data = request.data
+        print('...: ', data)
+        
+        point = GEOSGeometry(json.dumps(data.get('location')))
+        # point = GEOSGeometry(json.dumps())
+        queryset = Property.objects.filter(address__location__distance_lt=(point, 1000/40000*360))
+        
+        print(point.x, '   ', point.y)
+        print(queryset)
+        if data.get('types', None):
+            queryset = queryset.filter(type__in=data.get('types', []))
+        elif data.get('bookedSpaces', None):
+            queryset = queryset.filter(spaces__in=data.get('bookedSpaces', []))
+        elif data.get('guest', None):
+            queryset = queryset.filter(max_no_of_guest__in=data.get('guest', []))
+        elif data.get('bedrooms', None):
+            queryset = queryset.filter(no_of_bedrooms__in=data.get('bedrooms', []))
+        elif data.get('bathrooms', None):
+            queryset = queryset.filter(no_of_bathrooms__in=data.get('bathrooms', []))
+        elif data.get('price', None):
+            queryset = queryset.filter(price_night__in=data.get('price', []))
+        elif data.get('accessibility', None):
+            queryset = queryset.filter(accessibility__in=data.get('accessibility', []))
+        elif data.get('activities', None):
+            queryset = queryset.filter(activities__in=data.get('activities', []))
+        elif data.get('bathrooms', None):
+            queryset = queryset.filter(bathrooms__in=data.get('bathrooms', []))
+        elif data.get('entertainments', None):
+            queryset = queryset.filter(entertainments__in=data.get('entertainments', []))
+        elif data.get('essentials', None):
+            queryset = queryset.filter(essentials__in=data.get('essentials', []))
+        elif data.get('families', None):
+            queryset = queryset.filter(families__in=data.get('families', []))
+        elif data.get('features', None):
+            queryset = queryset.filter(features__in=data.get('features', []))
+        elif data.get('kitchens', None):
+            queryset = queryset.filter(kitchens__in=data.get('kitchens', []))
+        elif data.get('laundries', None):
+            queryset = queryset.filter(laundries__in=data.get('laundries', []))
+        elif data.get('outsides', None):
+            queryset = queryset.filter(outsides__in=data.get('outsides', []))
+        elif data.get('parking', None):
+            queryset = queryset.filter(parking__in=data.get('parking', []))
+        elif data.get('pool_spas', None):
+            queryset = queryset.filter(pool_spas__in=data.get('pool_spas', []))
+        elif data.get('safeties', None):
+            queryset = queryset.filter(safeties__in=data.get('safeties', []))
+        elif data.get('spaces', None):
+            queryset = queryset.filter(spaces__in=data.get('spaces', []))
+        elif data.get('services', None):
+            queryset = queryset.filter(services__in=data.get('services', []))
+        
+        page = self.paginate_queryset(queryset)
+        # print('Pagination: ', page)
+        if page is not None:
+            # page.page_size_query_param = 
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+        
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
 
     @action(methods=['get'], detail=False, url_path='table/data', url_name='table-data')
     def table_data(self, request, *args, **kwargs):
@@ -702,7 +775,6 @@ class PropertyViewSet(viewsets.ModelViewSet):
         data.sort(key=lambda x: sort_order.get(x["name"], 1000 if 'Additional' in x["name"] else -10))
         bookers = data
         services = ServiceSerializer(Service.objects.filter(enabled=True), many=True).data
-        sleepers = SleeperSerializer(Sleeper.objects.filter(enabled=True), many=True).data
         sleepers = SleeperSerializer(Sleeper.objects.filter(enabled=True), many=True).data
         spaces = SpaceSerializer(Space.objects.filter(enabled=True), many=True).data
         bathrooms = BathroomSerializer(Bathroom.objects.filter(enabled=True), many=True).data

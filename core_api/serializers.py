@@ -8,6 +8,7 @@ from django.contrib.auth import get_user_model
 from pyparsing import empty
 from rest_framework import serializers
 from rest_framework.authtoken.models import Token
+from rest_framework_gis.serializers import GeoFeatureModelSerializer
 
 from django.contrib.auth.models import Permission
 
@@ -42,7 +43,7 @@ class CitySerializer(serializers.ModelSerializer):
         exclude = ('enabled', )
 
 
-class AddressSerializer(serializers.ModelSerializer):
+class AddressSerializer(GeoFeatureModelSerializer):
     # updated_by_id = serializers.SerializerMethodField()
     # city = serializers.PrimaryKeyRelatedField(many=False, read_only=True)
     city = serializers.PrimaryKeyRelatedField(many=False, read_only=True)
@@ -52,11 +53,12 @@ class AddressSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Address
-        fields = ('id', 'street', 'number', 'city', 'zip_code', 'more_info')
+        geo_field = "location"
+        fields = ('id', 'street', 'number', 'city', 'zip_code', 'formatted', 'location', 'more_info')
         # read_only_fields = ('id', 'updated', 'updated_by')
 
 
-class AddressCreateSerializer(serializers.ModelSerializer):
+class AddressCreateSerializer(GeoFeatureModelSerializer):
     # updated_by_id = serializers.SerializerMethodField()
     city = serializers.PrimaryKeyRelatedField(many=False, read_only=True)
     city_data = CitySerializer(many=False, read_only=True)
@@ -66,16 +68,18 @@ class AddressCreateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Address
-        fields = ('id', 'street', 'number', 'city', 'city_data', 'zip_code', 'more_info')
+        geo_field = "location"
+        fields = ('id', 'street', 'number', 'city', 'city_data', 'zip_code', 'formatted', 'location',  'more_info')
         # read_only_fields = ('id', 'updated', 'updated_by')
 
 
-class AddressDetailSerializer(serializers.ModelSerializer):
+class AddressDetailSerializer(GeoFeatureModelSerializer):
     city = CitySerializer(many=False, read_only=False)
 
     class Meta:
         model = Address
-        fields = ('id', 'street', 'number', 'city', 'zip_code', 'more_info')
+        geo_field = "location"
+        fields = ('id', 'street', 'number', 'city', 'zip_code', 'formatted', 'location',  'more_info')
         # read_only_fields = ('id', 'updated', 'updated_by')
 
 

@@ -29,7 +29,7 @@ class AccessibilitySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Accessibility
-        fields = ('id', 'name')
+        fields = ('id', 'name', 'icon')
 
 
 class ActivitySerializer(serializers.ModelSerializer):
@@ -37,7 +37,7 @@ class ActivitySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Activity
-        fields = ('id', 'name')
+        fields = ('id', 'name', 'icon')
 
 
 class BathroomSerializer(serializers.ModelSerializer):
@@ -45,7 +45,7 @@ class BathroomSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Bathroom
-        fields = ('id', 'name')
+        fields = ('id', 'name', 'icon')
 
 
 class BookerSerializer(serializers.ModelSerializer):
@@ -85,7 +85,7 @@ class EntertainmentSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Entertainment
-        fields = ('id', 'name')
+        fields = ('id', 'name', 'icon')
 
 
 class EssentialSerializer(serializers.ModelSerializer):
@@ -93,7 +93,7 @@ class EssentialSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Essential
-        fields = ('id', 'name')
+        fields = ('id', 'name', 'icon')
 
 
 class FamilySerializer(serializers.ModelSerializer):
@@ -101,7 +101,7 @@ class FamilySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Family
-        fields = ('id', 'name')
+        fields = ('id', 'name', 'icon')
 
 
 class FeatureSerializer(serializers.ModelSerializer):
@@ -109,7 +109,7 @@ class FeatureSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Feature
-        fields = ('id', 'name')
+        fields = ('id', 'name', 'icon')
 
 
 class KitchenSerializer(serializers.ModelSerializer):
@@ -117,7 +117,7 @@ class KitchenSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Kitchen
-        fields = ('id', 'name')
+        fields = ('id', 'name', 'icon')
 
 
 class LaundrySerializer(serializers.ModelSerializer):
@@ -125,7 +125,7 @@ class LaundrySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Laundry
-        fields = ('id', 'name')
+        fields = ('id', 'name', 'icon')
 
 
 class OutsideSerializer(serializers.ModelSerializer):
@@ -133,7 +133,7 @@ class OutsideSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Outside
-        fields = ('id', 'name')
+        fields = ('id', 'name', 'icon')
 
 
 class ParkingSerializer(serializers.ModelSerializer):
@@ -141,7 +141,7 @@ class ParkingSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Parking
-        fields = ('id', 'name')
+        fields = ('id', 'name', 'icon')
 
 
 class PoolSpaSerializer(serializers.ModelSerializer):
@@ -149,7 +149,7 @@ class PoolSpaSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = PoolSpa
-        fields = ('id', 'name')
+        fields = ('id', 'name', 'icon')
 
 
 
@@ -157,7 +157,7 @@ class SleeperSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Sleeper
-        fields = ('id', 'name', )
+        fields = ('id', 'name', 'icon')
 
 
 class RoomTypeSerializer(serializers.ModelSerializer):
@@ -182,7 +182,7 @@ class SafetySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Safety
-        fields = ('id', 'name')
+        fields = ('id', 'name', 'icon')
 
 
 class SpaceSerializer(serializers.ModelSerializer):
@@ -190,7 +190,7 @@ class SpaceSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Space
-        fields = ('id', 'name')
+        fields = ('id', 'name', 'icon')
 
 
 class ServiceSerializer(serializers.ModelSerializer):
@@ -198,7 +198,7 @@ class ServiceSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Service
-        fields = ('id', 'name')
+        fields = ('id', 'name', 'icon')
 
 
 class SocialMediaLinkSerializer(serializers.ModelSerializer):
@@ -482,6 +482,20 @@ class PropertySerializer(serializers.ModelSerializer):
             return instance
         return None
 
+    class Meta:
+        model = Property
+        exclude = ()
+        read_only_fields = ('id', 'ref', 'enabled', 'updated', 'updated_by')
+
+
+class PropertyListSerializer(serializers.ModelSerializer):
+    address = AddressSerializer(many=False, read_only=False)
+    # address = serializers.SerializerMethodField("get_address")
+    booking_sites = BookingSiteSerializer(many=True, read_only=False)
+    social_media = SocialMediaLinkSerializer(many=True, read_only=False)
+    pictures = PropertyPhotoSerializer(many=True, read_only=True)
+    room_types = RoomTypeSerializer(many=True, read_only=False)
+    
     class Meta:
         model = Property
         exclude = ()

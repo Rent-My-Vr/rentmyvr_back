@@ -52,6 +52,18 @@ class AddressViewSet(viewsets.ModelViewSet, AchieveModelMixin):
     #     return serializer.save(updated_by_id=self.request.user.id) 
     #     # return serializer.save(updated_by_id=settings.EMAIL_PROCESSOR_ID) 
         
+    def get_queryset(self):
+        """
+        This view should return a list of all the Company for
+        the user as determined by currently logged in user.
+        """
+        return Address.objects.filter(enabled=True)
+ 
+    def get_serializer_class(self):
+        if self.action in ['retrieve',]:
+            return AddressDetailSerializer
+        return AddressSerializer
+
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)

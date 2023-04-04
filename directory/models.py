@@ -47,12 +47,12 @@ def property_video_upload_path(instance, filename):
 class Accessibility(StampedModel):
 
     name = models.CharField(max_length=128, verbose_name="name", unique=True)
+    icon = models.URLField(max_length=254, verbose_name="icon", default="https://rentmyvr.com/assets/images/amenties-svg/barn.svg")
     
     class Meta:
         ordering = ('name',)
         verbose_name = _('Accessibility')
         verbose_name_plural = _('Accessibility')
-
 
     def __str__(self):
         return self.name
@@ -61,12 +61,12 @@ class Accessibility(StampedModel):
 class Activity(StampedModel):
 
     name = models.CharField(max_length=128, verbose_name="name", unique=True)
+    icon = models.URLField(max_length=254, verbose_name="icon", default="https://rentmyvr.com/assets/images/amenties-svg/barn.svg")
     
     class Meta:
         ordering = ('name',)
         verbose_name = _('Activity')
         verbose_name_plural = _('Activities')
-
 
     def __str__(self):
         return self.name
@@ -75,12 +75,12 @@ class Activity(StampedModel):
 class Bathroom(StampedModel):
 
     name = models.CharField(max_length=128, verbose_name="name", unique=True)
+    icon = models.URLField(max_length=254, verbose_name="icon", default="https://rentmyvr.com/assets/images/amenties-svg/barn.svg")
     
     class Meta:
         ordering = ('name',)
         verbose_name = _('Bathroom')
         verbose_name_plural = _('Bathrooms')
-
 
     def __str__(self):
         return self.name
@@ -109,6 +109,7 @@ class InquiryMessage(StampedModel):
 class Entertainment(StampedModel):
 
     name = models.CharField(max_length=128, verbose_name="name", unique=True)
+    icon = models.URLField(max_length=254, verbose_name="icon", default="https://rentmyvr.com/assets/images/amenties-svg/barn.svg")
     
     class Meta:
         ordering = ('name',)
@@ -123,12 +124,12 @@ class Entertainment(StampedModel):
 class Essential(StampedModel):
 
     name = models.CharField(max_length=64, verbose_name="name", unique=True)
+    icon = models.URLField(max_length=254, verbose_name="icon", default="https://rentmyvr.com/assets/images/amenties-svg/barn.svg")
     
     class Meta:
         ordering = ('name',)
         verbose_name = _('Essential')
         verbose_name_plural = _('Essentials')
-
 
     def __str__(self):
         return self.name
@@ -137,12 +138,12 @@ class Essential(StampedModel):
 class Family(StampedModel):
 
     name = models.CharField(max_length=64, verbose_name="name", unique=True)
+    icon = models.URLField(max_length=254, verbose_name="icon", default="https://rentmyvr.com/assets/images/amenties-svg/barn.svg")
     
     class Meta:
         ordering = ('name',)
         verbose_name = _('Family')
         verbose_name_plural = _('Families')
-
 
     def __str__(self):
         return self.name
@@ -151,12 +152,12 @@ class Family(StampedModel):
 class Feature(StampedModel):
 
     name = models.CharField(max_length=64, verbose_name="name", unique=True)
+    icon = models.URLField(max_length=254, verbose_name="icon", default="https://rentmyvr.com/assets/images/amenties-svg/barn.svg")
     
     class Meta:
         ordering = ('name',)
         verbose_name = _('Feature')
         verbose_name_plural = _('Features')
-
 
     def __str__(self):
         return self.name
@@ -165,12 +166,12 @@ class Feature(StampedModel):
 class Kitchen(StampedModel):
 
     name = models.CharField(max_length=128, verbose_name="name", unique=True)
+    icon = models.URLField(max_length=254, verbose_name="icon", default="https://rentmyvr.com/assets/images/amenties-svg/barn.svg")
     
     class Meta:
         ordering = ('name',)
         verbose_name = _('Kitchen')
         verbose_name_plural = _('Kitchens')
-
 
     def __str__(self):
         return self.name
@@ -179,12 +180,12 @@ class Kitchen(StampedModel):
 class Laundry(StampedModel):
 
     name = models.CharField(max_length=128, verbose_name="name", unique=True)
+    icon = models.URLField(max_length=254, verbose_name="icon", default="https://rentmyvr.com/assets/images/amenties-svg/barn.svg")
     
     class Meta:
         ordering = ('name',)
         verbose_name = _('Laundry')
         verbose_name_plural = _('Laundries')
-
 
     def __str__(self):
         return self.name
@@ -193,12 +194,12 @@ class Laundry(StampedModel):
 class Outside(StampedModel):
 
     name = models.CharField(max_length=128, verbose_name="name", unique=True)
+    icon = models.URLField(max_length=254, verbose_name="icon", default="https://rentmyvr.com/assets/images/amenties-svg/barn.svg")
     
     class Meta:
         ordering = ('name',)
         verbose_name = _('Outside')
         verbose_name_plural = _('Outside')
-
 
     def __str__(self):
         return self.name
@@ -207,12 +208,12 @@ class Outside(StampedModel):
 class Parking(StampedModel):
 
     name = models.CharField(max_length=128, verbose_name="name", unique=True)
+    icon = models.URLField(max_length=254, verbose_name="icon", default="https://rentmyvr.com/assets/images/amenties-svg/barn.svg")
     
     class Meta:
         ordering = ('name',)
         verbose_name = _('Parking')
         verbose_name_plural = _('Parking')
-
 
     def __str__(self):
         return self.name
@@ -221,12 +222,12 @@ class Parking(StampedModel):
 class PoolSpa(StampedModel):
 
     name = models.CharField(max_length=128, verbose_name="name", unique=True)
+    icon = models.URLField(max_length=254, verbose_name="icon", default="https://rentmyvr.com/assets/images/amenties-svg/barn.svg")
     
     class Meta:
         ordering = ('name',)
         verbose_name = _('Pool & Spa')
         verbose_name_plural = _('Pool & Spa')
-
 
     def __str__(self):
         return self.name
@@ -252,12 +253,12 @@ class Portfolio(TrackedModel):
 class Safety(StampedModel):
 
     name = models.CharField(max_length=64, verbose_name="name", unique=True)
+    icon = models.URLField(max_length=254, verbose_name="icon", default="https://rentmyvr.com/assets/images/amenties-svg/barn.svg")
     
     class Meta:
         ordering = ('name',)
         verbose_name = _('Safety')
         verbose_name_plural = _('Safeties')
-
 
     def __str__(self):
         return self.name
@@ -266,12 +267,12 @@ class Safety(StampedModel):
 class Sleeper(StampedModel):
 
     name = models.CharField(max_length=64, verbose_name="name", unique=True)
+    icon = models.URLField(max_length=254, verbose_name="icon", default="https://rentmyvr.com/assets/images/amenties-svg/barn.svg")
     
     class Meta:
         ordering = ('name',)
         verbose_name = _('Sleeper')
         verbose_name_plural = _('Sleepers')
-
 
     def __str__(self):
         return self.name
@@ -280,12 +281,12 @@ class Sleeper(StampedModel):
 class Space(StampedModel):
 
     name = models.CharField(max_length=64, verbose_name="name", unique=True)
+    icon = models.URLField(max_length=254, verbose_name="icon", default="https://rentmyvr.com/assets/images/amenties-svg/barn.svg")
     
     class Meta:
         ordering = ('name',)
         verbose_name = _('Space')
         verbose_name_plural = _('Spaces')
-
 
     def __str__(self):
         return self.name
@@ -294,12 +295,12 @@ class Space(StampedModel):
 class Service(StampedModel):
 
     name = models.CharField(max_length=64, verbose_name="name", unique=True)
+    icon = models.URLField(max_length=254, verbose_name="icon", default="https://rentmyvr.com/assets/images/amenties-svg/barn.svg")
     
     class Meta:
         ordering = ('name',)
         verbose_name = _('Service')
         verbose_name_plural = _('Services')
-
 
     def __str__(self):
         return self.name
@@ -327,7 +328,7 @@ class Property(StampedUpdaterModel):
     COTTA = 'cotta'
     COTTAGE = 'cottage'
     COUNTRY_HOUSE = 'country-house'
-    CSA = 'Csa'
+    CSA = 'csa'
     CYCLADIC = 'cycladic'
     DUPLEX = 'duplex'
     DAMUSI = 'damusi'
@@ -344,7 +345,7 @@ class Property(StampedUpdaterModel):
     LIGHTHOUSE = 'lighthouse'
     LODGE = 'lodge'
     MANSION = 'mansion'
-    MINSUS = 'minsus'
+    MINSU = 'minsu'
     RESORT = 'resort'
     RIAD = 'riad'
     ROOM = 'room'
@@ -402,7 +403,7 @@ class Property(StampedUpdaterModel):
                 (LIGHTHOUSE, 'Lighthouse'),
                 (LODGE, 'Lodge'),
                 (MANSION, 'Mansion'),
-                (MINSUS, 'Minsus'),
+                (MINSU, 'Minsu'),
                 (RESORT, 'Resort'),
                 (RIAD, 'Riad'),
                 (ROOM, 'Room'),

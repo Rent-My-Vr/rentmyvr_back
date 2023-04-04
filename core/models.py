@@ -9,6 +9,7 @@ from django.db.models import Q, Prefetch
 from django.conf import settings
 from django.core.cache import cache
 from django.contrib.auth import get_user_model
+from django.contrib.gis.db import models as gis_model
 from django.core.validators import FileExtensionValidator
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.urls import reverse
@@ -224,12 +225,14 @@ class Address(UntrackedModel):
     city = models.ForeignKey(City, on_delete=models.CASCADE, verbose_name="City")
     zip_code = models.CharField(max_length=10, verbose_name="Zip Code")
     more_info = models.CharField(max_length=512, verbose_name="Additional Info", null=True, blank=True, default='')
+    formatted = models.CharField(max_length=512, verbose_name="Formatted Address", null=True, blank=True, default='')
+    location = gis_model.PointField(null=True, blank=True, spatial_index=True, geography=True, srid=4326, dim=3)
     hidden = models.BooleanField(default=False, )
     imported = models.BooleanField(default=False, )
     import_id = models.CharField(max_length=16, verbose_name="Imported Id", default='', blank=True, null=True)
     
     def __str__(self):
-        return 'No. {}, {}, {}, {}'.format(self.number, self.street, self.city, self.zip_code)
+        return self.more_info if self.more_info else self.formatted if self.formatted else 'No. {}, {}, {}, {}'.format(self.number, self.street, self.city, self.zip_code)
 
     def get_admin_url(self):
         return reverse('admin:{}_{}_change'.format(self._meta.app_label, self._meta.model_name), args=(self.pk, ))
