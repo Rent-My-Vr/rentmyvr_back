@@ -691,6 +691,7 @@ class PropertyViewSet(viewsets.ModelViewSet):
 
     @action(methods=['post', 'get'], detail=False, url_path='search', url_name='search')
     def search(self, request, *args, **kwargs):
+        self.pagination_class.page_size = 20
         data = request.data
         print('...: ', data)
         l = data.get('location')
@@ -701,6 +702,7 @@ class PropertyViewSet(viewsets.ModelViewSet):
         
         print(point.x, '   ', point.y)
         print(queryset)
+
         if data.get('types', None):
             queryset = queryset.filter(type__in=data.get('types', []))
         elif data.get('bookedSpaces', None):
