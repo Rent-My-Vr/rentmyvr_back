@@ -2,10 +2,12 @@ import json
 import copy
 import logging
 import requests
+from requests.utils import requote_uri
 from uuid import UUID
 from inspect import Attribute
 from xml import dom
 from pprint import pprint
+from decouple import config
 from django.conf import settings
 from django.db import transaction
 from django.shortcuts import render
@@ -696,7 +698,33 @@ class PropertyViewSet(viewsets.ModelViewSet):
         print('...: ', data)
         l = data.get('location')
         print(type(l))
-        point = GEOSGeometry(json.dumps(data.get('location')))
+        address = None
+        print(0)
+        if (type(data.get('location', {}).get('coordinates', None)) == list):
+            if len(data.get('location', {}).get('coordinates', None)) != 2:
+                print(1)
+                address = data.get('address')
+            else:
+                print(2)
+                geosData = json.dumps(data.get('location'))
+        else:
+            print(3)
+            address = data.get('address')
+            
+        
+        if address:
+            print(address)
+            print(config('GOOGLE_GEOCODING_KEY'))
+            r = requests.get(requote_uri(f"https://maps.googleapis.com/maps/api/geocode/json?sensor=true&key={config('GOOGLE_GEOCODING_KEY')}&address={address}"))
+            if r.status_code == 200:
+                js = r.json()
+                print(js)
+                if js['status'] == 'OK':
+                    loc = js['results'][0]['geometry']['location']
+                    geosData = json.dumps({"type": "Point", "coordinates": [loc['lat'], loc['lng']]})
+                else:
+                    return Response({"message": "We are unable to Geolocate the address provided"}, status=status.HTTP_404_NOT_FOUND)
+        point = GEOSGeometry(geosData)
         # point = GEOSGeometry(json.dumps())
         queryset = Property.objects.filter(address__location__distance_lt=(point, 1000/40000*360))
         

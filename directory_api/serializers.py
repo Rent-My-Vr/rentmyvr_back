@@ -502,6 +502,19 @@ class PropertyListSerializer(serializers.ModelSerializer):
         read_only_fields = ('id', 'ref', 'enabled', 'updated', 'updated_by')
 
 
+class PropertySearchResultSerializer(serializers.ModelSerializer):
+    address = AddressDetailSerializer(many=False, read_only=False)
+    booking_sites = BookingSiteSerializer(many=True, read_only=False)
+    social_media = SocialMediaLinkSerializer(many=True, read_only=False)
+    pictures = PropertyPhotoSerializer(many=True, read_only=True)
+    room_types = RoomTypeSerializer(many=True, read_only=False)
+    
+    class Meta:
+        model = Property
+        exclude = ('updated', 'updated_by', )
+        read_only_fields = ('id', 'ref', 'enabled', 'updated', 'updated_by')
+
+
 class PropertyDetailSerializer(serializers.ModelSerializer):
     address = AddressDetailSerializer(many=False, read_only=True)
     booking_sites = BookingSiteFullSerializer(many=True, read_only=True)
@@ -527,6 +540,6 @@ class PropertyDetailSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Property
-        exclude = ()
+        exclude = ('updated', 'updated_by', )
         read_only_fields = ('id', 'ref', 'enabled', 'updated', 'updated_by')
         
