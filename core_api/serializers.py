@@ -54,7 +54,7 @@ class AddressSerializer(GeoFeatureModelSerializer):
     class Meta:
         model = Address
         geo_field = "location"
-        fields = ('id', 'street', 'number', 'city', 'zip_code', 'formatted', 'location', 'more_info')
+        fields = ('id', 'street', 'number', 'city', 'zip_code', 'formatted', 'hidden', 'location', 'more_info')
         # read_only_fields = ('id', 'updated', 'updated_by')
 
 
@@ -69,7 +69,7 @@ class AddressCreateSerializer(GeoFeatureModelSerializer):
     class Meta:
         model = Address
         geo_field = "location"
-        fields = ('id', 'street', 'number', 'city', 'city_data', 'zip_code', 'formatted', 'location',  'more_info')
+        fields = ('id', 'street', 'number', 'city', 'city_data', 'zip_code', 'formatted', 'hidden', 'location',  'more_info')
         # read_only_fields = ('id', 'updated', 'updated_by')
 
 
@@ -79,7 +79,7 @@ class AddressDetailSerializer(GeoFeatureModelSerializer):
     class Meta:
         model = Address
         geo_field = "location"
-        fields = ('id', 'street', 'number', 'city', 'zip_code', 'formatted', 'location',  'more_info')
+        fields = ('id', 'street', 'number', 'city', 'zip_code', 'formatted', 'hidden', 'location',  'more_info')
         # read_only_fields = ('id', 'updated', 'updated_by')
 
 
