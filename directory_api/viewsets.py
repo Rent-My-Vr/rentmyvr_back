@@ -142,34 +142,40 @@ class PropertyViewSet(viewsets.ModelViewSet):
             print(data)
             # data = request.data.copy()
             print('============ 3333 =============')
-            data['address'] = {}
-            data['address']['street'] = request.data.get('address[street]')
-            data['address']['number'] = request.data.get('address[number]')
-            data['address']['zip_code'] = request.data.get('address[zip_code]')
-            data['address']['state'] = request.data.get('address[state]')
-            data['address']['hidden'] = request.data.get('address[hidden]')
-            data['address']['city'] = dict()
-            data['address']['city']['id'] = request.data.get('address[city][id]', None)
-            data['address']['city']['name'] = request.data.get('address[city][name]')
-            data['address']['city']['state_name'] = request.data.get('address[city][state_name]')
-            data['address']['city']['approved'] = True if data['address']['city']['id'] else False
-            data['address']['city_data'] = data['address']['city']
-            data['address']['city'] = data['address']['city'].get('id', None) if data['address']['city'].get('id', None) else None
             
-            data.pop("address[street]", None)
-            data.pop("address[number]", None)
-            data.pop("address[zip_code]", None)
-            data.pop("address[state]", None)
-            data.pop("address[city_id]", None)
-            data.pop("address[hidden]", None)
-            data.pop("address[city]", None)
-            data.pop("address[city][id]", None)
-            data.pop("address[city][name]", None)
-            data.pop("address[city][state_name]", None)
-            data.pop("address[city][updated]", None)
-            data.pop("address[city][created]", None)
-            data.pop("address[city][country_name]", None)
-            data.pop("address[city][approved]", None)
+            
+            data['address'] = {}
+            data['address']['type'] = request.data.get('address[type]')
+            data['address']['geometry']['type'] = request.data.get('address[geometry][type]')
+            data['address']['geometry']['coordinates'] = [float(request.data.get('address[geometry][coordinates][0]', 0)), float(request.data.get('address[geometry][coordinates][1]', 0))]
+            data['address']['properties']['formatted'] = request.data.get('address[properties][formatted]')
+            data['address']['properties']['street'] = request.data.get('address[properties][street]')
+            data['address']['properties']['number'] = request.data.get('address[properties][number]')
+            data['address']['properties']['zip_code'] = request.data.get('address[properties][zip_code]')
+            data['address']['properties']['state'] = request.data.get('address[properties][state]')
+            data['address']['properties']['hidden'] = request.data.get('address[properties][hidden]')
+            data['address']['properties']['city'] = dict()
+            data['address']['properties']['city']['id'] = request.data.get('address[properties][city][id]', None)
+            data['address']['properties']['city']['name'] = request.data.get('address[properties][city][name]')
+            data['address']['properties']['city']['state_name'] = request.data.get('address[properties][city][state_name]')
+            data['address']['properties']['city']['approved'] = True if data['address']['properties']['city']['id'] else False
+            data['address']['properties']['city_data'] = data['address']['properties']['city']
+            data['address']['properties']['city'] = data['address']['properties']['city'].get('id', None) if data['address']['properties']['city'].get('id', None) else None
+            
+            data.pop("address[properties][street]", None)
+            data.pop("address[properties][number]", None)
+            data.pop("address[properties][zip_code]", None)
+            data.pop("address[properties][state]", None)
+            data.pop("address[properties][city_id]", None)
+            data.pop("address[properties][hidden]", None)
+            data.pop("address[properties][city]", None)
+            data.pop("address[properties][city][id]", None)
+            data.pop("address[properties][city][name]", None)
+            data.pop("address[properties][city][state_name]", None)
+            data.pop("address[properties][city][updated]", None)
+            data.pop("address[properties][city][created]", None)
+            data.pop("address[properties][city][country_name]", None)
+            data.pop("address[properties][city][approved]", None)
             
             print(data)
             # print(data.get('booking_sites[]'))
@@ -309,13 +315,13 @@ class PropertyViewSet(viewsets.ModelViewSet):
             print('----------------')
             print(data.get('address'))
             print('============ 4 =============')
-            serializer = PropertySerializer(data=data, context={'city_data': data['address']['city_data']})
+            serializer = PropertySerializer(data=data, context={'city_data': data['address']['properties']['city_data']})
             print('============ 5 =============')
             serializer.is_valid(raise_exception=True)
             print('============ 6 =============')
             instance = self.perform_create(serializer)
             print('============ 7 =============')
-            print(instance)
+            print(instance_)
             print(type(instance))
             for rtd in room_types:
                 rtd['property'] = instance.id
@@ -341,49 +347,54 @@ class PropertyViewSet(viewsets.ModelViewSet):
             
             data = dict()
             for d in list(request.data.keys()):
+                print(d)
                 data[d] = request.data.getlist(d) if '[]' in d else request.data[d]
-            # pictures = request.data.getlist('pictures[]')
-            # print(pictures)
-            # print('============ 2 =============')
-            # print(data)
-            # print('============ 3333 =============')
+
             data['address'] = {}
             data['address']['id'] = request.data.get('address[id]', None)
-            data['address']['street'] = request.data.get('address[street]')
-            data['address']['number'] = request.data.get('address[number]')
-            data['address']['zip_code'] = request.data.get('address[zip_code]')
-            data['address']['state'] = request.data.get('address[state]')
-            data['address']['hidden'] = request.data.get('address[hidden]')
-            data['address']['more_info'] = request.data.get('address[more_info]')
-            data['address']['city'] = dict()
-            data['address']['city']['id'] = request.data.get('address[city][id]', None)
-            data['address']['city']['imported'] = request.data.get('address[city][imported]', False)
-            data['address']['city']['import_id'] = request.data.get('address[city][import_id]', None)
-            data['address']['city']['name'] = request.data.get('address[city][name]')
-            data['address']['city']['state_name'] = request.data.get('address[city][state_name]')
-            data['address']['city']['approved'] = True if data['address']['city']['id'] else False
-            data['address']['city_data'] = data['address']['city']
-            data['address']['city'] = data['address']['city'].get('id', None) if data['address']['city'].get('id', None) else None
-            
+            data['address']['type'] = request.data.get('address[type]', None)
+            data['address']['geometry'] = dict()
+            data['address']['geometry']['type'] = request.data.get('address[geometry][type]', None)
+            data['address']['geometry']['coordinates'] = [float(request.data.get('address[geometry][coordinates][0]', 0)), float(request.data.get('address[geometry][coordinates][1]', 0))]
+            data['address']['properties'] = dict()
+            data['address']['properties']['formatted'] = request.data.get('address[properties][formatted]')
+            data['address']['properties']['street'] = request.data.get('address[properties][street]')
+            data['address']['properties']['number'] = request.data.get('address[properties][number]')
+            data['address']['properties']['zip_code'] = request.data.get('address[properties][zip_code]')
+            data['address']['properties']['state'] = request.data.get('address[properties][state]')
+            data['address']['properties']['hidden'] = request.data.get('address[properties][hidden]')
+            data['address']['properties']['more_info'] = request.data.get('address[properties][more_info]')
+            data['address']['properties']['city'] = dict()
+            data['address']['properties']['city']['id'] = request.data.get('address[properties][city][id]', None)
+            data['address']['properties']['city']['imported'] = request.data.get('address[properties][city][imported]', False)
+            data['address']['properties']['city']['import_id'] = request.data.get('address[properties][city][import_id]', None)
+            data['address']['properties']['city']['name'] = request.data.get('address[properties][city][name]')
+            data['address']['properties']['city']['state_name'] = request.data.get('address[properties][city][state_name]')
+            data['address']['properties']['city']['approved'] = True if data['address']['properties']['city']['id'] else False
+            data['address']['properties']['city_data'] = data['address']['properties']['city']
+            # data['address']['properties']['city'] = data['address']['properties']['city'].get('id', None) if data['address']['properties']['city'].get('id', None) else None
+
             data.pop("address[id]", None)
-            data.pop("address[imported]", None)
-            data.pop("address[more_info]", None)
-            data.pop("address[street]", None)
-            data.pop("address[number]", None)
-            data.pop("address[zip_code]", None)
-            data.pop("address[state]", None)
-            data.pop("address[city_id]", None)
-            data.pop("address[hidden]", None)
-            data.pop("address[city]", None)
-            data.pop("address[city][id]", None)
-            data.pop("address[city][imported]", None)
-            data.pop("address[city][import_id]", None)
-            data.pop("address[city][name]", None)
-            data.pop("address[city][state_name]", None)
-            data.pop("address[city][updated]", None)
-            data.pop("address[city][created]", None)
-            data.pop("address[city][country_name]", None)
-            data.pop("address[city][approved]", None)
+            data.pop("address[type]", None)
+            data.pop("address[geometry][type]", None)
+            data.pop("address[geometry][coordinates][0]", None)
+            data.pop("address[geometry][coordinates][1]", None)
+            data.pop("address[properties][formatted]", None)
+            data.pop("address[properties][more_info]", None)
+            data.pop("address[properties][street]", None)
+            data.pop("address[properties][number]", None)
+            data.pop("address[properties][zip_code]", None)
+            data.pop("address[properties][state]", None)
+            data.pop("address[properties][hidden]", None)
+            data.pop("address[properties][city][id]", None)
+            data.pop("address[properties][city][imported]", None)
+            data.pop("address[properties][city][import_id]", None)
+            data.pop("address[properties][city][name]", None)
+            data.pop("address[properties][city][state_name]", None)
+            data.pop("address[properties][city][updated]", None)
+            data.pop("address[properties][city][created]", None)
+            data.pop("address[properties][city][country_name]", None)
+            data.pop("address[properties][city][approved]", None)
             
             # print(data)
             # print(data.get('booking_sites[]'))
@@ -396,7 +407,6 @@ class PropertyViewSet(viewsets.ModelViewSet):
             room_types_dict = dict()
             max_sleeper = 0
             for k in data.keys():
-                print(k)
                 if f'booking_sites[' in k:
                     booking_sites_set.add(re.findall(r"^booking_sites\[(\d+)\]\[\w+\]", k)[0])
                 elif f'social_media[' in k:
@@ -611,16 +621,19 @@ class PropertyViewSet(viewsets.ModelViewSet):
             print('----------------')
             print(data.get('address'))
             print('============ 4 =============')
-            if not data.get('address').get('city_data').get('id', None):
+            city_id = None
+            if not data.get('address').get('properties').get('city_data').get('id', None):
                 print('====Create City****')
-                ser = CitySerializer(data=data.get('address').get('city_data'))
+                ser = CitySerializer(data=data.get('address').get('properties').get('city_data'))
                 ser.is_valid(raise_exception=True)
-                inst = ser.save(updated_by_id=self.request.user.id)
-                data['address']['city_id'] = inst.id
+                inst = ser.save()
+                data['address']['properties']['city_id'] = inst.id
+                city_id = inst.id
             else:
                 print('====Have City****')
-                data['address']['city_id'] = data.get('address').get('city_data').get('id')
-            
+                city_id = data.get('address').get('properties').get('city_data').get('id')
+                data['address']['properties']['city_id'] = city_id
+                data['address']['properties'].pop('city_data', None)
             print(data.get('address'))
             inst = Address.objects.filter(id=data.get('address').get('id', None)).first()
             print(inst)
@@ -631,7 +644,9 @@ class PropertyViewSet(viewsets.ModelViewSet):
             print(1)
             ser.is_valid(raise_exception=True)
             print(2)
-            address = ser.save(updated_by_id=self.request.user.id)
+            address = ser.save(updated_by_id=self.request.user.id, city_id=city_id)
+            # address.city_id = city_id
+            # address.save()
             print(address)
             print(address.id)
                 
@@ -644,7 +659,6 @@ class PropertyViewSet(viewsets.ModelViewSet):
             instance = self.perform_update(serializer)
             print('============ 7 =============')
             # print(instance__)
-            print(type(instance))
             
             # print('***************pictures***************')
             # p_ids = []

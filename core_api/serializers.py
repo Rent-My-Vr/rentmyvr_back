@@ -41,6 +41,7 @@ class CitySerializer(serializers.ModelSerializer):
     class Meta:
         model = City
         exclude = ('enabled', )
+        read_only_fields = ('id', 'created', 'import_id', 'imported', 'updated', 'updated_by')
 
 
 class AddressSerializer(GeoFeatureModelSerializer):
@@ -55,13 +56,14 @@ class AddressSerializer(GeoFeatureModelSerializer):
         model = Address
         geo_field = "location"
         fields = ('id', 'street', 'number', 'city', 'zip_code', 'formatted', 'hidden', 'location', 'more_info')
-        # read_only_fields = ('id', 'updated', 'updated_by')
+        read_only_fields = ('id', 'created', 'import_id', 'imported', 'updated', 'updated_by')
 
 
 class AddressCreateSerializer(GeoFeatureModelSerializer):
     # updated_by_id = serializers.SerializerMethodField()
-    city = serializers.PrimaryKeyRelatedField(many=False, read_only=True)
-    city_data = CitySerializer(many=False, read_only=True)
+    # city = serializers.PrimaryKeyRelatedField(many=False, read_only=True)
+    # city_data = CitySerializer(many=False, read_only=True)
+    city = CitySerializer(many=False, read_only=True)
 
     # def get_updated_by_id(self, obj):
     #     return obj.updated_by.id
@@ -69,8 +71,9 @@ class AddressCreateSerializer(GeoFeatureModelSerializer):
     class Meta:
         model = Address
         geo_field = "location"
-        fields = ('id', 'street', 'number', 'city', 'city_data', 'zip_code', 'formatted', 'hidden', 'location',  'more_info')
-        # read_only_fields = ('id', 'updated', 'updated_by')
+        # fields = ('id', 'street', 'number', 'city', 'city_data', 'zip_code', 'formatted', 'hidden', 'location',  'more_info')
+        fields = ('id', 'street', 'number', 'city', 'zip_code', 'formatted', 'hidden', 'location',  'more_info')
+        read_only_fields = ('id', 'created', 'import_id', 'imported', 'updated', 'updated_by')
 
 
 class AddressDetailSerializer(GeoFeatureModelSerializer):
@@ -80,7 +83,7 @@ class AddressDetailSerializer(GeoFeatureModelSerializer):
         model = Address
         geo_field = "location"
         fields = ('id', 'street', 'number', 'city', 'zip_code', 'formatted', 'hidden', 'location',  'more_info')
-        # read_only_fields = ('id', 'updated', 'updated_by')
+        read_only_fields = ('id', 'created', 'import_id', 'imported', 'updated', 'updated_by')
 
 
 class CompanySerializer(serializers.ModelSerializer):
