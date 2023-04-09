@@ -680,13 +680,20 @@ class PropertyViewSet(viewsets.ModelViewSet):
     def list(self, request, *args, **kwargs):
         page_number = request.query_params.get('page', None)
         size = request.query_params.get('size', 0)
+        search = request.query_params.get('search', None)
+        sortby = request.query_params.get('sortby', 'created')
+        direction = '' if request.query_params.get('direction', 'asc') == 'asc' else '-'
         print('...: ',page_number)
+        print('...: ',request.query_params)
+        print('...: ', type(request.query_params))
         
         # queryset = self.filter_queryset(self.get_queryset())
         queryset = Property.objects.all().order_by('created')
 
         if size == 0 and page_number:
+            print(111)
             pagy = self.paginate_queryset(queryset)
+            total = Property.objects.all().count()
             # print('Pagination: ', page)
             if pagy is not None:
                 size = request.query_params.get('size', None)
@@ -697,10 +704,24 @@ class PropertyViewSet(viewsets.ModelViewSet):
         else:
             page_number = int(page_number) if page_number else 1
             size = int(size) if size and int(size) > 0 else 100
+            print(222)
             print(page_number, '   ', page_number*size, ' ---- ', size)
-            queryset = Property.objects.all().order_by('created')[page_number*size:(page_number*size)+size]
+            if request.user.is_manager:
+                print(2222)
+                total = Property.objects.all().count()
+                if search:
+                    print("2222a")
+                    total = Property.objects.filter(Q(ref__icontains=search) | Q(name__icontains=search) | Q(type__icontains=search) | Q(space__icontains=search)).count()
+                    queryset = Property.objects.filter(Q(ref__icontains=search) | Q(name__icontains=search) | Q(type__icontains=search) | Q(space__icontains=search)).order_by(direction+sortby)[page_number*size:(page_number*size)+size]
+                else:
+                    print("2222b")
+                    queryset = Property.objects.all().order_by(direction+sortby)[page_number*size:(page_number*size)+size]
+            else:
+                print("3333")
+                total = Property.objects.all().count()
+                # queryset = queryset[page_number*size:(page_number*size)+size]
             serializer = self.get_serializer(queryset, many=True)
-            return Response({"data": serializer.data, "total_count": Property.objects.all().count()})
+            return Response({"data": serializer.data, "total_count": total})
         
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)

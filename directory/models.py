@@ -86,6 +86,70 @@ class Bathroom(StampedModel):
         return self.name
 
 
+class Company(TrackedModel):
+
+    name = models.CharField(max_length=128, verbose_name="name", unique=True)
+    manage_for_others = models.BooleanField(default=False)
+    contact_name = models.CharField(max_length=128, verbose_name="Contact name")
+    country = models.CharField(max_length=254, verbose_name="Country")
+    street = models.CharField(max_length=254, verbose_name="Street", null=True, blank=True, default='')
+    number = models.CharField(max_length=254, verbose_name="Number", null=True, blank=True, default='')
+    city = models.ForeignKey(City, on_delete=models.CASCADE, verbose_name="City")
+    zip_code = models.CharField(max_length=10, verbose_name="Zip Code")
+    more_info = models.CharField(max_length=512, verbose_name="Additional Info", null=True, blank=True, default='')
+    formatted = models.CharField(max_length=512, verbose_name="Formatted Address", null=True, blank=True, default='')
+    location = gis_model.PointField(null=True, blank=True, spatial_index=True, geography=True, srid=4326, dim=3)
+    email = models.CharField(max_length=254, verbose_name="Email")
+    phone_2 = models.CharField(max_length=128, verbose_name="Phone 1")
+    phone_2 = models.CharField(max_length=128, verbose_name="Phone 1")
+    url = models.URLField(max_length=254, verbose_name="Company URL", default="", blank=True, null=True)
+    logo = models.ImageField(blank=True, null=True, default=None)
+    description = models.TextField(verbose_name="Description")
+    
+    class Meta:
+        ordering = ('name',)
+        verbose_name = _('Company')
+        verbose_name_plural = _('Companies')
+
+    def __str__(self):
+        return self.name
+
+
+class CompanySocialMediaLink(StampedModel):
+    FACEBOOK = 'facebook'
+    INSTAGRAM = 'instagram'
+    TIKTOK = 'tiktok'
+    YOUTUBE = 'youtube'
+    TWITTER = 'twitter'
+    GOOGLE_BUSINESS = 'google-business'
+    YELP = 'yelp'
+    PINTEREST = 'pinterest'
+
+    MEDIAS = (
+                (FACEBOOK, 'Facebook'),
+                (INSTAGRAM, 'Instagram'),
+                (TIKTOK, 'TikTok'),
+                (YOUTUBE, 'YouTube'),
+                (TWITTER, 'Twitter'),
+                (GOOGLE_BUSINESS, 'GoogleBusiness'),
+                (PINTEREST, 'Pinterest'),
+                (YELP, 'Yelp')
+            )
+
+    name = models.CharField(max_length=24, verbose_name="name", choices=MEDIAS)
+    site = models.TextField(max_length=1024, verbose_name="site")
+    property = models.ForeignKey(Company, verbose_name="Company", related_name="social_media", on_delete=models.CASCADE)
+
+    class Meta:
+        ordering = ('name',)
+        verbose_name = _('Social Media Link')
+        verbose_name_plural = _('Social Media Links')
+
+    def __str__(self):
+        return self.name
+
+  
+
 class InquiryMessage(StampedModel):
 
     name = models.CharField(max_length=128, verbose_name="Name")
@@ -238,6 +302,7 @@ class Portfolio(TrackedModel):
     name = models.CharField(max_length=128, verbose_name="name")
     company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name='company_portfolios')
     properties = models.ManyToManyField('Property', blank=False)
+    profiles = models.ManyToManyField(Profile, blank=False)
     
     class Meta:
         unique_together = ('company', 'name')
