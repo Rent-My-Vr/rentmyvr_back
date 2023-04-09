@@ -8,72 +8,72 @@ from import_export.widgets import ForeignKeyWidget
 
 @admin.register(Accessibility)
 class AccessibilityAdmin(admin.ModelAdmin):
-    list_display = ('id', 'name', 'enabled', 'created', 'updated')
+    list_display = ('name', 'icon', 'enabled', 'created', 'updated')
 
 
 @admin.register(Activity)
 class ActivityAdmin(admin.ModelAdmin):
-    list_display = ('id', 'name', 'enabled', 'created', 'updated')
+    list_display = ('name', 'icon', 'enabled', 'created', 'updated')
 
 
 @admin.register(Bathroom)
 class BathroomAdmin(admin.ModelAdmin):
-    list_display = ('id', 'name', 'enabled', 'created', 'updated')
+    list_display = ('name', 'icon', 'enabled', 'created', 'updated')
 
 
 @admin.register(Booker)
 class BookerAdmin(admin.ModelAdmin):
-    list_display = ('id', 'name', 'base', 'enabled', 'created', 'updated')
+    list_display = ('name', 'base', 'enabled', 'created', 'updated')
 
 
 @admin.register(BookingSite)
 class BookingSiteAdmin(admin.ModelAdmin):
-    list_display = ('id', 'booker', 'site', 'property', 'enabled', 'created', 'updated')
+    list_display = ('booker', 'site', 'property', 'enabled', 'created', 'updated')
 
 
 @admin.register(Entertainment)
 class EntertainmentAdmin(admin.ModelAdmin):
-    list_display = ('id', 'name', 'enabled', 'created', 'updated')
+    list_display = ('name', 'icon', 'enabled', 'created', 'updated')
 
 
 @admin.register(Essential)
 class EssentialAdmin(admin.ModelAdmin):
-    list_display = ('id', 'name', 'enabled', 'created', 'updated')
+    list_display = ('name', 'icon', 'enabled', 'created', 'updated')
 
 
 @admin.register(Family)
 class FamilyAdmin(admin.ModelAdmin):
-    list_display = ('id', 'name', 'enabled', 'created', 'updated')
+    list_display = ('name', 'icon', 'enabled', 'created', 'updated')
 
 
 @admin.register(Feature)
 class FeatureAdmin(admin.ModelAdmin):
-    list_display = ('id', 'name', 'enabled', 'created', 'updated')
+    list_display = ('name', 'icon', 'enabled', 'created', 'updated')
 
 
 @admin.register(Kitchen)
 class KitchenAdmin(admin.ModelAdmin):
-    list_display = ('id', 'name', 'enabled', 'created', 'updated')
+    list_display = ('name', 'icon', 'enabled', 'created', 'updated')
 
 
 @admin.register(Laundry)
 class LaundryAdmin(admin.ModelAdmin):
-    list_display = ('id', 'name', 'enabled', 'created', 'updated')
+    list_display = ('name', 'icon', 'enabled', 'created', 'updated')
 
 
 @admin.register(Outside)
 class OutsideAdmin(admin.ModelAdmin):
-    list_display = ('id', 'name', 'enabled', 'created', 'updated')
+    list_display = ('name', 'icon', 'enabled', 'created', 'updated')
 
 
 @admin.register(Parking)
 class ParkingAdmin(admin.ModelAdmin):
-    list_display = ('id', 'name', 'enabled', 'created', 'updated')
+    list_display = ('name', 'icon', 'enabled', 'created', 'updated')
 
 
 @admin.register(PoolSpa)
 class PoolSpaAdmin(admin.ModelAdmin):
-    list_display = ('id', 'name', 'enabled', 'created', 'updated')
+    list_display = ('name', 'icon', 'enabled', 'created', 'updated')
 
 
 class PropertyResource(resources.ModelResource):
@@ -193,6 +193,12 @@ class PropertyResource(resources.ModelResource):
 class BookAdmin(ImportExportModelAdmin):
     resource_classes = [PropertyResource]
 
+
+@admin.register(InquiryMessage)
+class InquiryMessageAdmin(admin.ModelAdmin):
+    list_filter = ('enabled', 'property')
+    list_display = ('name', 'email', 'phone', 'property', 'enabled', 'subject', 'message', 'sent_time')
+
         
 @admin.register(Property)
 class PropertyAdmin(ImportExportModelAdmin):
@@ -204,37 +210,37 @@ class PropertyAdmin(ImportExportModelAdmin):
 
 @admin.register(PropertyPhoto)
 class PropertyPhotoAdmin(admin.ModelAdmin):
-    list_display = ('id', 'image', 'property', 'enabled', 'created', 'updated')
+    list_display = ('property', 'image', 'enabled', 'created', 'updated')
 
 
 
 @admin.register(RoomType)
 class RoomTypeAdmin(admin.ModelAdmin):
-    list_display = ('id', 'name', 'property', 'enabled', 'created', 'updated')
+    list_display = ('name', 'property', 'enabled', 'created', 'updated')
 
 
 @admin.register(Safety)
 class SafetyAdmin(admin.ModelAdmin):
-    list_display = ('id', 'name', 'enabled', 'created', 'updated')
+    list_display = ('name', 'icon', 'enabled', 'created', 'updated')
 
 
 @admin.register(Sleeper)
 class SleeperAdmin(admin.ModelAdmin):
-    list_display = ('id', 'name', 'enabled', 'created', 'updated')
+    list_display = ('name', 'icon', 'enabled', 'created', 'updated')
 
 
 @admin.register(Space)
 class SpaceAdmin(admin.ModelAdmin):
-    list_display = ('id', 'name', 'enabled', 'created', 'updated')
+    list_display = ('name', 'icon', 'enabled', 'created', 'updated')
 
 
 @admin.register(Service)
 class ServiceAdmin(admin.ModelAdmin):
-    list_display = ('id', 'name', 'enabled', 'created', 'updated')
+    list_display = ('name', 'icon', 'enabled', 'created', 'updated')
 
 
 @admin.register(SocialMediaLink)
 class SocialMediaLinkAdmin(admin.ModelAdmin):
-    list_display = ('id', 'name', 'site', 'property', 'enabled', 'created', 'updated')
+    list_display = ('name', 'site', 'property', 'enabled', 'created', 'updated')
 
 

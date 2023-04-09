@@ -71,7 +71,7 @@ class AddressResource(resources.ModelResource):
 class AddressAdmin(ImportExportModelAdmin):
     resource_classes = [AddressResource]
     list_filter = ('imported', 'enabled', 'city__state_name')
-    list_display = ('street', 'number', 'city', 'zip_code', 'hidden', 'more_info', 'enabled', 'imported', 'import_id')
+    list_display = ('street', 'number', 'city', 'zip_code', 'hidden', 'formatted', 'location', 'more_info', 'enabled', 'imported', 'import_id')
 
 
 @admin.register(Country)

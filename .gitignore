@@ -7,6 +7,8 @@ core/migrations/0*
 core_api/migrations/0*
 directory/migrations/0*
 directory_api/migrations/0*
+payment/migrations/0*
+payment_api/migrations/0*
 rentmyvr_back.*
 credentials.json
 db.*
@@ -19,6 +21,7 @@ static/*
 
 # Distribution / packaging
 .Python
+dump.rdb
 build/
 develop-eggs/
 dist/

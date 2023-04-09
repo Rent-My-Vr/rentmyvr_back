@@ -67,6 +67,9 @@ urlpatterns = [
     path('directory/', include('directory.urls')),
     path('api/directory/', include('directory_api.urls')),
 
+    path('payment/', include('payment.urls')),
+    path('api/payment/', include('payment_api.urls')),
+
 ]
 
 if settings.DEBUG:

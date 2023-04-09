@@ -32,6 +32,8 @@ PROJECT_NAME = "rentmyvr_back"
 PROJECT_TITLE = "Rent My VR"
 COMPANY_NAME = "Rent My VR"
 
+RECAPTCHA_SECRET_KEY = config('RECAPTCHA_SECRET_KEY')
+
 DEFAULT_COY_PK = config("DEFAULT_COY_PK", default="7c665fde0492431f967ef7d3a6fe74e6")
 DEFAULT_COY_NAME = config("DEFAULT_COY_NAME", default="Rent My VR")
 
@@ -118,10 +120,12 @@ INSTALLED_APPS = [
     'auths.apps.AuthsConfig',
     'core.apps.CoreConfig',
     'directory.apps.DirectoryConfig',
+    'payment.apps.PaymentConfig',
 
     'auths_api.apps.AuthsApiConfig',
     'core_api.apps.CoreApiConfig',
     'directory_api.apps.DirectoryApiConfig',
+    'payment_api.apps.PaymentApiConfig',
 
     'django.contrib.admin',
     'django.contrib.auth',
@@ -130,12 +134,14 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django.contrib.sites',
+    'django.contrib.gis',
     
     'django_celery_beat',
     
     # rest framework
     'rest_framework_xml',
     'rest_framework',
+    'rest_framework_gis',
     'rest_framework.authtoken',
     
     # all auth
@@ -272,14 +278,14 @@ IS_PORTABLE_DB = config('PORTABLE_DB', default=True, cast=bool)
 if IS_PORTABLE_DB:
     DATABASES = {
         'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
+            'ENGINE': 'django.db.backends.sqlite3' if 'django.contrib.gis' in INSTALLED_APPS else 'django.db.backends.sqlite3',
             'NAME': BASE_DIR/'db.sqlite3',
         }
     }
 else:
     DATABASES = {   
         'default': {
-            'ENGINE': 'django.db.backends.mysql',
+            'ENGINE': 'django.contrib.gis.db.backends.mysql'  if 'django.contrib.gis' in INSTALLED_APPS else 'django.db.backends.mysql',
             'NAME': config('DB_NAME', default="database"),
             'USER': config('DB_USER', default="root"),
             'PASSWORD': config('DB_PASSWORD', default="password"),

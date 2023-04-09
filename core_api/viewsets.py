@@ -52,6 +52,18 @@ class AddressViewSet(viewsets.ModelViewSet, AchieveModelMixin):
     #     return serializer.save(updated_by_id=self.request.user.id) 
     #     # return serializer.save(updated_by_id=settings.EMAIL_PROCESSOR_ID) 
         
+    def get_queryset(self):
+        """
+        This view should return a list of all the Company for
+        the user as determined by currently logged in user.
+        """
+        return Address.objects.filter(enabled=True)
+ 
+    def get_serializer_class(self):
+        if self.action in ['retrieve',]:
+            return AddressDetailSerializer
+        return AddressSerializer
+
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -215,34 +227,6 @@ class CompanyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
 
     def perform_create(self, serializer):
         return serializer.save(updated_by_id=self.request.user.id)
-
-
-class InterestedEMailViewSet(viewsets.ModelViewSet, AchieveModelMixin):
-    permission_classes = (AllowAny, )
-    authentication_classes = (TokenAuthentication,)
-    parser_classes = (JSONParser, )
-        
-    def get_serializer_class(self):
-        if self.action in ['create', 'update']:
-            return InterestedEMailSerializer
-        return InterestedEMailSerializer
-
-    def get_queryset(self):
-        """
-        This view should return a list of all the Interested EMail
-        """
-         
-        return InterestedEMail.objects.filter(enabled=True)
- 
-    def perform_create(self, serializer):
-        return serializer.save()
-        
-    def perform_update(self, serializer):
-        return serializer.save()
-      
-    @action(methods=['get'], detail=False, url_path='names', url_name='names')
-    def names(self, request, *args, **kwargs):
-        return Response(self.get_queryset().values_list('email', flat=True), status=status.HTTP_200_OK)
 
 
 class ProfileViewSet(viewsets.ModelViewSet, AchieveModelMixin):
