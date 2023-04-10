@@ -137,7 +137,6 @@ INSTALLED_APPS = [
     'django.contrib.gis',
     
     'django_celery_beat',
-    'debug_toolbar',
     
     # rest framework
     'rest_framework_xml',
@@ -160,6 +159,7 @@ INSTALLED_APPS = [
 
 if DEBUG:
     INSTALLED_APPS.append("sslserver")
+    INSTALLED_APPS.append("debug_toolbar")
 
 SITE_ID = 1
 
@@ -235,10 +235,13 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'debug_toolbar.middleware.DebugToolbarMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+
+if DEBUG:
+    MIDDLEWARE.append('debug_toolbar.middleware.DebugToolbarMiddleware')
+    
 
 ROOT_URLCONF = f'{PROJECT_NAME}.urls'
 
