@@ -19,30 +19,215 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework import viewsets, status, mixins, pagination
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser, FileUploadParser
 
-from django.db.models import Q, Prefetch
 from datetime import datetime, timedelta
 from django.utils import timezone
+from django.db.models import Q, Prefetch
 from django.contrib.auth import get_user_model
 from django.contrib.gis.geos import Point, GEOSGeometry
-from django.contrib.gis.measure import Distance  
+from django.contrib.gis.measure import Distance
+
 from auths.utils import get_domain
 from auths_api.serializers import UserSerializer, UserUpdateSerializer
 from notifications.signals import notify
-
 from core.models import *
-from core_api.pagination import MyPagination, MyPaginationMixin
 from core.utils import send_gmail
-from directory.models import *
-
-from core.custom_permission import IsAuthenticatedOrCreate
+from core_api.pagination import MyPagination, MyPaginationMixin
 from core_api.serializers import *
 from core_api.models import *
-from directory_api.serializers import *
 from directory.models import *
+from directory_api.serializers import *
 
 
 log = logging.getLogger(f"{__package__}.*")
 log.setLevel(settings.LOGGING_LEVEL)
+
+
+class CompanyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
+    permission_classes = (IsAuthenticated, )
+    authentication_classes = (TokenAuthentication,)
+    parser_classes = (MultiPartParser, FormParser, JSONParser, FileUploadParser)
+        
+    def get_serializer_class(self):
+        # if self.action in ['create', 'update']:
+        #     return CompanySerializer
+        return CompanySerializer
+
+    def get_queryset(self):
+        """
+        This view should return a list of all the Interested EMail
+        """
+         
+        return Company.objects.filter(enabled=True)
+ 
+    def perform_create(self, serializer):
+        return serializer.save(updated_by_id=self.request.user.id)
+        
+    def perform_update(self, serializer):
+        return serializer.save(updated_by_id=self.request.user.id)
+    
+    def create(self, request, *args, **kwargs):
+        print(request.data)
+        verifyServer = f"https://www.google.com/recaptcha/api/siteverify?secret={settings.RECAPTCHA_SECRET_KEY}&response={request.data.get('token')}"
+        r = requests.get(verifyServer)
+        print(r.json())
+        d = r.json()
+        # print()
+        
+        if r.status_code == 200 and d.get("success") and float(d.get("score")) > 0.5:
+            serializer = self.get_serializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            instance = self.perform_create(serializer)
+
+            headers = self.get_success_headers(serializer.data)
+
+            return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+        else:
+            return Response({"message": "Recaptcha validation failed"}, status=status.HTTP_400_BAD_REQUEST)
+        
+    @action(methods=['get'], detail=False, url_path='names', url_name='names')
+    def names(self, request, *args, **kwargs):
+        return Response(self.get_queryset().values_list('email', flat=True), status=status.HTTP_200_OK)
+
+
+class ManagerDirectoryViewSet(viewsets.ModelViewSet, AchieveModelMixin):
+    permission_classes = (IsAuthenticated, )
+    authentication_classes = (TokenAuthentication,)
+    parser_classes = (MultiPartParser, FormParser, JSONParser, FileUploadParser)
+        
+    def get_serializer_class(self):
+        # if self.action in ['create', 'update']:
+        #     return CompanySerializer
+        return ManagerDirectorySerializer
+
+    def get_queryset(self):
+        """
+        This view should return a list of all the Interested EMail
+        """
+         
+        return ManagerDirectory.objects.filter(enabled=True)
+ 
+    def perform_create(self, serializer):
+        return serializer.save(updated_by_id=self.request.user.id)
+        
+    def perform_update(self, serializer):
+        return serializer.save(updated_by_id=self.request.user.id)
+    
+    def create(self, request, *args, **kwargs):
+        print(request.data)
+        verifyServer = f"https://www.google.com/recaptcha/api/siteverify?secret={settings.RECAPTCHA_SECRET_KEY}&response={request.data.get('token')}"
+        r = requests.get(verifyServer)
+        print(r.json())
+        d = r.json()
+        # print()
+        
+        if r.status_code == 200 and d.get("success") and float(d.get("score")) > 0.5:
+            serializer = self.get_serializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            instance = self.perform_create(serializer)
+
+            headers = self.get_success_headers(serializer.data)
+
+            return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+        else:
+            return Response({"message": "Recaptcha validation failed"}, status=status.HTTP_400_BAD_REQUEST)
+        
+    @action(methods=['get'], detail=False, url_path='names', url_name='names')
+    def names(self, request, *args, **kwargs):
+        return Response(self.get_queryset().values_list('email', flat=True), status=status.HTTP_200_OK)
+
+
+class OfficeViewSet(viewsets.ModelViewSet, AchieveModelMixin):
+    permission_classes = (IsAuthenticated, )
+    authentication_classes = (TokenAuthentication,)
+    parser_classes = (MultiPartParser, FormParser, JSONParser, FileUploadParser)
+        
+    def get_serializer_class(self):
+        # if self.action in ['create', 'update']:
+        #     return CompanySerializer
+        return OfficeSerializer
+
+    def get_queryset(self):
+        """
+        This view should return a list of all the Interested EMail
+        """
+         
+        return Office.objects.filter(enabled=True)
+ 
+    def perform_create(self, serializer):
+        return serializer.save(updated_by_id=self.request.user.id)
+        
+    def perform_update(self, serializer):
+        return serializer.save(updated_by_id=self.request.user.id)
+    
+    def create(self, request, *args, **kwargs):
+        print(request.data)
+        verifyServer = f"https://www.google.com/recaptcha/api/siteverify?secret={settings.RECAPTCHA_SECRET_KEY}&response={request.data.get('token')}"
+        r = requests.get(verifyServer)
+        print(r.json())
+        d = r.json()
+        # print()
+        
+        if r.status_code == 200 and d.get("success") and float(d.get("score")) > 0.5:
+            serializer = self.get_serializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            instance = self.perform_create(serializer)
+
+            headers = self.get_success_headers(serializer.data)
+
+            return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+        else:
+            return Response({"message": "Recaptcha validation failed"}, status=status.HTTP_400_BAD_REQUEST)
+        
+    @action(methods=['get'], detail=False, url_path='names', url_name='names')
+    def names(self, request, *args, **kwargs):
+        return Response(self.get_queryset().values_list('email', flat=True), status=status.HTTP_200_OK)
+
+
+class PortfolioViewSet(viewsets.ModelViewSet, AchieveModelMixin):
+    permission_classes = (IsAuthenticated, )
+    authentication_classes = (TokenAuthentication,)
+    parser_classes = (MultiPartParser, FormParser, JSONParser, FileUploadParser)
+        
+    def get_serializer_class(self):
+        # if self.action in ['create', 'update']:
+        #     return CompanySerializer
+        return PortfolioSerializer
+
+    def get_queryset(self):
+        """
+        This view should return a list of all the Interested EMail
+        """
+         
+        return Portfolio.objects.filter(enabled=True)
+ 
+    def perform_create(self, serializer):
+        return serializer.save(updated_by_id=self.request.user.id)
+        
+    def perform_update(self, serializer):
+        return serializer.save(updated_by_id=self.request.user.id)
+    
+    def create(self, request, *args, **kwargs):
+        print(request.data)
+        verifyServer = f"https://www.google.com/recaptcha/api/siteverify?secret={settings.RECAPTCHA_SECRET_KEY}&response={request.data.get('token')}"
+        r = requests.get(verifyServer)
+        print(r.json())
+        d = r.json()
+        # print()
+        
+        if r.status_code == 200 and d.get("success") and float(d.get("score")) > 0.5:
+            serializer = self.get_serializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            instance = self.perform_create(serializer)
+
+            headers = self.get_success_headers(serializer.data)
+
+            return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+        else:
+            return Response({"message": "Recaptcha validation failed"}, status=status.HTTP_400_BAD_REQUEST)
+        
+    @action(methods=['get'], detail=False, url_path='names', url_name='names')
+    def names(self, request, *args, **kwargs):
+        return Response(self.get_queryset().values_list('email', flat=True), status=status.HTTP_200_OK)
 
 
 class InquiryMessageViewSet(viewsets.ModelViewSet, AchieveModelMixin):
@@ -93,7 +278,6 @@ class InquiryMessageViewSet(viewsets.ModelViewSet, AchieveModelMixin):
 
 
 class PropertyViewSet(viewsets.ModelViewSet):
-    # pagination_class = ExamplePagination
     pagination_class = MyPagination
     # pagination_class = api_settings.DEFAULT_PAGINATION_CLASS
     permission_classes = (IsAuthenticated, )
@@ -143,33 +327,45 @@ class PropertyViewSet(viewsets.ModelViewSet):
             # data = request.data.copy()
             print('============ 3333 =============')
             
-            
             data['address'] = {}
-            data['address']['type'] = request.data.get('address[type]')
-            data['address']['geometry']['type'] = request.data.get('address[geometry][type]')
+            data['address']['id'] = request.data.get('address[id]', None)
+            data['address']['type'] = request.data.get('address[type]', None)
+            data['address']['geometry'] = dict()
+            data['address']['geometry']['type'] = request.data.get('address[geometry][type]', None)
             data['address']['geometry']['coordinates'] = [float(request.data.get('address[geometry][coordinates][0]', 0)), float(request.data.get('address[geometry][coordinates][1]', 0))]
+            data['address']['properties'] = dict()
             data['address']['properties']['formatted'] = request.data.get('address[properties][formatted]')
             data['address']['properties']['street'] = request.data.get('address[properties][street]')
             data['address']['properties']['number'] = request.data.get('address[properties][number]')
             data['address']['properties']['zip_code'] = request.data.get('address[properties][zip_code]')
             data['address']['properties']['state'] = request.data.get('address[properties][state]')
             data['address']['properties']['hidden'] = request.data.get('address[properties][hidden]')
+            data['address']['properties']['more_info'] = request.data.get('address[properties][more_info]')
             data['address']['properties']['city'] = dict()
             data['address']['properties']['city']['id'] = request.data.get('address[properties][city][id]', None)
+            # data['address']['properties']['city']['imported'] = request.data.get('address[properties][city][imported]', False)
+            # data['address']['properties']['city']['import_id'] = request.data.get('address[properties][city][import_id]', None)
             data['address']['properties']['city']['name'] = request.data.get('address[properties][city][name]')
             data['address']['properties']['city']['state_name'] = request.data.get('address[properties][city][state_name]')
             data['address']['properties']['city']['approved'] = True if data['address']['properties']['city']['id'] else False
             data['address']['properties']['city_data'] = data['address']['properties']['city']
-            data['address']['properties']['city'] = data['address']['properties']['city'].get('id', None) if data['address']['properties']['city'].get('id', None) else None
-            
+            # data['address']['properties']['city'] = data['address']['properties']['city'].get('id', None) if data['address']['properties']['city'].get('id', None) else None
+
+            data.pop("address[id]", None)
+            data.pop("address[type]", None)
+            data.pop("address[geometry][type]", None)
+            data.pop("address[geometry][coordinates][0]", None)
+            data.pop("address[geometry][coordinates][1]", None)
+            data.pop("address[properties][formatted]", None)
+            data.pop("address[properties][more_info]", None)
             data.pop("address[properties][street]", None)
             data.pop("address[properties][number]", None)
             data.pop("address[properties][zip_code]", None)
             data.pop("address[properties][state]", None)
-            data.pop("address[properties][city_id]", None)
             data.pop("address[properties][hidden]", None)
-            data.pop("address[properties][city]", None)
             data.pop("address[properties][city][id]", None)
+            data.pop("address[properties][city][imported]", None)
+            data.pop("address[properties][city][import_id]", None)
             data.pop("address[properties][city][name]", None)
             data.pop("address[properties][city][state_name]", None)
             data.pop("address[properties][city][updated]", None)
@@ -321,7 +517,7 @@ class PropertyViewSet(viewsets.ModelViewSet):
             print('============ 6 =============')
             instance = self.perform_create(serializer)
             print('============ 7 =============')
-            print(instance_)
+            print(instance)
             print(type(instance))
             for rtd in room_types:
                 rtd['property'] = instance.id

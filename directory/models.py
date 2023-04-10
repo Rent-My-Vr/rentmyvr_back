@@ -87,29 +87,56 @@ class Bathroom(StampedModel):
 
 
 class Company(TrackedModel):
-
     name = models.CharField(max_length=128, verbose_name="name", unique=True)
+    contact_name = models.CharField(max_length=128, verbose_name="Contact name")
+    email = models.CharField(max_length=254, verbose_name="Email")
+    url = models.URLField(max_length=254, verbose_name="Company URL", default="", blank=True, null=True)
+    phone = models.CharField(max_length=16, verbose_name="Phone")
+    country = models.CharField(max_length=128, verbose_name="Country", default="United States")
+    street = models.CharField(max_length=254, verbose_name="Street", null=True, blank=True, default='')
+    number = models.CharField(max_length=32, verbose_name="Number", null=True, blank=True, default='')
+    city = models.ForeignKey(City, on_delete=models.CASCADE, verbose_name="City")
+    zip_code = models.CharField(max_length=10, verbose_name="Zip Code")
+    more_info = models.CharField(max_length=512, verbose_name="Additional Info", null=True, blank=True, default='')
+    formatted = models.CharField(max_length=512, verbose_name="Formatted Address", null=True, blank=True, default='')
+    location = gis_model.PointField(null=True, blank=True, spatial_index=True, geography=True, srid=4326, dim=3)
+    pdls = models.ManyToManyField('Property', blank=False)
+    
+    class Meta:
+        ordering = ('name',)
+        verbose_name = _('Company')
+        verbose_name_plural = _('Companies')
+
+    def __str__(self):
+        return self.name
+
+
+class ManagerDirectory(TrackedModel):
+    name = models.CharField(max_length=128, verbose_name="name", unique=True)
+    is_active = models.BooleanField(default=False)
     manage_for_others = models.BooleanField(default=False)
     contact_name = models.CharField(max_length=128, verbose_name="Contact name")
-    country = models.CharField(max_length=254, verbose_name="Country")
+    country = models.CharField(max_length=128, verbose_name="Country")
     street = models.CharField(max_length=254, verbose_name="Street", null=True, blank=True, default='')
-    number = models.CharField(max_length=254, verbose_name="Number", null=True, blank=True, default='')
+    number = models.CharField(max_length=32, verbose_name="Number", null=True, blank=True, default='')
     city = models.ForeignKey(City, on_delete=models.CASCADE, verbose_name="City")
     zip_code = models.CharField(max_length=10, verbose_name="Zip Code")
     more_info = models.CharField(max_length=512, verbose_name="Additional Info", null=True, blank=True, default='')
     formatted = models.CharField(max_length=512, verbose_name="Formatted Address", null=True, blank=True, default='')
     location = gis_model.PointField(null=True, blank=True, spatial_index=True, geography=True, srid=4326, dim=3)
     email = models.CharField(max_length=254, verbose_name="Email")
-    phone_2 = models.CharField(max_length=128, verbose_name="Phone 1")
-    phone_2 = models.CharField(max_length=128, verbose_name="Phone 1")
+    phone_1 = models.CharField(max_length=16, verbose_name="Phone 1")
+    ext_1 = models.CharField(max_length=8, verbose_name="Ext #", null=True, blank=True, default='')
+    phone_2 = models.CharField(max_length=16, verbose_name="Phone 2", null=True, blank=True, default='')
     url = models.URLField(max_length=254, verbose_name="Company URL", default="", blank=True, null=True)
     logo = models.ImageField(blank=True, null=True, default=None)
     description = models.TextField(verbose_name="Description")
+    pdls = models.ManyToManyField('Property', blank=False)
     
     class Meta:
         ordering = ('name',)
-        verbose_name = _('Company')
-        verbose_name_plural = _('Companies')
+        verbose_name = _('Manager Directory')
+        verbose_name_plural = _('Manager Directories')
 
     def __str__(self):
         return self.name
@@ -148,7 +175,29 @@ class CompanySocialMediaLink(StampedModel):
     def __str__(self):
         return self.name
 
-  
+
+class Office(TrackedModel):
+
+    name = models.CharField(max_length=128, verbose_name="Name", db_index=False)
+    country = models.CharField(max_length=128, verbose_name="Country", default="United States")
+    street = models.CharField(max_length=254, verbose_name="Street", null=True, blank=True, default='')
+    number = models.CharField(max_length=32, verbose_name="Number", null=True, blank=True, default='')
+    city = models.ForeignKey(City, on_delete=models.CASCADE, verbose_name="City")
+    zip_code = models.CharField(max_length=10, verbose_name="Zip Code")
+    more_info = models.CharField(max_length=512, verbose_name="Additional Info", null=True, blank=True, default='')
+    formatted = models.CharField(max_length=512, verbose_name="Formatted Address", null=True, blank=True, default='')
+    location = gis_model.PointField(null=True, blank=True, spatial_index=True, geography=True, srid=4326, dim=3)
+    pdls = models.ManyToManyField('Property', blank=False)
+    
+    class Meta:
+        ordering = ('name',)
+        verbose_name = _('Office')
+        verbose_name_plural = _('Offices')
+
+
+    def __str__(self):
+        return self.subject
+
 
 class InquiryMessage(StampedModel):
 
@@ -390,10 +439,10 @@ class Property(StampedUpdaterModel):
     CAVE = 'cave'
     CHALET = 'chalet'
     CONDO = 'condo'
-    COTTA = 'cotta'
+    # COTTA = 'cotta'
     COTTAGE = 'cottage'
     COUNTRY_HOUSE = 'country-house'
-    CSA = 'csa'
+    # CSA = 'csa'
     CYCLADIC = 'cycladic'
     DUPLEX = 'duplex'
     DAMUSI = 'damusi'
@@ -413,7 +462,7 @@ class Property(StampedUpdaterModel):
     MINSU = 'minsu'
     RESORT = 'resort'
     RIAD = 'riad'
-    ROOM = 'room'
+    # ROOM = 'room'
     RV = 'rv'
     RYOKAN = 'ryokan'
     SHEPHERDS_HUT = 'shepherds-hut'
@@ -448,10 +497,9 @@ class Property(StampedUpdaterModel):
                 (CAVE, 'Cave'),
                 (CHALET, 'Chalet'),
                 (CONDO, 'Condo'),
-                (COTTA, 'Cotta'),
+                # (COTTA, 'Cotta'),
                 (COTTAGE, 'Cottage'),
                 (COUNTRY_HOUSE, 'Country House'),
-                (CSA, 'Csa'),
                 (CYCLADIC, 'Cycladic'),
                 (DAMUSI, 'Damusi'),
                 (DUPLEX, 'Duplex'),
@@ -471,7 +519,7 @@ class Property(StampedUpdaterModel):
                 (MINSU, 'Minsu'),
                 (RESORT, 'Resort'),
                 (RIAD, 'Riad'),
-                (ROOM, 'Room'),
+                # (ROOM, 'Room'),
                 (RV, 'RV'),
                 (RYOKAN, 'Ryokan'),
                 (SHEPHERDS_HUT, "Shepherd's Hut"),
@@ -551,7 +599,7 @@ class Property(StampedUpdaterModel):
     SUBSCRIPTIONS = ((STANDARD, "Standard"), (PREMIUM, "Premium"))
     
     ref = models.CharField(max_length=16, verbose_name="Ref", unique=True)
-    name = models.CharField(max_length=254, verbose_name="Name")
+    name = models.CharField(max_length=254, verbose_name="Name") # db_index=False
     video = models.FileField(upload_to="property_video_upload_path", blank=True, null=True, default=None)
     virtual_tour = models.FileField(upload_to="property_video_upload_path", blank=True, null=True, default=None)
     is_draft = models.BooleanField(verbose_name="is draft", default=False)
