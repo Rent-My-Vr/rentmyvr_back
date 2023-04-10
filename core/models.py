@@ -219,7 +219,7 @@ class City(UntrackedModel):
 
 
 class Address(UntrackedModel):
-    country = models.CharField(max_length=254, verbose_name="Country")
+    country = models.CharField(max_length=254, verbose_name="Country", default="United States")
     street = models.CharField(max_length=254, verbose_name="Street", null=True, blank=True, default='')
     number = models.CharField(max_length=254, verbose_name="Number", null=True, blank=True, default='')
     city = models.ForeignKey(City, on_delete=models.CASCADE, verbose_name="City")

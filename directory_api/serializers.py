@@ -72,6 +72,38 @@ class BookingSiteFullSerializer(serializers.ModelSerializer):
         fields = ('id', 'booker', 'site', 'property')
 
 
+class CompanySerializer(serializers.ModelSerializer):
+    pass
+
+    class Meta:
+        model = Company
+        exclude = ('enabled', )
+
+
+class ManagerDirectorySerializer(serializers.ModelSerializer):
+    pass
+
+    class Meta:
+        model = ManagerDirectory
+        exclude = ('enabled', )
+
+
+class OfficeSerializer(serializers.ModelSerializer):
+    pass
+
+    class Meta:
+        model = Office
+        exclude = ('enabled', )
+
+
+class PortfolioSerializer(serializers.ModelSerializer):
+    pass
+
+    class Meta:
+        model = Portfolio
+        exclude = ('enabled', )
+
+
 class InquiryMessageSerializer(serializers.ModelSerializer):
     pass
 

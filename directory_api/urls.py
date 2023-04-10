@@ -7,6 +7,10 @@ from . import viewsets as vs
 
 router_v1 = routers.DefaultRouter()
 
+router_v1.register(r'company', vs.CompanyViewSet, basename="company")
+router_v1.register(r'manager', vs.ManagerDirectoryViewSet, basename="manager")
+router_v1.register(r'office', vs.OfficeViewSet, basename="office")
+router_v1.register(r'portfolio', vs.PortfolioViewSet, basename="portfolio")
 router_v1.register(r'inquiry/message', vs.InquiryMessageViewSet, basename="inquiry-message")
 router_v1.register(r'property', vs.PropertyViewSet, basename="property")
 # router_v1.register(r'category', vs.CategoryViewSet, basename="category")
@@ -15,7 +19,6 @@ router_v1.register(r'property', vs.PropertyViewSet, basename="property")
 app_name = DirectoryApiConfig.name
 
 urlpatterns = [
-
     path('', include(router_v1.urls)),
 ]
 
