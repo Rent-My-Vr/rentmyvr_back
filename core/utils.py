@@ -1,4 +1,5 @@
 import email
+import math
 from email.message import Message
 import logging
 from base64 import urlsafe_b64encode
@@ -31,6 +32,19 @@ SCOPES = ['https://www.googleapis.com/auth/gmail.compose',
             'https://www.googleapis.com/auth/gmail.readonly', 
             'https://www.googleapis.com/auth/gmail.send']
             
+
+def distance_to_decimal_degrees(distance, latitude):
+    """
+    Source of formulae information:
+        1. https://en.wikipedia.org/wiki/Decimal_degrees
+        2. http://www.movable-type.co.uk/scripts/latlong.html
+    :param distance: an instance of `from django.contrib.gis.measure.Distance`
+    :param latitude: y - coordinate of a point/location
+    """
+    lat_radians = latitude * (math.pi / 180)
+    # 1 longitudinal degree at the equator equal 111,319.5m equiv to 111.32km
+    return distance.m / (111_319.5 * math.cos(lat_radians))
+
 
 def date_to_json(obj):
     """JSON serializer for objects not serializable by default json code"""

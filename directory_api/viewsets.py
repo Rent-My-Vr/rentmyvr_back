@@ -304,6 +304,11 @@ class PropertyViewSet(viewsets.ModelViewSet):
             return PropertyListSerializer
         return PropertySerializer
 
+    # def get_page_size(self, request):
+    #     if _has_valid_filters(request.query_params.items()):
+    #         return 200
+    #     else:
+    #         return 100
     def perform_create(self, serializer):
         return serializer.save(updated_by_id=self.request.user.id)
         
@@ -926,40 +931,43 @@ class PropertyViewSet(viewsets.ModelViewSet):
     def search(self, request, *args, **kwargs):
         self.pagination_class.page_size = 20
         data = request.data
-        print('...: ', data)
-        l = data.get('location')
-        print(type(l))
-        address = None
-        print(0)
-        if (type(data.get('location', {}).get('coordinates', None)) == list):
-            if len(data.get('location', {}).get('coordinates', None)) != 2:
-                print(1)
-                address = data.get('address')
-            else:
-                print(2)
-                geosData = json.dumps(data.get('location'))
+        print('...........: ', data)
+        geometry = data.get('geometry', None)
+        address = data.get('address', None)
+        if not geometry and not address:
+            return Response({"message": "Address component is missing"}, status=status.HTTP_404_NOT_FOUND)
+        
+        print(type(geometry))
+        print(geometry)
+        print(1)
+        if geometry:
+            print(2)
+            geometry = json.dumps(data.get('geometry'))
+            print(type(geometry))
         else:
             print(3)
-            address = data.get('address')
-            
-        
-        if address:
             print(address)
             print(config('GOOGLE_GEOCODING_KEY'))
-            r = requests.get(requote_uri(f"https://maps.googleapis.com/maps/api/geocode/json?sensor=true&key={config('GOOGLE_GEOCODING_KEY')}&address={address}"))
+            r = requests.get(requote_uri(config('GOOGLE_GEOCODING_LINK').format(config('GOOGLE_GEOCODING_KEY'), address)))
             if r.status_code == 200:
                 js = r.json()
                 print(js)
                 if js['status'] == 'OK':
                     loc = js['results'][0]['geometry']['location']
-                    geosData = json.dumps({"type": "Point", "coordinates": [loc['lat'], loc['lng']]})
+                    geometry = json.dumps({"type": "Point", "coordinates": [loc['lat'], loc['lng']]})
                 else:
                     return Response({"message": "We are unable to Geolocate the address provided"}, status=status.HTTP_404_NOT_FOUND)
-        point = GEOSGeometry(geosData)
-        # point = GEOSGeometry(json.dumps())
-        queryset = Property.objects.filter(address__location__distance_lt=(point, 1000/40000*360))
+            else:
+                return Response({"message": "We are unable to Geolocate the address provided"}, status=status.HTTP_404_NOT_FOUND)
+                
+        point = GEOSGeometry(geometry)
+        queryset = Property.objects.filter(address__location__distance_lt=(point, 300/40000*360))
         
-        print(point.x, '   ', point.y)
+        print(point)
+        print(type(point))
+        print(data.get('guest'))
+        print(type(data.get('guest')))
+        # print(point.x, '   ', point.y)
         print(queryset)
 
         if data.get('types', None):
@@ -967,7 +975,10 @@ class PropertyViewSet(viewsets.ModelViewSet):
         elif data.get('bookedSpaces', None):
             queryset = queryset.filter(spaces__in=data.get('bookedSpaces', []))
         elif data.get('guest', None):
-            queryset = queryset.filter(max_no_of_guest__in=data.get('guest', []))
+            if type(data.get('guest')) == int:
+                queryset = queryset.filter(max_no_of_guest__gte=data.get('guest'))
+            else:
+                queryset = queryset.filter(max_no_of_guest__in=data.get('guest', []))
         elif data.get('bedrooms', None):
             queryset = queryset.filter(no_of_bedrooms__in=data.get('bedrooms', []))
         elif data.get('bathrooms', None):
@@ -1008,7 +1019,8 @@ class PropertyViewSet(viewsets.ModelViewSet):
         page = self.paginate_queryset(queryset)
         # print('Pagination: ', page)
         if page is not None:
-            # page.page_size_query_param = 
+            print(queryset.count())
+            # page.count =  queryset.count()
             serializer = self.get_serializer(page, many=True)
             return self.get_paginated_response(serializer.data)
         

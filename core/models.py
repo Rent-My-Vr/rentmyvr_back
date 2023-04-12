@@ -226,7 +226,9 @@ class Address(UntrackedModel):
     zip_code = models.CharField(max_length=10, verbose_name="Zip Code")
     more_info = models.CharField(max_length=512, verbose_name="Additional Info", null=True, blank=True, default='')
     formatted = models.CharField(max_length=512, verbose_name="Formatted Address", null=True, blank=True, default='')
-    location = gis_model.PointField(null=True, blank=True, spatial_index=True, geography=True, srid=4326, dim=3)
+    # 1km = 1/111.325 degrees. 5km is therefore approximately 0.0449 or about 0.05 degrees
+    # location = gis_model.PointField(null=True, blank=True, spatial_index=True, geography=True, srid=4326, dim=3)
+    location = gis_model.PointField(null=True, blank=True, spatial_index=True, geography=True, srid=4326)
     hidden = models.BooleanField(default=False, )
     imported = models.BooleanField(default=False, )
     import_id = models.CharField(max_length=16, verbose_name="Imported Id", default='', blank=True, null=True)
