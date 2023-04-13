@@ -12,6 +12,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.gis.db import models as gis_model
 from django.core.validators import FileExtensionValidator
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
+from django.contrib.gis.geos import Point
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 from django.utils.deconstruct import deconstructible
@@ -219,6 +220,7 @@ class City(UntrackedModel):
 
 
 class Address(UntrackedModel):
+    # id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     country = models.CharField(max_length=254, verbose_name="Country", default="United States")
     street = models.CharField(max_length=254, verbose_name="Street", null=True, blank=True, default='')
     number = models.CharField(max_length=254, verbose_name="Number", null=True, blank=True, default='')

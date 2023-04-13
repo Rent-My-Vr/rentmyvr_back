@@ -23,7 +23,7 @@ from datetime import datetime, timedelta
 from django.utils import timezone
 from django.db.models import Q, Prefetch
 from django.contrib.auth import get_user_model
-from django.contrib.gis.geos import Point, GEOSGeometry
+from django.contrib.gis.geos import Point, Polygon, GEOSGeometry
 from django.contrib.gis.measure import Distance
 
 from auths.utils import get_domain
@@ -934,6 +934,7 @@ class PropertyViewSet(viewsets.ModelViewSet):
         print('...........: ', data)
         geometry = data.get('geometry', None)
         address = data.get('address', None)
+        
         if not geometry and not address:
             return Response({"message": "Address component is missing"}, status=status.HTTP_404_NOT_FOUND)
         
@@ -942,8 +943,29 @@ class PropertyViewSet(viewsets.ModelViewSet):
         print(1)
         if geometry:
             print(2)
-            geometry = json.dumps(data.get('geometry'))
-            print(type(geometry))
+            if geometry.get('type') == 'Point':
+                print(22)
+                geometry = json.dumps(data.get('geometry'))
+                print(type(geometry))
+                point = GEOSGeometry(geometry)
+                queryset = Property.objects.filter(address__location__distance_lt=(point, 300/40000*360))
+            elif geometry.get('type') == 'Polygon':
+                print(222)
+                ne = data.get('geometry').get('ne')
+                sw = data.get('geometry').get('sw')
+
+                # ne = (latitude, longitude)
+                # sw = (latitude, longitude)
+                # xmin=sw[1]=sw.lng
+                # ymin=sw[0]=sw.lat
+                # xmax=ne[1]=ne.lng
+                # ymax=ne[0]=ne.lat
+                # bbox = (sw[1], sw[0], ne[1], ne[0]) = (xmin, ymin, xmax, ymax) = (sw['lng'], sw['lat'], ne['lng'], ne['lat'])
+
+                bbox = (ne['lat'], sw['lng'], ne['lng'], sw['lat'])
+                print('****bbox  ', bbox)
+                geometry = Polygon.from_bbox(bbox)
+                queryset = Property.objects.filter(address__location__within=geometry)
         else:
             print(3)
             print(address)
@@ -953,21 +975,30 @@ class PropertyViewSet(viewsets.ModelViewSet):
                 js = r.json()
                 print(js)
                 if js['status'] == 'OK':
-                    loc = js['results'][0]['geometry']['location']
-                    geometry = json.dumps({"type": "Point", "coordinates": [loc['lat'], loc['lng']]})
+                    # loc = js['results'][0]['geometry']['location']
+                    # geometry = json.dumps({"type": "Point", "coordinates": [loc['lat'], loc['lng']]})
+                    
+                    vp = js['results'][0]['geometry']['viewport']
+                    ne = vp.get('northeast', {})
+                    sw = vp.get('southwest', {})
+
+                    # xmin=sw[1]
+                    # ymin=sw[0]
+                    # xmax=ne[1]
+                    # ymax=ne[0]
+                    # bbox = (sw.lng, sw.lat, ne.lng, ne.lat)
+                    bbox = (sw.get('lng', 0), sw.get('lat', 0), ne.get('lng', 0), ne.get('lat', 0))
+                    print('===== ', bbox)
+                    geometry = Polygon.from_bbox(bbox)
+                    queryset = Property.objects.filter(address__location__contains=geometry)
                 else:
                     return Response({"message": "We are unable to Geolocate the address provided"}, status=status.HTTP_404_NOT_FOUND)
             else:
                 return Response({"message": "We are unable to Geolocate the address provided"}, status=status.HTTP_404_NOT_FOUND)
                 
-        point = GEOSGeometry(geometry)
-        queryset = Property.objects.filter(address__location__distance_lt=(point, 300/40000*360))
-        
-        print(point)
-        print(type(point))
         print(data.get('guest'))
         print(type(data.get('guest')))
-        # print(point.x, '   ', point.y)
+        print(queryset.count())
         print(queryset)
 
         if data.get('types', None):

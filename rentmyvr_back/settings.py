@@ -286,7 +286,7 @@ IS_PORTABLE_DB = config('PORTABLE_DB', default=True, cast=bool)
 if IS_PORTABLE_DB:
     DATABASES = {
         'default': {
-            'ENGINE': 'django.db.backends.sqlite3' if 'django.contrib.gis' in INSTALLED_APPS else 'django.db.backends.sqlite3',
+            'ENGINE': 'django.contrib.gis.db.backends.spatialite' if 'django.contrib.gis' in INSTALLED_APPS else 'django.db.backends.sqlite3',
             'NAME': BASE_DIR/'db.sqlite3',
         }
     }
