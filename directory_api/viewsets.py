@@ -876,7 +876,6 @@ class PropertyViewSet(viewsets.ModelViewSet):
             # PropertyPhoto.objects.filter(~Q(id__in=p_ids), property=instance).delete()
             print('============ 8 =============')
             return Response(PropertySerializer(instance).data, status=status.HTTP_201_CREATED)
-
     
     def list(self, request, *args, **kwargs):
         page_number = request.query_params.get('page', None)
@@ -954,15 +953,17 @@ class PropertyViewSet(viewsets.ModelViewSet):
                 ne = data.get('geometry').get('ne')
                 sw = data.get('geometry').get('sw')
 
-                # ne = (latitude, longitude)
-                # sw = (latitude, longitude)
+                # https://stackoverflow.com/questions/9466043/geodjango-within-a-ne-sw-box
+                # ne = (latitude, longitude) = high
+                # sw = (latitude, longitude) = Low
                 # xmin=sw[1]=sw.lng
                 # ymin=sw[0]=sw.lat
                 # xmax=ne[1]=ne.lng
                 # ymax=ne[0]=ne.lat
                 # bbox = (sw[1], sw[0], ne[1], ne[0]) = (xmin, ymin, xmax, ymax) = (sw['lng'], sw['lat'], ne['lng'], ne['lat'])
 
-                bbox = (ne['lat'], sw['lng'], ne['lng'], sw['lat'])
+                # bbox = (ne['lat'], sw['lng'], ne['lng'], sw['lat'])
+                bbox = (sw['lng'], sw['lat'], ne['lng'], ne['lat'])
                 print('****bbox  ', bbox)
                 geometry = Polygon.from_bbox(bbox)
                 queryset = Property.objects.filter(address__location__within=geometry)
