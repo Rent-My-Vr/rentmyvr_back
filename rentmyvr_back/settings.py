@@ -291,8 +291,16 @@ if IS_PORTABLE_DB:
         }
     }
 else:
-    DATABASES = {   
+    DATABASES = {
         'default': {
+            'ENGINE': 'django.contrib.gis.db.backends.postgis' if 'django.contrib.gis' in INSTALLED_APPS else 'django.db.backends.postgresql_psycopg2',
+            'NAME': config('DB_NAME', default="database"), 
+            'USER': config('DB_USER', default="postgres"),
+            'PASSWORD': config('DB_PASSWORD', default="password"),
+            'HOST': config('DB_HOST', default="localhost"), 
+            'PORT': config('DB_PORT', default=5432),
+        },
+        'default-1': {
             'ENGINE': 'django.contrib.gis.db.backends.mysql'  if 'django.contrib.gis' in INSTALLED_APPS else 'django.db.backends.mysql',
             'NAME': config('DB_NAME', default="database"),
             'USER': config('DB_USER', default="root"),
