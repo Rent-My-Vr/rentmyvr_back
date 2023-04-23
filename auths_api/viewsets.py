@@ -308,6 +308,7 @@ class LoginView(DJ_LoginView):
         # # except ActivationRequired as ex:
         #     print(ex)
 
+
 class LogoutView(DJ_LogoutView):
     """
     Calls Django logout method and delete the Token object
@@ -511,7 +512,6 @@ class PasswordResetView(DJ_PasswordResetView):
                 "resend_url": f'{request_url}?action={act}&channel={channel}',
                 "activation_url": activation_url
                 }, status=status.HTTP_200_OK)
-
 
 
 class PasswordResetConfirmView(DJ_PasswordResetConfirmView):

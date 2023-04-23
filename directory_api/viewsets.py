@@ -379,19 +379,24 @@ class PropertyViewSet(viewsets.ModelViewSet):
             data.pop("address[properties][city][approved]", None)
             
             print(data)
-            # print(data.get('booking_sites[]'))
+            print(data.get('booking_sites[]'))
             
             booking_sites_set = set()
             social_media_set = set()
+            # pictures_set = set()
+            suitabilities_set = set()
             room_types_set = set()
             room_types_dict = dict()
             max_sleeper = 0
+            
             for k in data.keys():
                 print(k)
                 if f'booking_sites[' in k:
                     booking_sites_set.add(re.findall(r"^booking_sites\[(\d+)\]\[\w+\]", k)[0])
                 elif f'social_media[' in k:
                     social_media_set.add(re.findall(r"^social_media\[(\d+)\]\[\w+\]$", k)[0])
+                elif f'suitabilities[' in k:
+                    suitabilities_set.add(re.findall(r"^suitabilities\[(\d+)\]\[\w+\]$", k)[0])
                 elif f'room_types[' in k:
                     r = re.findall(r"^room_types\[(\d+)\]\[(\w+)\]\[(\d+)\]\[(\w+)\]$", k)
                     if len(r) > 0:
@@ -472,6 +477,19 @@ class PropertyViewSet(viewsets.ModelViewSet):
                 # ser = SocialMediaLinkSerializer(data=d)
                 # ser.is_valid(raise_exception=True)
                 # ser.save(updated_by_id=self.request.user.id) 
+              
+            suitabilities = []
+            for i in range(len(suitabilities_set)):
+                d = dict()
+                d['id'] = data.get(f'suitabilities[{i}][id]', None)
+                d['label'] = data.get(f'suitabilities[{i}][label]', None)
+                d['days'] = data.get(f'suitabilities[{i}][days]', None)
+                
+                data.pop(f'suitabilities[{i}][id]', None)
+                data.pop(f'suitabilities[{i}][label]', None)
+                data.pop(f'suitabilities[{i}][days]', None)
+                
+                suitabilities.append(d)
 
             data['accessibility'] = data.get('accessibility[]', [])
             data.pop(f'accessibility[]', None)
@@ -507,6 +525,7 @@ class PropertyViewSet(viewsets.ModelViewSet):
             data['booking_sites'] = booking_sites
             data['social_media'] = social_media
             data['room_types'] = room_types
+            data['suitabilities'] = suitabilities
             print('============ *3* =============')
             print(data)
             if not data.get('video'):
