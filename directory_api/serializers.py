@@ -301,8 +301,8 @@ class PropertySerializer(serializers.ModelSerializer):
             if address_data.get('city'):
                 city = address_data.get('city')
             else:
-                city = City.objects.get_or_create(**city_data)
-                city = city[0].id
+                (city, created) = City.objects.get_or_create(id=city_data.pop('id', None), defaults=city_data)
+                city = city.id
             address_data['city_id'] = city
             address = Address.objects.create(**address_data)
             print('==== 3 ====')
