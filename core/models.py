@@ -225,7 +225,7 @@ class Address(UntrackedModel):
     street = models.CharField(max_length=254, verbose_name="Street", null=True, blank=True, default='')
     number = models.CharField(max_length=254, verbose_name="Number", null=True, blank=True, default='')
     city = models.ForeignKey(City, on_delete=models.CASCADE, verbose_name="City")
-    zip_code = models.CharField(max_length=10, verbose_name="Zip Code")
+    zip_code = models.CharField(max_length=10, verbose_name="Zip Code", null=True, blank=True, default='')
     more_info = models.CharField(max_length=512, verbose_name="Additional Info", null=True, blank=True, default='')
     formatted = models.CharField(max_length=512, verbose_name="Formatted Address", null=True, blank=True, default='')
     # 1km = 1/111.325 degrees. 5km is therefore approximately 0.0449 or about 0.05 degrees
