@@ -18,10 +18,15 @@ from rest_framework.parsers import MultiPartParser, FormParser, JSONParser, File
 from django.db.models import Q, Prefetch
 from datetime import datetime, timedelta
 from django.utils import timezone
+from django.utils.encoding import force_bytes
+from django.template.loader import render_to_string
+from django.utils.http import urlsafe_base64_encode
 from django.contrib.auth import get_user_model
-from auths.utils import get_domain
-from auths_api.serializers import UserSerializer, UserUpdateSerializer
+from auths.utils import get_domain, random_with_N_digits
+from auths_api.serializers import UserUpdateSerializer
 from notifications.signals import notify
+
+from directory.models import *
 
 from core.models import *
 from core.utils import send_gmail
@@ -74,7 +79,6 @@ class AddressViewSet(viewsets.ModelViewSet, AchieveModelMixin):
         with transaction.atomic():
             partial = kwargs.pop('partial', False)
             instance = self.get_object()
-            data = request.data
             serializer = self.get_serializer(instance, data=request.data, partial=partial)
 
             serializer.is_valid(raise_exception=True)
@@ -203,8 +207,25 @@ class CityViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             # return Response({}, status=status.HTTP_201_CREATED)
 
 
+class ContactViewSet(viewsets.ModelViewSet):
+    permission_classes = (AllowAny, )
+    authentication_classes = ()
+    parser_classes = (JSONParser, MultiPartParser)
+        
+    def get_queryset(self):
+        """
+        This view should return a list of all the Company for
+        the user as determined by currently logged in user.
+        """
+        return Contact.objects.filter(enabled=True)
+ 
+    def get_serializer_class(self):
+        # if self.action in ['retrieve',]:
+        #     return ContactSerializer
+        return ContactSerializer
+
+
 class CompanyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
-    serializer_class = CompanySerializer
     permission_classes = (IsAuthenticated, )
     authentication_classes = (TokenAuthentication,)
     # parser_classes = (JSONParser, MultiPartParser)
@@ -214,8 +235,7 @@ class CompanyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
         This view should return a list of all the Company for
         the user as determined by currently logged in user.
         """
-        queryset = Company.objects.filter(enabled=True)
-        return queryset
+        return Company.objects.filter(enabled=True)
  
     def get_serializer_class(self):
         if self.action in ['retrieve',]:
@@ -227,6 +247,210 @@ class CompanyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
 
     def perform_create(self, serializer):
         return serializer.save(updated_by_id=self.request.user.id)
+
+    def create(self, request, *args, **kwargs):
+        with transaction.atomic():
+            data = request.data
+            print(data)
+            if data.get('city').get('id', None):
+                print('====Have City****')
+                data['country'] = data.get('city').get('country_name')
+                data['state'] = data.get('city').get('state_name')
+                data['city'] = data.get('city').get('id')
+            else:
+                print('====Create City****')
+                ser = CitySerializer(data=data.get('city'))
+                ser.is_valid(raise_exception=True)
+                inst = ser.save()
+                data['country'] = inst.country_name
+                data['state'] = inst.state_name
+                data['city'] = inst.id
+            profile = request.user.user_profile
+            data['administrator'] = profile.id
+            if profile.company:
+                return Response({'message': f'User {profile} is already and existing memeber of a different Company'}, status=status.HTTP_403_FORBIDDEN)
+            serializer = self.get_serializer(data=data)
+            serializer.is_valid(raise_exception=True)
+            company = self.perform_create(serializer)
+            headers = self.get_success_headers(serializer.data)
+            profile.company = company
+            profile.save()
+
+        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+    
+    def update(self, request, *args, **kwargs):
+        with transaction.atomic():
+            data = request.data
+            print(data)
+            if data.get('city').get('id', None):
+                print('====Have City****')
+                data['country'] = data.get('city').get('country_name')
+                data['state'] = data.get('city').get('state_name')
+                data['city'] = data.get('city').get('id')
+            else:
+                print('====Create City****')
+                ser = CitySerializer(data=data.get('city'))
+                ser.is_valid(raise_exception=True)
+                inst = ser.save()
+                data['country'] = inst.country_name
+                data['state'] = inst.state_name
+                data['city'] = inst.id
+                    
+            partial = kwargs.pop('partial', False)
+            instance = self.get_object()
+            serializer = self.get_serializer(instance, data=request.data, partial=partial)
+            
+            serializer.is_valid(raise_exception=True)
+            instance = serializer.save()
+            
+            self.perform_update(serializer)
+
+        if getattr(instance, '_prefetched_objects_cache', None):
+            # If 'prefetch_related' has been applied to a queryset, we need to
+            # forcibly invalidate the prefetch cache on the instance.
+            instance._prefetched_objects_cache = {}
+
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    # def retrieve(self, request, *args, **kwargs):
+    #     if kwargs['pk'] != request.user.id and request.user.position == UserModel.BASIC:
+    #         return Response({'message': 'You are not authorised to access this record'}, status=status.HTTP_403_FORBIDDEN)
+    #     r = Profile.objects.filter(id=kwargs['pk']).first()
+    #     # r = Profile.objects.filter(id=kwargs['pk']).prefetch_related(Prefetch('worker_statuses', queryset=WorkStatus.objects.filter(enabled=True, project__enabled=True))).first()
+    #     print(r)
+    #     return Response(self.get_serializer(instance=r).data)
+
+    @action(methods=['get'], detail=False, url_path='me', url_name='me')
+    def me(self, request, *args, **kwargs):
+        p = request.user.user_profile
+        company = Company.objects.filter(Q(administrator=p) | Q(members=p), enabled=True).prefetch_related(
+            Prefetch('company_offices', queryset=Office.objects.filter(enabled=True).prefetch_related(
+                Prefetch('office_properties', queryset=Property.objects.filter(enabled=True)))), 
+            Prefetch('company_portfolios', queryset=Portfolio.objects.filter(enabled=True).prefetch_related(
+                Prefetch('portfolio_properties', queryset=Property.objects.filter(enabled=True)))),
+            Prefetch('members', queryset=Profile.objects.filter(enabled=True).prefetch_related(
+                Prefetch('portfolios', queryset=Portfolio.objects.filter(enabled=True)),
+                Prefetch('offices', queryset=Office.objects.filter(enabled=True))))
+        ).first()
+        if company:
+            return Response(CompanyMDLDetailSerializer(company).data, status=status.HTTP_200_OK)
+        else:
+            return Response(None, status=status.HTTP_200_OK)
+
+
+class InvitationViewSet(viewsets.ModelViewSet):
+    permission_classes = (AllowAny, )
+    authentication_classes = (TokenAuthentication, )
+    parser_classes = (JSONParser, MultiPartParser)
+        
+    def get_queryset(self):
+        """
+        This view should return a list of all the Company for
+        the user as determined by currently logged in user.
+        """
+        return Invitation.objects.filter(enabled=True)
+ 
+    def get_serializer_class(self):
+        # if self.action in ['retrieve',]:
+        #     return ContactSerializer
+        return InvitationSerializer
+
+    def perform_create(self, serializer):
+        # serializer.save(updated_by_id=self.request.user.id) 
+        return serializer.save(company=self.company, sender=self.sender) 
+    
+    def create(self, request, *args, **kwargs):
+        print('****** 1');
+        data = request.data
+        print(data)
+        emails = data['emails']
+        client_callback_link = data['client_callback_link']
+        profile = request.user.user_profile
+        print('****** 2');
+        self.sender = profile
+        self.company = profile.company
+        
+        print(emails)
+        print(data)
+        
+        if not profile.company:
+            return Response({'message': f'User {profile} must be a mamber of a Company/MDL b4 you can axecute this action'}, status=status.HTTP_403_FORBIDDEN)
+        
+        existing_same_company = list(Profile.objects.filter(company=profile.company, user__email__in=emails).values_list('user__email', flat=True))
+        existing_other_company = list(Profile.objects.filter(~Q(company=profile.company), ~Q(company__isnull=False), user__email__in=emails).values_list('user__email', flat=True))
+        sent_same_company = list(Invitation.objects.filter(company=profile.company, email__in=emails).values_list('email', flat=True))
+        sent_other_company = list(Invitation.objects.filter(~Q(status__in=[Invitation.REJECTED, Invitation.CANCELLED]), ~Q(company=profile.company), ~Q(company__isnull=False), email__in=emails).values_list('email', flat=True))
+        existing = list(set(existing_same_company) | set(existing_other_company) | set(sent_same_company) | set(sent_other_company))
+        remaining = list(filter(lambda x: x not in existing, emails))
+        
+        message = []
+        if len(existing_same_company) > 0:
+            message.append({"existing_same": existing_same_company})
+        if len(existing_other_company) > 0:
+            message.append({"existing_other": existing_other_company})
+        if len(sent_same_company) > 0:
+            message.append({"sent_same": sent_same_company})
+        if len(sent_other_company) > 0:
+            message.append({"sent_other": sent_other_company})
+        
+        print(f"Existing Same: {existing_same_company}\nExisting Other: {existing_other_company}\Sent Same: {sent_same_company}\Sent Other: {sent_other_company}\nExisting: {existing}\nRemaining: {remaining}")
+        
+        if len(remaining) == 0:
+            return Response({"message": "No invite sent!", 'result': message}, status=status.HTTP_403_FORBIDDEN)
+
+        data.pop('emails', False)
+        with transaction.atomic():
+            for email in remaining:
+                data['email'] = email
+                print(data)
+                serializer = self.get_serializer(data=data)
+                serializer.is_valid(raise_exception=True)
+                invitation = self.perform_create(serializer)
+                
+                token = random_with_N_digits(12)
+                uidb64 = urlsafe_base64_encode(force_bytes(email))
+                action_link = f"{reverse('core_api:invitation-verify', kwargs={'uidb64': uidb64, 'token': token})}"
+        
+                domain = get_domain(request)
+                print({
+                    'coy_name': settings.COMPANY_NAME,
+                    'user': self,
+                    'action_link': f"{client_callback_link if client_callback_link else domain}?link={action_link}",
+                    'domain': domain,
+                    'project_title': profile.company.name
+                })
+                html_message = render_to_string('auths/mail_templates/invite.html', {
+                    'coy_name': settings.COMPANY_NAME,
+                    'user': self,
+                    'action_link': f"{client_callback_link if client_callback_link else domain}?link={action_link}",
+                    'domain': domain,
+                    'project_title': profile.company.name
+                })
+                
+                print(action_link)
+                from core.tasks import sendMail
+                sendMail.apply_async(kwargs={'subject': 'Rent MyVR User Invite', "message": html_message,
+                                            "recipients": [email],
+                                            "fail_silently": settings.DEBUG, "connection": None})
+        
+        headers = self.get_success_headers(serializer.data)
+
+        return Response({"message": "Ok", "result": message}, status=status.HTTP_201_CREATED, headers=headers)
+    
+    @action(methods=['patch'], detail=False, permission_classes=[], url_path='verify/(?P<uidb64>[0-9A-Za-z_\-]+)/(?P<token>\d+)', url_name='verify')
+    def verify(self, request, *args, **kwargs):
+        profile = Profile.objects.filter(pk=kwargs['pk'], company=request.user.company).first()
+        if profile is None:
+            profile = Profile.objects.filter(pk=kwargs['pk'], company=request.user.user_profile.company).first()
+
+        if profile and len(request.data.get('timezone', "")) > 2:
+            user = profile.user
+            user.timezone_id = request.data['timezone']
+            user.save()
+            return Response({'msg': 'Timezone Updated', 'data': {'timezone': user.timezone.alias}},
+                            status=status.HTTP_201_CREATED)
+        else:
+            return Response({'msg': 'wrong parameters'}, status=status.HTTP_400_BAD_REQUEST)
 
 
 class ProfileViewSet(viewsets.ModelViewSet, AchieveModelMixin):
@@ -246,19 +470,22 @@ class ProfileViewSet(viewsets.ModelViewSet, AchieveModelMixin):
         queryset = Profile.objects.filter(enabled=True)
         # queryset = Profile.objects.filter(company=self.request.user.company)
         if (searchTerm is not None):
+            print('---4---')
             queryset = queryset[:50]
+            print('---5---')
             if (searchTerm != ''):
+                print('---6---')
                 queryset = queryset.filter(Q(user__first_name__icontains=searchTerm) |
                                            Q(user__last_name__icontains=searchTerm))
-
+        
         return queryset
 
     def get_serializer_class(self):
-        # print('********', self.request.method, "   ", self.action)
-        if self.request.method in ['PUT']:
+        print('********', self.request.method, "   ", self.action)
+        if self.action in ['update']:
             # Since the ReadSerializer does nested lookups
             # in multiple tables, only use it when necessary
-            return ProfileSerializer
+            return ProfileUpdateSerializer
         elif self.request.method == 'PATCH' and self.action == 'update_picture':
             return ProfileSerializer
         elif self.action == 'retrieve':
@@ -280,14 +507,20 @@ class ProfileViewSet(viewsets.ModelViewSet, AchieveModelMixin):
 
     def create(self, request, *args, **kwargs):
         with transaction.atomic():
-            data = request.data.copy()
-            
-            print('-------')
-            print(data)
-            profile_reset_link = data.get('profile_reset_link', None)
+            data = request.data
+            channel = data.get('channel')
+            processing_channel = data.get('processing_channel', UserModel.TOKEN)
+            client_callback_link = data.get('client_callback_link', None)
+            if not channel:
+                raise serializers.ValidationError('channel', _('Account verification Channel not provided'))
+            if not client_callback_link:
+                raise serializers.ValidationError('client_callback_link', _('Account verification Callback Link not provided'))
+            extra = {"processing_channel": processing_channel, "client_callback_link": client_callback_link}
             is_password_generated = not data['user'].get('password', None)
             data['user']['password'] = UserModel.objects.make_random_password() if is_password_generated else data['user']['password']
-            # print(data)
+            print(data)
+            print('==============')
+            
             # data['address'] = data['address'] if data.get('address', None) else None
             serializer = self.get_serializer(data=data)
             print(type(serializer))
@@ -296,59 +529,92 @@ class ProfileViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             print('----- after')
             profile = self.perform_create(serializer)
 
+            uidb64 = urlsafe_base64_encode(force_bytes(profile.user.pk))
             headers = self.get_success_headers(serializer.data)
 
             # print(user)
             user = profile.user
-            domain = get_domain(request)
-            # send_access_token(self, token_length, domain, channel="email", action="Verify Email", extra={})
-
+            client_domain = settings.FRONT_SERVER
+            server_domain = get_domain(request)
+            
             if is_password_generated:
                 user.force_password_change = True
                 user.save()
+                action = UserModel.NEW_REG_PASS_SET
+                session_key = user.send_access_token(client_domain, action, channel, template='auths/mail_templates/welcome.html', extra=extra)
                 messages = f"Account Registration successful, activation link has been sent to: '{user.email}'"
-                user.send_registration_password(domain, profile_reset_link)
-                return Response({"message": messages, "user": serializer.data}, status=status.HTTP_201_CREATED, headers=headers)
+                data = {"message": messages, "user": serializer.data}
             else:
-                session_key = user.send_access_token(settings.AUTH_TOKEN_LENGTH, domain, "email", UserModel.ACCOUNT_ACTIVATION)
-                request_url = f"{domain}{reverse('auths_api:activation-send', args=(user.pk,))}?action={UserModel.ACCOUNT_ACTIVATION}&channel={UserModel.EMAIL_CHANNEL}"
-                activation_url = f"{domain}{reverse('auths_api:activation-activate', args=(user.pk, session_key))}"
-
+                action = UserModel.NEW_REG_ACTIVATION
+                session_key = user.send_access_token(client_domain, action, channel, template='auths/mail_templates/welcome.html', extra=extra)
+                request_url = f"{server_domain}{reverse('auths_api:activation-send', args=(uidb64,))}?action={action}&channel={channel}&processing_channel={processing_channel}&client_callback_link={client_callback_link}"
+                activation_url = f"{server_domain}{reverse('auths_api:activation-confirm-token', kwargs={'uidb64': uidb64, 'session_key': session_key})}?action={action}&channel={channel}&processing_channel={processing_channel}&client_callback_link={client_callback_link}"
+                
                 messages = f"Account activation Token successfully sent to '{user.email}'"
-                data = {
-                        "message": messages,
-                        "user": serializer.data,
-                        "resend_url": request_url,
-                        "activation_url": activation_url
-                    }
+                data = {"message": messages, "type": UserModel.ACCOUNT_ACTIVATION, "user": serializer.data, "resend_url": request_url, "activation_url": activation_url}
+                
+            if session_key:
                 return Response(data, status=status.HTTP_201_CREATED, headers=headers)
+            else:
+                return Response({"message": "Something went wrong", }, status=status.HTTP_404_NOT_FOUND, headers=headers)
 
-    def update(self, request, *args, **kwargs):
+    def update(self, request, *args, **kwargs): 
         with transaction.atomic():
             partial = kwargs.pop('partial', False)
             instance = self.get_object()
             data = request.data
-            # print(data)
+            print(data)
+            print(instance)
             user_instance = UserModel.objects.get(id=data['user']['id'])
             serializer = self.get_serializer(instance, data=request.data, partial=partial)
 
-            address_data = data['address']
-            address = Address.objects.filter(Q(id=address_data.get('id'))|Q(id=instance.address_id)).first()
-            address_serializer = AddressSerializer(address, data=address_data, partial=partial)
-            address_serializer.is_valid(raise_exception=True)
-            address = address_serializer.save()
-
+            print(data.get('address'))
+            city_id = None
+            if data.get('address').get('city').get('id', None):
+                print('====Have City****')
+                city_id = data.get('address').get('city').get('id')
+                data['address']['city_id'] = city_id
+                data['address'].pop('city', None)
+            else:
+                print('====Create City****')
+                ser = CitySerializer(data=data.get('address').get('city'))
+                ser.is_valid(raise_exception=True)
+                inst = ser.save()
+                data['address']['city_id'] = inst.id
+                city_id = inst.id
+            print(data.get('address'))
+            inst = Address.objects.filter(id=data.get('address').get('id', None)).first()
+            print(inst)
+            if inst:
+                ser = AddressSerializer(inst, data=data.get('address'), partial=partial) 
+            else:
+                ser = AddressSerializer(data=data.get('address'))
+            print(1)
+            ser.is_valid(raise_exception=True)
+            print(2)
+            address = ser.save(city_id=city_id)
+            # address.city_id = city_id
+            # address.save()
+            print(address)
+            print(address.id)
+                 
             user_serializer = UserUpdateSerializer(user_instance, data=data['user'], partial=partial)
+            print(3)
             user_serializer.is_valid(raise_exception=True)
 
+            print(4)
             user = user_serializer.save()
 
+            print(5)
             serializer.is_valid(raise_exception=True)
             
+            print(6)
             new_profile = self.perform_update(serializer)
             new_profile = self.get_object()
+            print(7)
             new_profile.address_id = address.id
             new_profile.save()
+            print(8)
 
         if getattr(instance, '_prefetched_objects_cache', None):
             # If 'prefetch_related' has been applied to a queryset, we need to
@@ -381,8 +647,39 @@ class ProfileViewSet(viewsets.ModelViewSet, AchieveModelMixin):
 
     @action(methods=['get'], detail=False, url_path='me', url_name='me')
     def me(self, request, *args, **kwargs):
+        p = request.user.user_profile
+        profile = self.get_queryset().filter(id=p.id).prefetch_related(
+            Prefetch('offices', queryset=Office.objects.filter(enabled=True).prefetch_related(
+                Prefetch('office_properties', queryset=Property.objects.filter(enabled=True)))), 
+            Prefetch('administrative_offices', queryset=Office.objects.filter(enabled=True).prefetch_related(
+                Prefetch('office_properties', queryset=Property.objects.filter(enabled=True)))), 
+            Prefetch('portfolios', queryset=Portfolio.objects.filter(enabled=True).prefetch_related(
+                Prefetch('portfolio_properties', queryset=Property.objects.filter(enabled=True)))),
+            Prefetch('administrative_portfolios', queryset=Portfolio.objects.filter(enabled=True).prefetch_related(
+                Prefetch('portfolio_properties', queryset=Property.objects.filter(enabled=True)))),
+            # Prefetch('properties', queryset=Property.objects.filter(enabled=True).prefetch_related),
+            Prefetch('administrative_properties', queryset=Property.objects.filter(enabled=True))
+        ).first()
+        return Response(ProfileDetailSerializer(profile).data, status=status.HTTP_200_OK)
+
+    @action(methods=['get'], detail=False, url_path='members', url_name='members')
+    def members(self, request, *args, **kwargs):
+        data = None
         profile = request.user.user_profile
-        return Response(ProfileSerializer(profile).data, status=status.HTTP_200_OK)
+        company = profile.company
+        if not company:
+            try:
+                company = Company.objects.filter(Q(Q(administrator=profile) | Q(members=profile)), enabled=True).first()
+                if company:
+                    profiles = Profile.objects.filter(Q(Q(company=company) | Q(administrative_company=company), enabled=True)).distinct()
+                    data = ProfileSerializer(profiles).data
+            except Profile.administrative_company.RelatedObjectDoesNotExist:
+                pass
+        else:
+            profiles = Profile.objects.filter(Q(Q(company=company) | Q(administrative_company=company), enabled=True)).distinct()
+            data = ProfileSerializer(profiles, many=True).data
+              
+        return Response(data, status=status.HTTP_200_OK)
 
     @action(methods=['get'], detail=False, url_path='names', url_name='names')
     def names(self, request, *args, **kwargs):
@@ -421,3 +718,21 @@ class ProfileViewSet(viewsets.ModelViewSet, AchieveModelMixin):
 
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
+
+
+class SupportViewSet(viewsets.ModelViewSet):
+    permission_classes = (AllowAny, )
+    authentication_classes = ()
+    parser_classes = (JSONParser, MultiPartParser)
+        
+    def get_queryset(self):
+        """
+        This view should return a list of all the Company for
+        the user as determined by currently logged in user.
+        """
+        return Support.objects.filter(enabled=True)
+ 
+    def get_serializer_class(self):
+        # if self.action in ['retrieve',]:
+        #     return CitySerializer
+        return SupportSerializer

@@ -56,7 +56,7 @@ IS_MULTITENANT = False
 
 DOMAIN = config('DOMAIN', default='rentmyvr.com')
 DOMAIN_URL = config('DOMAIN_URL', default=f'https://{DOMAIN}')
-AUTH_TOKEN_LENGTH = 4
+AUTH_TOKEN_LENGTH = 6
 
 APPEND_SLASH = True
 ADMIN_URL = 'access/'
@@ -99,8 +99,8 @@ EMAIL_SENDER_ID = "admin@admin.com"
 EMAIL_CONNECTIONS = {
     'default': {
         'host': EMAIL_HOST,
-        'username': EMAIL_HOST_USER,
-        'password': EMAIL_HOST_PASSWORD,
+        # 'username': EMAIL_HOST_USER,
+        # 'password': EMAIL_HOST_PASSWORD,
         'port': EMAIL_PORT,
         'use_tls': EMAIL_USE_TLS,
     },

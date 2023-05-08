@@ -110,6 +110,7 @@ class SetPasswordForm(SPF):
     )
 
     def save(self, commit=True):
+        print('+++++++++ Saving in form()')
         self.user.is_active = True
         self.user.force_password_change = False
         if hasattr(self.user, "email_verified"):

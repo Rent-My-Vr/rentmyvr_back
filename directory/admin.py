@@ -61,6 +61,61 @@ class LaundryAdmin(admin.ModelAdmin):
     list_display = ('name', 'icon', 'enabled', 'created', 'updated')
 
 
+@admin.register(ManagerDirectory)
+class ManagerDirectoryAdmin(admin.ModelAdmin):
+    list_filter = ('manage_for_others',)
+    list_display = ('ref', 'name', 'administrator', 'website', 'contact_name', 'state', 'email', 'phone', 'phone_2', 'ext_2', 'description')
+
+    @admin.display(ordering='name', description='Name')
+    def name(self, instance):
+        return instance.company.name 
+
+    @admin.display(ordering='administrator', description='Administrator')
+    def administrator(self, instance):
+        return instance.company.administrator 
+
+    @admin.display(description='Website')
+    def website(self, instance):
+        return instance.company.website 
+
+    @admin.display(description='Contact Name')
+    def contact_name(self, instance):
+        return instance.company.contact_name 
+
+    @admin.display(description='Email')
+    def email(self, instance):
+        return instance.company.email 
+
+    @admin.display(description='Phone')
+    def phone(self, instance):
+        return f"{instance.company.phone}-{instance.company.ext}" if instance.company.ext else instance.company.phone
+
+    @admin.display(description='Phone 2')
+    def phone_2(self, instance):
+        return f"{instance.company.phone_2}-{instance.company.ext_2}" if instance.company.ext_2 else instance.company.phone_2
+
+    @admin.display(description='Description')
+    def description(self, instance):
+        return instance.company.description 
+
+    # @admin.display(description='City')
+    # def city(self, instance):
+    #     return instance.company.city 
+
+    @admin.display(description='State')
+    def state(self, instance):
+        return instance.company.state 
+
+
+@admin.register(Office)
+class OfficeAdmin(admin.ModelAdmin):
+    list_display = ('ref', 'name', 'company', 'administrator', 'state', 'city', 'enabled', 'created', 'updated')
+    
+    @admin.display(description='State')
+    def state(self, instance):
+        return instance.city.state_name
+
+
 @admin.register(Outside)
 class OutsideAdmin(admin.ModelAdmin):
     list_display = ('name', 'icon', 'enabled', 'created', 'updated')
@@ -75,6 +130,12 @@ class ParkingAdmin(admin.ModelAdmin):
 class PoolSpaAdmin(admin.ModelAdmin):
     list_display = ('name', 'icon', 'enabled', 'created', 'updated')
 
+
+@admin.register(Portfolio)
+class PortfolioAdmin(admin.ModelAdmin):
+    list_filter = ('enabled', )
+    list_display = ('ref', 'name', 'company', 'administrator', 'enabled', 'created', 'updated')
+    
 
 class PropertyResource(resources.ModelResource):
     BOOKING_SITES = ['Direct Booking', 'AirBNB', 'VRBO', 'Booking.com', 'Booked.net', 'Rent By Owner', 'Additional Site 1', 'Additional Site 2', 'Additional Site 3', 'Agoda', 'Houfy.com', 'Trip.com', 'Expedia', 'Priceline', 'Orbitz', 'Travelocity', 'Tripadvisor', 'Bring Fido']
@@ -188,10 +249,6 @@ class PropertyResource(resources.ModelResource):
     class Meta:
         model = Property
         fields = ('id', 'ref', 'is_draft', 'name', 'author', 'price', 'type', 'space', 'hosted_by', 'max_no_of_guest', 'no_of_bedrooms', 'no_of_bathrooms', 'is_pet_allowed', 'address', 'imported', 'import_id')
-
-
-class BookAdmin(ImportExportModelAdmin):
-    resource_classes = [PropertyResource]
 
 
 @admin.register(InquiryMessage)
