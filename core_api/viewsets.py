@@ -19,6 +19,7 @@ from django.db.models import Q, Prefetch
 from datetime import datetime, timedelta
 from django.utils import timezone
 from django.utils.encoding import force_bytes
+from django.utils.translation import gettext_lazy as _
 from django.template.loader import render_to_string
 from django.utils.http import urlsafe_base64_encode
 from django.contrib.auth import get_user_model

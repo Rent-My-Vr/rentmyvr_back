@@ -289,7 +289,6 @@ class UserSpecialSerializer(serializers.ModelSerializer):
             print('==> ', e)
             return None
 
-
     class Meta:
         model = UserModel
         # exclude = ('username', )
@@ -297,7 +296,7 @@ class UserSpecialSerializer(serializers.ModelSerializer):
         'is_active', 'email_verified', 'is_manager', 'failed_attempts', 
         'last_password_change', 'force_password_change', 'remember', 
         'last_login_signature', 'user_permissions', 'groups', 'blacklist_permissions')
-        fields = ('id', 'first_name', 'last_name', 'phone', 'email', 'password', 'company_')
+        fields = ('id', 'first_name', 'last_name', 'phone', 'email', 'password', 'company')
         # fields = ('id', 'first_name', 'last_name', 'phone', 'email', 'password', 'user_profile', 'company')
         extra_kwargs = {'password': {'write_only': True}}
 
