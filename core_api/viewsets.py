@@ -8,6 +8,8 @@ from django.conf import settings
 from django.db import transaction
 from django.shortcuts import render
 from django.urls import reverse
+from django.utils.encoding import force_str, force_bytes
+from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from rest_framework.authentication import TokenAuthentication
@@ -438,9 +440,15 @@ class InvitationViewSet(viewsets.ModelViewSet):
 
         return Response({"message": "Ok", "result": message}, status=status.HTTP_201_CREATED, headers=headers)
     
-    @action(methods=['patch'], detail=False, permission_classes=[], url_path='verify/(?P<uidb64>[0-9A-Za-z_\-]+)/(?P<token>\d+)', url_name='verify')
+    @action(methods=['patch', 'post'], detail=False, permission_classes=[], url_path='verify/(?P<uidb64>[0-9A-Za-z_\-]+)/(?P<token>\d+)', url_name='verify')
     def verify(self, request, *args, **kwargs):
-        profile = Profile.objects.filter(pk=kwargs['pk'], company=request.user.company).first()
+        print(kwargs)
+        email = urlsafe_base64_decode(kwargs['uidb64']).decode()
+        print(email)
+        invite = Invitation.objects.filter(email=email, token=kwargs['token'])
+        print(invite)
+        
+        profile = Profile.objects.filter(pk=pk, company=request.user.company).first()
         if profile is None:
             profile = Profile.objects.filter(pk=kwargs['pk'], company=request.user.user_profile.company).first()
 

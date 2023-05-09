@@ -446,8 +446,8 @@ class User(AbstractUser):
 
     @property
     def password_reset_confirm_link(self):
-        pk = urlsafe_base64_encode(force_bytes(self.pk))
-        return reverse('auths:password_reset_confirm', kwargs={'uidb64': pk, 'token': account_activation_token.make_token(self)})
+        uidb64 = urlsafe_base64_encode(force_bytes(self.pk))
+        return reverse('auths:password_reset_confirm', kwargs={'uidb64': uidb64, 'token': account_activation_token.make_token(self)})
 
     def send_activation_link(self, domain, password=None):
         html_message = render_to_string('auths/mail_templates/welcome_activate.html',
@@ -481,12 +481,12 @@ class User(AbstractUser):
 
     def send_registration_password(self, domain, client_callback_link):
         token = account_activation_token.make_token(self)
-        pk = urlsafe_base64_encode(force_bytes(self.pk))
+        uidb64 = urlsafe_base64_encode(force_bytes(self.pk))
         
         data = {"token": token, "id": self.id, "action": User.NEW_REG_PASS_SET, "channel": "email", "email": self.email, "extra": {}}
 
         # If client_callback_link is set, it mean this is client/server request
-        action_link = reverse('auths_api:password-reset-confirm', kwargs={'uidb64': pk, 'token': token}) if client_callback_link else self.password_reset_confirm_link
+        action_link = reverse('auths_api:password-reset-confirm', kwargs={'uidb64': uidb64, 'token': token}) if client_callback_link else self.password_reset_confirm_link
         html_message = render_to_string('auths/mail_templates/welcome_set_password.html', {
             'coy_name': settings.COMPANY_NAME.title(),
             'first_name': self.first_name,
