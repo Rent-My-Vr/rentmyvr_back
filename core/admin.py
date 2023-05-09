@@ -177,8 +177,9 @@ class StateAdmin(admin.ModelAdmin):
 
 @admin.register(Profile)
 class ProfileAdmin(admin.ModelAdmin):
+    list_display_links = ('first_name', 'last_name', 'email',)
     # list_filter = ('is_active', 'is_staff', 'is_superuser')
-    search_fields = ('first_name', 'last_name', 'email', 'phone')
+    search_fields = ('user__first_name', 'user__last_name', 'user__email', 'user__phone')
     list_display = ('first_name', 'last_name', 'email', 'phone', 'is_active', 'is_staff', 'is_superuser')
     # list_display = ("ref", "employment_type", "position", "status", "first_name", "last_name", "email", "phone", "is_active", "is_staff", "is_superuser", 'enabled', "address")
 
