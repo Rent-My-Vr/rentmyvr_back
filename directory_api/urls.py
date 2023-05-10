@@ -8,7 +8,7 @@ from . import viewsets as vs
 
 router_v1 = routers.DefaultRouter()
 
-router_v1.register(r'manager', vs.ManagerDirectoryViewSet, basename="manager")
+router_v1.register(r'management', vs.ManagerDirectoryViewSet, basename="management")
 router_v1.register(r'office', vs.OfficeViewSet, basename="office")
 router_v1.register(r'portfolio', vs.PortfolioViewSet, basename="portfolio")
 router_v1.register(r'inquiry/message', vs.InquiryMessageViewSet, basename="inquiry-message")

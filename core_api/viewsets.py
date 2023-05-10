@@ -448,7 +448,7 @@ class InvitationViewSet(viewsets.ModelViewSet):
         invite = Invitation.objects.filter(email=email, token=kwargs['token'])
         print(invite)
         
-        profile = Profile.objects.filter(pk=pk, company=request.user.company).first()
+        profile = Profile.objects.filter(pk=email, company=request.user.company).first()
         if profile is None:
             profile = Profile.objects.filter(pk=kwargs['pk'], company=request.user.user_profile.company).first()
 

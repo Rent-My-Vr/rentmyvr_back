@@ -83,6 +83,24 @@ class ManagerDirectoryViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
         else:
             return Response({"message": "Recaptcha validation failed"}, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(methods=['get'], detail=False, url_path='me', url_name='me')
+    def me(self, request, *args, **kwargs):
+        p = request.user.user_profile
+        md = ManagerDirectory.objects.filter(Q(company__administrator=p) | Q(company__members=p), enabled=True).first()
+        # company = ManagerDirectory.objects.filter(Q(company__administrator=p) | Q(company__members=p), enabled=True).prefetch_related(
+        #     Prefetch('company_offices', queryset=Office.objects.filter(enabled=True).prefetch_related(
+        #         Prefetch('office_properties', queryset=Property.objects.filter(enabled=True)))), 
+        #     Prefetch('company_portfolios', queryset=Portfolio.objects.filter(enabled=True).prefetch_related(
+        #         Prefetch('portfolio_properties', queryset=Property.objects.filter(enabled=True)))),
+        #     Prefetch('members', queryset=Profile.objects.filter(enabled=True).prefetch_related(
+        #         Prefetch('portfolios', queryset=Portfolio.objects.filter(enabled=True)),
+        #         Prefetch('offices', queryset=Office.objects.filter(enabled=True))))
+        # ).first()
+        if md:
+            return Response(ManagerDirectorySerializer(md).data, status=status.HTTP_200_OK)
+        else:
+            return Response(None, status=status.HTTP_200_OK)
         
     @action(methods=['get'], detail=False, url_path='names', url_name='names')
     def names(self, request, *args, **kwargs):
