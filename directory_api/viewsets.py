@@ -156,7 +156,7 @@ class OfficeViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             serializer = self.get_serializer(data=data)
             serializer.is_valid(raise_exception=True)
             instance = self.perform_create(serializer)
-
+            serializer = OfficeDetailSerializer(instance)
             headers = self.get_success_headers(serializer.data)
 
             return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
@@ -208,8 +208,8 @@ class OfficeViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             
             serializer.is_valid(raise_exception=True)
             instance = serializer.save()
-            
             self.perform_update(serializer)
+            serializer = OfficeDetailSerializer(instance)
 
         if getattr(instance, '_prefetched_objects_cache', None):
             # If 'prefetch_related' has been applied to a queryset, we need to
