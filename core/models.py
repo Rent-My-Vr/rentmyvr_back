@@ -340,6 +340,8 @@ class Invitation(StampedModel):
     
     email = models.CharField(max_length=128, verbose_name="email")
     sent = models.DateTimeField(null=True, blank=True, default=None)
+    response = models.DateTimeField(null=True, blank=True, default=None)
+    exists = models.BooleanField(default=False, )
     token = models.BigIntegerField(null=True, blank=True, default=None)
     status = models.CharField(max_length=128, choices=STATUS, default=PENDING)
     company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name='invitations')

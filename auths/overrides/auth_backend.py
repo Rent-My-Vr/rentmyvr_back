@@ -200,8 +200,14 @@ def allow_login(user, request):
             action_link = f"{reverse('auths_api:activation-confirm-token', kwargs={'uidb64': uidb64, 'session_key': session_key})}"
             verification['activation_url'] = f"{domain}{action_link}?action={action}&channel={channel}&processing_channel={extra['processing_channel']}&client_callback_link={extra['client_callback_link']}"
 
+            print('++++++11++++++')
+            print(verification)
             if is_json:
-                raise exceptions.ValidationError(verification)
+                v = json.dumps(verification)
+                print(v)
+                # raise ActivationRequired(verification)
+                raise exceptions.ValidationError(v)
+                # return verification
             else:
                 messages.warning(request, verification_msg, extra_tags='Account Activation Required!')
                 return None
@@ -209,6 +215,8 @@ def allow_login(user, request):
         session_key = user.send_access_token(domain, action=action, channel=channel, extra=extra)
 
         verification['activation_url'] = f"{domain}{reverse('auths_api:activation-confirm-token', args=(uidb64, session_key))}?action={action}&channel={channel}&processing_channel={extra['processing_channel']}&client_callback_link={extra['client_callback_link']}"
+        print('++++++22++++++')
+        print(verification)
         if is_json:
             raise exceptions.ValidationError(verification)
         else:

@@ -132,34 +132,18 @@ class ContactSerializer(serializers.ModelSerializer):
 
 
 class InvitationSerializer(serializers.ModelSerializer):
-    client_callback_link = serializers.SerializerMethodField()
+    # client_callback_link = serializers.SerializerMethodField()
     
-    def get_client_callback_link(self, obj):
-        print('*************')
-        print(self)
-        print(obj)
-        return obj.email
+    # def get_client_callback_link(self, obj):
+    #     print('*************')
+    #     print(self)
+    #     print(obj)
+    #     return obj.email
 
     class Meta:
         model = Invitation
         exclude = ('enabled', 'token')
-        read_only_fields = ('id', 'enabled', 'ref', 'updated_by', 'sender', 'company', 'status', 'sent')
-
-
-class InvitationListSerializer(serializers.ModelSerializer):
-    client_callback_link = serializers.SerializerMethodField()
-    emails = serializers.ListField(child = serializers.EmailField(read_only=True))
-    
-    def get_client_callback_link(self, obj):
-        print('*************')
-        print(self)
-        print(obj)
-        return obj.email
-
-    class Meta:
-        model = Invitation
-        exclude = ('enabled', 'token')
-        read_only_fields = ('id', 'enabled', 'ref', 'updated_by', 'sender', 'company', 'status', 'sent', 'email')
+        read_only_fields = ('id', 'enabled', 'updated_by', 'sender', 'company', 'status', 'sent')
 
 
 class ProfileSerializer(serializers.ModelSerializer):
@@ -202,6 +186,24 @@ class ProfileSerializer(serializers.ModelSerializer):
 class ProfileUpdateSerializer(ProfileSerializer):
     user = UserUpdateSerializer(many=False, read_only=True)
     address = AddressSerializer(many=False, read_only=True)
+
+
+class InvitationListSerializer(serializers.ModelSerializer):
+    sender = ProfileSerializer(many=False, read_only=False)
+    company = CompanySerializer(many=False, read_only=True)
+    # client_callback_link = serializers.SerializerMethodField()
+    # emails = serializers.ListField(child = serializers.EmailField(read_only=True))
+    
+    # def get_client_callback_link(self, obj):
+    #     print('*************')
+    #     print(self)
+    #     print(obj)
+    #     return obj.email
+
+    class Meta:
+        model = Invitation
+        exclude = ('enabled', 'token')
+        read_only_fields = ('id', 'enabled',  'updated_by', 'sender', 'company', 'status', 'sent', 'email')
 
 
 class SupportSerializer(serializers.ModelSerializer):
@@ -248,6 +250,7 @@ class CompanyMDLDetailSerializer(serializers.ModelSerializer):
     members = ProfileMoreSerializer(many=True, read_only=True)
     city = CitySerializer(many=False, read_only=True)
     mdl = ManagerDirectorySerializer(many=False, read_only=True)
+    invitations = InvitationListSerializer(many=True, read_only=True)
     company_offices = OfficeDetailSerializer(many=True, read_only=True)
     company_portfolios = PortfolioDetailSerializer(many=True, read_only=True)
     

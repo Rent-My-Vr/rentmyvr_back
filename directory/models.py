@@ -233,6 +233,7 @@ class Laundry(StampedModel):
 
 
 class ManagerDirectory(TrackedModel):
+    # ref = models.CharField(max_length=16, verbose_name="Ref", default=None, blank=True, null=True)
     ref = models.CharField(max_length=16, verbose_name="Ref", unique=True)
     name = models.CharField(max_length=254, verbose_name="name")
     is_active = models.BooleanField(default=False)
@@ -276,12 +277,16 @@ class ManagerDirectory(TrackedModel):
         return self.company.name
 
     def save(self, *args, **kwargs):
-        if not self.created:
+        if not self.created or self.ref is None:
             try:
-                x = int(ManagerDirectory.objects.latest('created').ref[1:]) + 1
+                if not self.created:
+                    x = int(ManagerDirectory.objects.latest('created').ref[1:]) + 1
+                else:
+                    x = int(ManagerDirectory.objects.latest('updated').ref[1:]) + 1
             except (AttributeError, TypeError, ManagerDirectory.DoesNotExist):
                 x = 1
             self.ref = f'M{x:05}'
+            print(x,"  ", self.ref, "   ", self.id)
         return super(ManagerDirectory, self).save(*args, **kwargs)
 
 

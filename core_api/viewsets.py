@@ -326,6 +326,15 @@ class CompanyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
     @action(methods=['get'], detail=False, url_path='me', url_name='me')
     def me(self, request, *args, **kwargs):
         p = request.user.user_profile
+        # company = Company.objects.filter(Q(administrator=p) | Q(members=p), enabled=True).prefetch_related(
+        #     Prefetch('company_offices', queryset=Office.objects.filter(enabled=True).prefetch_related(
+        #         Prefetch('office_properties', queryset=Property.objects.filter(enabled=True)))), 
+        #     Prefetch('company_portfolios', queryset=Portfolio.objects.filter(enabled=True).prefetch_related(
+        #         Prefetch('portfolio_properties', queryset=Property.objects.filter(enabled=True)))),
+        #     Prefetch('members', queryset=Profile.objects.filter(enabled=True).prefetch_related(
+        #         Prefetch('portfolios', queryset=Portfolio.objects.filter(enabled=True)),
+        #         Prefetch('offices', queryset=Office.objects.filter(enabled=True))))
+        # ).first()
         company = Company.objects.filter(Q(administrator=p) | Q(members=p), enabled=True).prefetch_related(
             Prefetch('company_offices', queryset=Office.objects.filter(enabled=True).prefetch_related(
                 Prefetch('office_properties', queryset=Property.objects.filter(enabled=True)))), 
@@ -333,7 +342,8 @@ class CompanyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
                 Prefetch('portfolio_properties', queryset=Property.objects.filter(enabled=True)))),
             Prefetch('members', queryset=Profile.objects.filter(enabled=True).prefetch_related(
                 Prefetch('portfolios', queryset=Portfolio.objects.filter(enabled=True)),
-                Prefetch('offices', queryset=Office.objects.filter(enabled=True))))
+                Prefetch('offices', queryset=Office.objects.filter(enabled=True)))),
+            Prefetch('invitations', queryset=Invitation.objects.filter(enabled=True))
         ).first()
         if company:
             return Response(CompanyMDLDetailSerializer(company).data, status=status.HTTP_200_OK)
@@ -360,7 +370,7 @@ class InvitationViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         # serializer.save(updated_by_id=self.request.user.id) 
-        return serializer.save(company=self.company, sender=self.sender) 
+        return serializer.save(company=self.company, sender=self.sender, token=self.token) 
     
     def create(self, request, *args, **kwargs):
         print('****** 1');
@@ -402,17 +412,21 @@ class InvitationViewSet(viewsets.ModelViewSet):
             return Response({"message": "No invite sent!", 'result': message}, status=status.HTTP_403_FORBIDDEN)
 
         data.pop('emails', False)
+        all = []
         with transaction.atomic():
             for email in remaining:
+                self.token = random_with_N_digits(12)
                 data['email'] = email
+                data['exists'] = Profile.objects.filter(user__email=email).count() > 0
                 print(data)
                 serializer = self.get_serializer(data=data)
                 serializer.is_valid(raise_exception=True)
                 invitation = self.perform_create(serializer)
+                all.append(invitation)
+                print('.... ', serializer.data)
                 
-                token = random_with_N_digits(12)
                 uidb64 = urlsafe_base64_encode(force_bytes(email))
-                action_link = f"{reverse('core_api:invitation-verify', kwargs={'uidb64': uidb64, 'token': token})}"
+                action_link = f"{reverse('core_api:invitation-verify', kwargs={'uidb64': uidb64, 'token': self.token})}"
         
                 domain = get_domain(request)
                 print({
@@ -438,29 +452,47 @@ class InvitationViewSet(viewsets.ModelViewSet):
         
         headers = self.get_success_headers(serializer.data)
 
-        return Response({"message": "Ok", "result": message}, status=status.HTTP_201_CREATED, headers=headers)
+        return Response({"message": "Ok", "result": message, "data": InvitationListSerializer(all, many=True).data}, status=status.HTTP_201_CREATED, headers=headers)
     
     @action(methods=['patch', 'post'], detail=False, permission_classes=[], url_path='verify/(?P<uidb64>[0-9A-Za-z_\-]+)/(?P<token>\d+)', url_name='verify')
     def verify(self, request, *args, **kwargs):
         print(kwargs)
         email = urlsafe_base64_decode(kwargs['uidb64']).decode()
-        print(email)
-        invite = Invitation.objects.filter(email=email, token=kwargs['token'])
-        print(invite)
+        print("email: ", email)
+        print("kwargs['token']: ", kwargs['token'])
+        invite = Invitation.objects.filter(email=email, token=kwargs['token']).first()
+        print("invite: ", invite)
+        print(request.data)
+        action = request.data.get('action').lower()
         
-        profile = Profile.objects.filter(pk=email, company=request.user.company).first()
-        if profile is None:
-            profile = Profile.objects.filter(pk=kwargs['pk'], company=request.user.user_profile.company).first()
-
-        if profile and len(request.data.get('timezone', "")) > 2:
-            user = profile.user
-            user.timezone_id = request.data['timezone']
-            user.save()
-            return Response({'msg': 'Timezone Updated', 'data': {'timezone': user.timezone.alias}},
-                            status=status.HTTP_201_CREATED)
+        if invite is not None:
+            if invite.status in [Invitation.SENT, Invitation.PENDING]:
+                if action in [Invitation.ACCEPTED, Invitation.REJECTED]:
+                    profile = Profile.objects.filter(user__email=invite.email).first()
+                    if profile is not None and action == Invitation.ACCEPTED:
+                        if profile.company is not None  and profile.company.id != invite.company.id:
+                            return Response({'message': f"Sorry you cannot accept invite from '{invite.company}' while you are currently a member of '{profile.company}'. You might want reach out to support for solution"}, status=status.HTTP_400_BAD_REQUEST)
+                        elif profile.administrative_company is not None and profile.administrative_company != invite.company.id:
+                            return Response({'message': f"Sorry you cannot accept invite from '{invite.company}' while you are currently an adminisitrator of '{profile.administrative_company}'. You might want reach out to support for solution"}, status=status.HTTP_400_BAD_REQUEST)
+                    invite.response = timezone.now()
+                    invite.exists = profile is not None
+                    print(action, ' ---- ', invite.exists)
+                    invite.status = action if invite.exists else Invitation.REGISTERING if action == Invitation.ACCEPTED else Invitation.REJECTED
+                    print(' ===== ', invite.status)
+                    invite.save()
+                    data = InvitationSerializer(invite).data
+                    data['company_id'] = invite.company.id
+                    if invite.exists:
+                        profile.company = invite.company
+                        profile.save()
+                    return Response(data, status=status.HTTP_201_CREATED)
+                else:
+                    return Response({'message': 'Invalid Reponse'}, status=status.HTTP_400_BAD_REQUEST)
+            else:
+                return Response({'message': 'Sorry, Invalid'}, status=status.HTTP_400_BAD_REQUEST)
         else:
-            return Response({'msg': 'wrong parameters'}, status=status.HTTP_400_BAD_REQUEST)
-
+            return Response({'message': 'Invalid Link'}, status=status.HTTP_400_BAD_REQUEST)
+                
 
 class ProfileViewSet(viewsets.ModelViewSet, AchieveModelMixin):
     permission_classes = (IsAuthenticatedOrCreate, )
@@ -527,6 +559,7 @@ class ProfileViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             extra = {"processing_channel": processing_channel, "client_callback_link": client_callback_link}
             is_password_generated = not data['user'].get('password', None)
             data['user']['password'] = UserModel.objects.make_random_password() if is_password_generated else data['user']['password']
+            data['company'] = data.get('company_id', None)
             print(data)
             print('==============')
             
