@@ -497,7 +497,7 @@ class InvitationViewSet(viewsets.ModelViewSet):
         action = request.data.get('action').lower()
         
         if invite is not None:
-            if invite.status in [Invitation.SENT, Invitation.PENDING]:
+            if invite.status in [Invitation.SENT, Invitation.PENDING, Invitation.RESENT]:
                 if action in [Invitation.ACCEPTED, Invitation.REJECTED]:
                     profile = Profile.objects.filter(user__email=invite.email).first()
                     if profile is not None and action == Invitation.ACCEPTED:
