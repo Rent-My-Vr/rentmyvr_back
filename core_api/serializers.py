@@ -149,6 +149,7 @@ class InvitationSerializer(serializers.ModelSerializer):
 class ProfileSerializer(serializers.ModelSerializer):
     user = UserSerializer(many=False, read_only=False)
     address = AddressSerializer(many=False, read_only=True)
+    company_id = serializers.PrimaryKeyRelatedField(many=False, read_only=True, required=False)
     # address = AddressSerializer(many=False, read_only=False, required=False)
     updated_by_id = serializers.SerializerMethodField()
     # worker_statuses = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
@@ -170,7 +171,7 @@ class ProfileSerializer(serializers.ModelSerializer):
             # print(user.id)
             # print(validated_data)
             # print(" +++++ *** 2 *** +++++ ")
-            profile = Profile.objects.create(user=user, address=address, updated_by_id=user.id) #, **validated_data)
+            profile = Profile.objects.create(user=user, address=address, updated_by_id=user.id, company=validated_data.get('company', None)) #, **validated_data)
             # print(" +++++ *** 3 *** +++++ ")
             return profile
         return None

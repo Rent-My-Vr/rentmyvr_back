@@ -326,15 +326,19 @@ class Company(TrackedModel):
 class Invitation(StampedModel):
     PENDING = 'pending'
     CANCELLED = 'cancelled'
+    EJECTED = 'ejected'
     SENT = 'sent'
+    RESENT = 'resent'
     REJECTED = 'rejected'
     REGISTERING = 'registering'
     ACCEPTED = 'accepted'
     STATUS = ((ACCEPTED, 'Accepted'),
               (CANCELLED, 'Cancelled'),
+              (EJECTED, 'Ejected'),
               (PENDING, 'pending'),
               (REGISTERING, 'Registering'),
               (REJECTED, 'Rejected'),
+              (RESENT, 'Resent'),
               (SENT, 'Sent')
               )
     

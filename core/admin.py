@@ -178,36 +178,36 @@ class StateAdmin(admin.ModelAdmin):
 @admin.register(Profile)
 class ProfileAdmin(admin.ModelAdmin):
     list_display_links = ('first_name', 'last_name', 'email',)
-    # list_filter = ('is_active', 'is_staff', 'is_superuser')
+    list_filter = ('company', )
     search_fields = ('user__first_name', 'user__last_name', 'user__email', 'user__phone')
-    list_display = ('first_name', 'last_name', 'email', 'phone', 'is_active', 'is_staff', 'is_superuser')
+    list_display = ('first_name', 'last_name', 'email', 'phone', 'company', 'is_active', 'is_staff', 'is_superuser')
     # list_display = ("ref", "employment_type", "position", "status", "first_name", "last_name", "email", "phone", "is_active", "is_staff", "is_superuser", 'enabled', "address")
 
-    @admin.display(ordering='first_name', description='First Name')
+    @admin.display(ordering='user__first_name', description='First Name')
     def first_name(self, instance):
         return instance.user.first_name 
 
-    @admin.display(ordering='last_name', description='Last Name')
+    @admin.display(ordering='user__last_name', description='Last Name')
     def last_name(self, instance):
         return instance.user.last_name 
 
-    @admin.display(description='Email')
+    @admin.display(ordering='user__email', description='Email')
     def email(self, instance):
         return instance.user.email 
 
-    @admin.display(description='Phone')
+    @admin.display(ordering='user__phone', description='Phone')
     def phone(self, instance):
         return instance.user.phone 
 
-    @admin.display(description='is_active')
+    @admin.display(ordering='user__is_active', description='is_active')
     def is_active(self, instance):
         return instance.user.is_active 
 
-    @admin.display(description='Staff')
+    @admin.display(ordering='user__is_staff', description='Staff')
     def is_staff(self, instance):
         return instance.user.is_staff 
 
-    @admin.display(description='Super Admin')
+    @admin.display(ordering='user__is_superuser', description='Super Admin')
     def is_superuser(self, instance):
         return instance.user.is_superuser 
 

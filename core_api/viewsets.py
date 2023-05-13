@@ -350,6 +350,37 @@ class CompanyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
         else:
             return Response(None, status=status.HTTP_200_OK)
 
+    @action(methods=['post'], detail=False, url_path='delete/member/(?P<mid>[0-9A-Fa-f-]+)', url_name='delete-member')
+    def delete_member(self, request, *args, **kwargs):
+        p = request.user.user_profile
+        if p.company:
+            profile = Profile.objects.filter(id=kwargs['mid']).first()
+            if profile is not None and (profile.company == p.company or profile.company is None):
+                if p.company.administrator == profile:
+                    pass
+                    #  You cannot evict the Administrator
+                profile.company = None
+                profile.save()
+                Invitation.objects.filter(email=profile.user.email, company=p.company).update(status=Invitation.EJECTED)
+                Office.objects.filter(administrator=profile).update(administrator=p)
+                for off in Office.objects.filter(company=p.company, members=profile):
+                    members = off.members.all()
+                    members = list(filter(lambda x: x.id != profile.id, members))
+                    off.members.set(members)
+                Office.objects.filter(company=p.company, administrator=profile).update(administrator=p)
+                for port in Portfolio.objects.filter(company=p.company, members=profile):
+                    members = port.members.all()
+                    members = list(filter(lambda x: x.id != profile.id, members))
+                    port.members.set(members)
+                Portfolio.objects.filter(company=p.company, administrator=profile).update(administrator=p)
+                Property.objects.filter(company=p.company, administrator=profile).update(administrator=p)
+                
+                return Response({'message': 'Member is successfully Removed'}, status=status.HTTP_200_OK)
+            else:    
+                return Response({'message': 'You are not authorised to perform this operation'}, status=status.HTTP_400_BAD_REQUEST)
+        else:    
+            return Response({'message': 'You are not authorised to perform this operation.'}, status=status.HTTP_400_BAD_REQUEST)
+        
 
 class InvitationViewSet(viewsets.ModelViewSet):
     permission_classes = (AllowAny, )
@@ -446,7 +477,7 @@ class InvitationViewSet(viewsets.ModelViewSet):
                 
                 print(action_link)
                 from core.tasks import sendMail
-                sendMail.apply_async(kwargs={'subject': 'Rent MyVR User Invite', "message": html_message,
+                sendMail.apply_async(kwargs={'subject': f'{settings.COMPANY_NAME} User Invite', "message": html_message,
                                             "recipients": [email],
                                             "fail_silently": settings.DEBUG, "connection": None})
         
@@ -492,6 +523,46 @@ class InvitationViewSet(viewsets.ModelViewSet):
                 return Response({'message': 'Sorry, Invalid'}, status=status.HTTP_400_BAD_REQUEST)
         else:
             return Response({'message': 'Invalid Link'}, status=status.HTTP_400_BAD_REQUEST)
+   
+    @action(methods=['post'], detail=True, permission_classes=[], url_path='resend', url_name='resend')
+    def resend(self, request, *args, **kwargs):
+        print(kwargs)
+        print(request.data)
+        # client_callback_link = request.query_params.get('client_callback_link', None)
+        client_callback_link = request.data.get('client_callback_link', None)
+        invite = Invitation.objects.filter(id=kwargs['pk'], company=request.user.user_profile.company).first()   
+        if invite and client_callback_link:
+            uidb64 = urlsafe_base64_encode(force_bytes(invite.email))
+            print(uidb64)
+            print('=== ',invite.token)
+            action_link = f"{reverse('core_api:invitation-verify', kwargs={'uidb64': uidb64, 'token': invite.token})}"
+    
+            domain = get_domain(request)
+            print({
+                'coy_name': settings.COMPANY_NAME,
+                'user': request.user,
+                'action_link': f"{client_callback_link if client_callback_link else domain}?link={action_link}",
+                'domain': domain,
+                'project_title': invite.company.name
+            })
+            html_message = render_to_string('auths/mail_templates/invite.html', {
+                'coy_name': settings.COMPANY_NAME,
+                'user': request.user,
+                'action_link': f"{client_callback_link if client_callback_link else domain}?link={action_link}",
+                'domain': domain,
+                'project_title': invite.company.name
+            })
+            
+            print(action_link)
+            from core.tasks import sendMail
+            sendMail.apply_async(kwargs={'subject': 'Rent MyVR User Invite', "message": html_message,
+                                        "recipients": [invite.email],
+                                        "fail_silently": settings.DEBUG, "connection": None})
+            invite.status = Invitation.RESENT
+            invite.sent = timezone.now()
+            invite.save()
+            return Response(InvitationListSerializer(invite).data, status=status.HTTP_201_CREATED)
+        return Response({'message': 'Invalid Link'}, status=status.HTTP_400_BAD_REQUEST)
                 
 
 class ProfileViewSet(viewsets.ModelViewSet, AchieveModelMixin):
@@ -561,7 +632,7 @@ class ProfileViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             data['user']['password'] = UserModel.objects.make_random_password() if is_password_generated else data['user']['password']
             data['company'] = data.get('company_id', None)
             print(data)
-            print('==============')
+            print('=======****=======')
             
             # data['address'] = data['address'] if data.get('address', None) else None
             serializer = self.get_serializer(data=data)
@@ -571,6 +642,12 @@ class ProfileViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             print('----- after')
             profile = self.perform_create(serializer)
 
+            if profile.company:
+                invite = Invitation.objects.filter(email=profile.user.email, status__in=[Invitation.REGISTERING, Invitation.SENT, Invitation.RESENT]).first()
+                if invite:
+                    invite.status = Invitation.ACCEPTED
+                    invite.response = timezone.now()
+                    invite.save()
             uidb64 = urlsafe_base64_encode(force_bytes(profile.user.pk))
             headers = self.get_success_headers(serializer.data)
 

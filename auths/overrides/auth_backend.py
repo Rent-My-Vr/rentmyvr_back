@@ -184,13 +184,13 @@ def allow_login(user, request):
     extra = {"client_callback_link": data.get('client_callback_link'), "processing_channel": data.get('processing_channel')}
     action = data.get('action', UserModel.VERIFY_EMAIL)
     channel = data.get('channel', UserModel.EMAIL_CHANNEL)
-    verification_msg = f"""Hi {user.first_name}, to proceed please check your email for Account Activation.<br>👉 <a href="{resend_url}" class="text-primary" title="Resend Actvation Link">Resend Activation link</a> 👈"""
+    verification_msg = f"""Hi {user.first_name}, to proceed please check your email for {UserModel.ACCOUNT_ACTIVATION}.<br>👉 <a href="{resend_url}" class="text-primary" title="Resend Actvation Link">Resend Activation link</a> 👈"""
     verification = {
-            "type": "Activation Required", 
+            "type": UserModel.ACCOUNT_ACTIVATION, 
             "resend_url": f"{resend_url}?action={action}&channel={channel}&processing_channel={extra['processing_channel']}&client_callback_link={extra['client_callback_link']}", 
             "activation_url": "", 
             "title": "Resend Link",
-            "message":  f"Hi {user.first_name}, to proceed please check your email for Account Activation"}
+            "message":  f"Hi {user.first_name}, to proceed please check your email for {UserModel.ACCOUNT_ACTIVATION}"}
     
     if hasattr(user, "email_verified"):
         if getattr(settings, 'AUTH_ACTIVATION_REQUIRED', True) and not user.email_verified and not user.is_superuser:
@@ -209,7 +209,7 @@ def allow_login(user, request):
                 raise exceptions.ValidationError(v)
                 # return verification
             else:
-                messages.warning(request, verification_msg, extra_tags='Account Activation Required!')
+                messages.warning(request, verification_msg, extra_tags=f'{UserModel.ACCOUNT_ACTIVATION} Required!')
                 return None
     elif getattr(settings, 'AUTH_ACTIVATION_REQUIRED', True) and not user.is_active and not user.last_login:
         session_key = user.send_access_token(domain, action=action, channel=channel, extra=extra)
