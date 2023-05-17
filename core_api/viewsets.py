@@ -233,6 +233,11 @@ class CompanyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
     authentication_classes = (TokenAuthentication,)
     # parser_classes = (JSONParser, MultiPartParser)
 
+    def get_permissions(self):
+        if self.action in ['search', 'retrieve']:
+            return []  # This method should return iterable of permissions
+        return super().get_permissions()
+
     def get_queryset(self):
         """
         This view should return a list of all the Company for
@@ -301,6 +306,7 @@ class CompanyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
                     
             partial = kwargs.pop('partial', False)
             instance = self.get_object()
+            data['administrator'] = instance.administrator.id
             serializer = self.get_serializer(instance, data=request.data, partial=partial)
             
             serializer.is_valid(raise_exception=True)
@@ -322,6 +328,13 @@ class CompanyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
     #     # r = Profile.objects.filter(id=kwargs['pk']).prefetch_related(Prefetch('worker_statuses', queryset=WorkStatus.objects.filter(enabled=True, project__enabled=True))).first()
     #     print(r)
     #     return Response(self.get_serializer(instance=r).data)
+
+    @action(methods=['get'], detail=False, url_path='search', url_name='search')
+    def search(self, request, *args, **kwargs):
+        r = Company.objects.filter()
+        # r = Profile.objects.filter(id=kwargs['pk']).prefetch_related(Prefetch('worker_statuses', queryset=WorkStatus.objects.filter(enabled=True, project__enabled=True))).first()
+        print(r)
+        return Response(self.get_serializer(instance=r, many=True).data)
 
     @action(methods=['get'], detail=False, url_path='me', url_name='me')
     def me(self, request, *args, **kwargs):
@@ -357,8 +370,8 @@ class CompanyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             profile = Profile.objects.filter(id=kwargs['mid']).first()
             if profile is not None and (profile.company == p.company or profile.company is None):
                 if p.company.administrator == profile:
-                    pass
-                    #  You cannot evict the Administrator
+                    return Response({'message': 'You cannot evict the Administrator'}, status=status.HTTP_403_FORBIDDEN)
+                    
                 profile.company = None
                 profile.save()
                 Invitation.objects.filter(email=profile.user.email, company=p.company).update(status=Invitation.EJECTED)
@@ -379,7 +392,7 @@ class CompanyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             else:    
                 return Response({'message': 'You are not authorised to perform this operation'}, status=status.HTTP_400_BAD_REQUEST)
         else:    
-            return Response({'message': 'You are not authorised to perform this operation.'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'message': 'You are not authorised to perform this operation.'}, status=status.HTTP_403_FORBIDDEN)
         
 
 class InvitationViewSet(viewsets.ModelViewSet):
@@ -501,10 +514,14 @@ class InvitationViewSet(viewsets.ModelViewSet):
                 if action in [Invitation.ACCEPTED, Invitation.REJECTED]:
                     profile = Profile.objects.filter(user__email=invite.email).first()
                     if profile is not None and action == Invitation.ACCEPTED:
-                        if profile.company is not None  and profile.company.id != invite.company.id:
-                            return Response({'message': f"Sorry you cannot accept invite from '{invite.company}' while you are currently a member of '{profile.company}'. You might want reach out to support for solution"}, status=status.HTTP_400_BAD_REQUEST)
-                        elif profile.administrative_company is not None and profile.administrative_company != invite.company.id:
-                            return Response({'message': f"Sorry you cannot accept invite from '{invite.company}' while you are currently an adminisitrator of '{profile.administrative_company}'. You might want reach out to support for solution"}, status=status.HTTP_400_BAD_REQUEST)
+                        try:
+                            if profile.company is not None  and profile.company.id != invite.company.id:
+                                return Response({'message': f"Sorry you cannot accept invite from '{invite.company}' while you are currently a member of '{profile.company}'. You might want reach out to support for solution"}, status=status.HTTP_400_BAD_REQUEST)
+                            elif profile.administrative_company is not None and profile.administrative_company != invite.company.id:
+                                return Response({'message': f"Sorry you cannot accept invite from '{invite.company}' while you are currently an adminisitrator of '{profile.administrative_company}'. You might want reach out to support for solution"}, status=status.HTTP_400_BAD_REQUEST)
+                        except Profile.administrative_company.RelatedObjectDoesNotExist:
+                            print('++++')
+                            pass
                     invite.response = timezone.now()
                     invite.exists = profile is not None
                     print(action, ' ---- ', invite.exists)
@@ -528,6 +545,8 @@ class InvitationViewSet(viewsets.ModelViewSet):
     def resend(self, request, *args, **kwargs):
         print(kwargs)
         print(request.data)
+        print(request.user.email)
+        print(request.user.user_profile.company)
         # client_callback_link = request.query_params.get('client_callback_link', None)
         client_callback_link = request.data.get('client_callback_link', None)
         invite = Invitation.objects.filter(id=kwargs['pk'], company=request.user.user_profile.company).first()   
@@ -562,7 +581,7 @@ class InvitationViewSet(viewsets.ModelViewSet):
             invite.sent = timezone.now()
             invite.save()
             return Response(InvitationListSerializer(invite).data, status=status.HTTP_201_CREATED)
-        return Response({'message': 'Invalid Link'}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({'message': 'Invalid Link'}, status=status.HTTP_403_FORBIDDEN)
                 
 
 class ProfileViewSet(viewsets.ModelViewSet, AchieveModelMixin):
