@@ -247,17 +247,9 @@ class ContactViewSet(viewsets.ModelViewSet):
             title = settings.COMPANY_NAME
             
         domain = get_domain(request)
-        print({
-            'coy_name': settings.COMPANY_NAME,
-            'user': self,
-            'message': instance.message,
-            'domain': domain,
-            'project_title': title
-        })
-        html_message = render_to_string('email/message.html', {
+        html_message = render_to_string('email/contact_inquiry.html', {
             'coy_name': settings.COMPANY_NAME,
             'contact': instance,
-            'user': self,
             'domain': domain,
             'project_title': title
         })
