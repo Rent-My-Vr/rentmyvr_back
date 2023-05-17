@@ -18,14 +18,13 @@ class UserAdmin(DjangoUserAdmin):
     model = UserModel
     list_display = ['first_name', 'last_name', 'email', 'phone', 'position', 'email_verified', 'is_manager',
                     'is_staff', 'is_superuser', 'is_active', 'last_login_signature', 'failed_attempts', 'last_password_change']
-    # list_display = ['email', 'username', 'phone', 'first_name', 'last_name', 'email_verified', 'last_login_signature',
-    #                 'failed_attempts', 'last_password_change', 'force_password_change', 'avatar_url']
+    
     list_max_show_all = settings.ADMIN_MAX_SHOW_ALL
     list_per_page = settings.ADMIN_PER_PAGE
     list_display_links = ('first_name', 'last_name', 'email',)
 
     list_filter = ('is_manager', 'is_staff', 'is_superuser', 'is_active', 'groups', 'force_password_change')
-    search_fields = ('first_name', 'last_name', 'email', 'email_verified', 'last_login_signature')
+    # search_fields = ('first_name', 'last_name', 'email', 'email_verified', 'last_login_signature')
     ordering = ('first_name', 'last_name', )
     readonly_fields = ('last_login', 'date_joined', 'last_password_change',)
 

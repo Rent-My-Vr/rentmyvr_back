@@ -32,6 +32,8 @@ PROJECT_NAME = "rentmyvr_back"
 PROJECT_TITLE = "Rent My VR"
 COMPANY_NAME = "Rent My VR"
 
+RECAPTCHA_SECRET_KEY = config('RECAPTCHA_SECRET_KEY')
+
 DEFAULT_COY_PK = config("DEFAULT_COY_PK", default="7c665fde0492431f967ef7d3a6fe74e6")
 DEFAULT_COY_NAME = config("DEFAULT_COY_NAME", default="Rent My VR")
 
@@ -54,7 +56,7 @@ IS_MULTITENANT = False
 
 DOMAIN = config('DOMAIN', default='rentmyvr.com')
 DOMAIN_URL = config('DOMAIN_URL', default=f'https://{DOMAIN}')
-AUTH_TOKEN_LENGTH = 4
+AUTH_TOKEN_LENGTH = 6
 
 APPEND_SLASH = True
 ADMIN_URL = 'access/'
@@ -97,8 +99,8 @@ EMAIL_SENDER_ID = "admin@admin.com"
 EMAIL_CONNECTIONS = {
     'default': {
         'host': EMAIL_HOST,
-        'username': EMAIL_HOST_USER,
-        'password': EMAIL_HOST_PASSWORD,
+        # 'username': EMAIL_HOST_USER,
+        # 'password': EMAIL_HOST_PASSWORD,
         'port': EMAIL_PORT,
         'use_tls': EMAIL_USE_TLS,
     },
@@ -132,12 +134,14 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django.contrib.sites',
+    'django.contrib.gis',
     
     'django_celery_beat',
     
     # rest framework
     'rest_framework_xml',
     'rest_framework',
+    'rest_framework_gis',
     'rest_framework.authtoken',
     
     # all auth
@@ -155,6 +159,7 @@ INSTALLED_APPS = [
 
 if DEBUG:
     INSTALLED_APPS.append("sslserver")
+    INSTALLED_APPS.append("debug_toolbar")
 
 SITE_ID = 1
 
@@ -202,6 +207,9 @@ if DEBUG:
         'rest_framework.renderers.BrowsableAPIRenderer',
         'rest_framework_xml.renderers.XMLRenderer',
     )
+    import socket  # only if you haven't already imported this
+    hostname, _, ips = socket.gethostbyname_ex(socket.gethostname())
+    INTERNAL_IPS = [ip[: ip.rfind(".")] + ".1" for ip in ips] + ["127.0.0.1", "10.0.2.2"]
 else:
     REST_FRAMEWORK['DEFAULT_RENDERER_CLASSES'] = (
         'rest_framework.renderers.JSONRenderer',
@@ -228,8 +236,12 @@ MIDDLEWARE = [
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
-    'django.middleware.clickjacking.XFrameOptionsMiddleware'
+    'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+
+if DEBUG:
+    MIDDLEWARE.append('debug_toolbar.middleware.DebugToolbarMiddleware')
+    
 
 ROOT_URLCONF = f'{PROJECT_NAME}.urls'
 
@@ -274,14 +286,22 @@ IS_PORTABLE_DB = config('PORTABLE_DB', default=True, cast=bool)
 if IS_PORTABLE_DB:
     DATABASES = {
         'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
+            'ENGINE': 'django.contrib.gis.db.backends.spatialite' if 'django.contrib.gis' in INSTALLED_APPS else 'django.db.backends.sqlite3',
             'NAME': BASE_DIR/'db.sqlite3',
         }
     }
 else:
-    DATABASES = {   
+    DATABASES = {
         'default': {
-            'ENGINE': 'django.db.backends.mysql',
+            'ENGINE': 'django.contrib.gis.db.backends.postgis' if 'django.contrib.gis' in INSTALLED_APPS else 'django.db.backends.postgresql_psycopg2',
+            'NAME': config('DB_NAME', default="database"), 
+            'USER': config('DB_USER', default="postgres"),
+            'PASSWORD': config('DB_PASSWORD', default="password"),
+            'HOST': config('DB_HOST', default="localhost"), 
+            'PORT': config('DB_PORT', default=5432),
+        },
+        'default-1': {
+            'ENGINE': 'django.contrib.gis.db.backends.mysql'  if 'django.contrib.gis' in INSTALLED_APPS else 'django.db.backends.mysql',
             'NAME': config('DB_NAME', default="database"),
             'USER': config('DB_USER', default="root"),
             'PASSWORD': config('DB_PASSWORD', default="password"),

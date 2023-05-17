@@ -46,6 +46,7 @@ schema_view = get_schema_view(
 # ]
 
 urlpatterns = [
+    path('__debug__/', include('debug_toolbar.urls')),
     path('access/', admin.site.urls),
     path('accounts/', include('auths.urls')),
     path('api/accounts/', include('auths_api.urls')),

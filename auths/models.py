@@ -182,16 +182,15 @@ class UserManager(DjangoBaseUserManager):
             raise ValueError('Did you forgot the phone number')
         if not email:
             raise ValueError('Users must have a valid email address')
+        if getattr(settings, "AUTH_REQUIRE_PHONE", False) and getattr(settings, "UNIQUE_PHONE", False):
+            db_user = User.objects.filter(Q(phone=phone) | Q(email=email))
+            if len(db_user) > 0:
+                if db_user.phone == phone:
+                    raise ValueError('Phone number is already in use')
+                else:
+                    raise ValueError('Email number is already in use')
 
-        # TODO: Fix this
-        # db_user = User.objects.filter(Q(phone=phone) | Q(email=email))
-        # if len(db_user) > 0:
-        #     if db_user.phone == phone:
-        #         raise ValueError('Phone number is already in use')
-        #     else:
-        #         raise ValueError('Email number is already in use')
-
-        print(' ++++ password: ', password)
+        # print(' ++++ password: ', password)
         email = self.normalize_email(email)
         username = self.model.normalize_username(username)
         user = self.model(username=username, email=email, phone=phone, **extra_fields)
@@ -418,6 +417,7 @@ def _user_has_module_perms(user, app_label):
 
 class User(AbstractUser):
     ACCOUNT_ACTIVATION = "Account Activation"
+    NEW_REG_ACTIVATION = "New Reg Activation"
     NEW_REG_PASS_SET = "New Reg Password Set"
     PASSWORD_RESET = "Password Reset"
     VERIFY_EMAIL = "Verify Email"
@@ -425,6 +425,9 @@ class User(AbstractUser):
     
     EMAIL_CHANNEL = 'email'
     PHONE_CHANNEL = 'phone'
+    
+    LINK = 'Link'
+    TOKEN = 'Token'
 
     """
     Concrete class of AbstractUser.
@@ -443,13 +446,13 @@ class User(AbstractUser):
 
     @property
     def password_reset_confirm_link(self):
-        pk = urlsafe_base64_encode(force_bytes(self.pk))
-        return reverse('auths:password_reset_confirm', kwargs={'uidb64': pk, 'token': account_activation_token.make_token(self)})
+        uidb64 = urlsafe_base64_encode(force_bytes(self.pk))
+        return reverse('auths:password_reset_confirm', kwargs={'uidb64': uidb64, 'token': account_activation_token.make_token(self)})
 
     def send_activation_link(self, domain, password=None):
         html_message = render_to_string('auths/mail_templates/welcome_activate.html',
                                         {'project_title': settings.PROJECT_TITLE.title(), 'first_name': self.first_name,
-                                         'activation_link': f"{domain}{self.activation_link}",
+                                         'action_link': f"{domain}{self.activation_link}",
                                          'domain': domain, 'password': password or ""})
         log.info(f"*****{self.email} Activation link is {domain}{self.activation_link}")
         from core.tasks import sendMail
@@ -466,8 +469,8 @@ class User(AbstractUser):
         print(domain)
         
         html_message = render_to_string('auths/mail_templates/welcome_set_password.html', {
-            'first_name': self.first_name,
-            'activation_link': f"{domain}{self.password_reset_confirm_link}",
+            'user': self,
+            'action_link': f"{domain}{self.password_reset_confirm_link}",
             'domain': domain,
             'project_title': settings.PROJECT_TITLE.title()
         })
@@ -476,18 +479,18 @@ class User(AbstractUser):
                                      "recipients": [f"'{self.full_name}' <{self.email}>"],
                                      "fail_silently": settings.DEBUG, "connection": None})
 
-    def send_registration_password(self, domain, client_reset_link):
+    def send_registration_password(self, domain, client_callback_link):
         token = account_activation_token.make_token(self)
-        pk = urlsafe_base64_encode(force_bytes(self.pk))
+        uidb64 = urlsafe_base64_encode(force_bytes(self.pk))
         
         data = {"token": token, "id": self.id, "action": User.NEW_REG_PASS_SET, "channel": "email", "email": self.email, "extra": {}}
 
-        # If client_reset_link is set, it mean this is client/server request
-        activation_link = reverse('auths_api:password-reset-confirm', kwargs={'uidb64': pk, 'token': token}) if client_reset_link else self.password_reset_confirm_link
+        # If client_callback_link is set, it mean this is client/server request
+        action_link = reverse('auths_api:password-reset-confirm', kwargs={'uidb64': uidb64, 'token': token}) if client_callback_link else self.password_reset_confirm_link
         html_message = render_to_string('auths/mail_templates/welcome_set_password.html', {
             'coy_name': settings.COMPANY_NAME.title(),
             'first_name': self.first_name,
-            'activation_link': f"{client_reset_link}?link={domain}{activation_link}",
+            'action_link': f"{client_callback_link}?link={domain}{action_link}",
             'domain': domain,
             'project_title': settings.PROJECT_TITLE.title()
         })
@@ -499,31 +502,61 @@ class User(AbstractUser):
         cache.set(f"access_token_password_{self.id}_email_{token}", data, timeout=60*60*24)
         return token
 
-    def send_access_token(self, token_length, domain, channel=EMAIL_CHANNEL, action=VERIFY_EMAIL, extra={}):
-        token = random_with_N_digits(token_length)
+    def send_access_token(self, domain, action, channel='email', token_length=getattr(settings, "AUTH_TOKEN_LENGTH", 6), template='auths/mail_templates/token.html', extra={}):
+        print('------- send_access_token()')
+        uidb64 = urlsafe_base64_encode(force_bytes(self.pk))
+        client_callback_link = extra.get('client_callback_link', '')
+        processing_channel = extra.get('processing_channel', None)
+        
         session_key = random_with_N_digits(12)
-        # TODO: TO use this for multiple purpose
+        
+        subject = ""
+        if action in [UserModel.NEW_REG_ACTIVATION, UserModel.NEW_REG_PASS_SET]:
+            template = 'auths/mail_templates/welcome.html'
+            subject = f"Welcome to {settings.COMPANY_NAME}"
+            action_link = f"{reverse('auths_api:activation-confirm-token', kwargs={'uidb64': uidb64, 'session_key': session_key})}"
+        elif UserModel.ACCOUNT_ACTIVATION == action:
+            template = 'auths/mail_templates/activation.html'
+            subject = f"{settings.COMPANY_NAME} - Activation Token"
+            action_link = f"{reverse('auths_api:activation-confirm-token', kwargs={'uidb64': uidb64, 'session_key': session_key})}"
+        elif UserModel.PASSWORD_RESET == action:
+            template = 'auths/mail_templates/password_reset_email_html.html'
+            subject = f"{settings.COMPANY_NAME} - Password Reset"
+            action_link = reverse('auths_api:password-reset-confirm-token', kwargs={'uidb64': uidb64, 'session_key': session_key})  
+        elif UserModel.VERIFY_EMAIL == action:
+            template = 'auths/mail_templates/email_activation.html'
+            subject = f"{settings.COMPANY_NAME} - Email Activation"
+            action_link = f"{reverse('auths_api:activation-confirm-token', kwargs={'uidb64': uidb64, 'session_key': session_key})}"
+        else:
+            print(' ------ Action:  ', action)
+            return None
+        
+        token = str(random_with_N_digits(token_length)) if processing_channel == UserModel.TOKEN else account_activation_token.make_token(self)
+        print(token)
+        
         data = {"token": token, "id": self.id, "action": action, "channel": channel, "extra": extra} 
-
-        # user = UserModel.objects.filter(id=settings.EMAIL_PROCESSOR_ID).first()
-        if channel.lower() == User.EMAIL_CHANNEL:
-            html_message = render_to_string('auths/mail_templates/token.html', {
-                'first_name': self.first_name,
-                'activation_link': f"{domain}{self.password_reset_confirm_link}",
-                # 'domain': domain,
-                'token': token,
-                'project_title': settings.PROJECT_TITLE.title()
-            })
-
-            from core.tasks import sendMail
-            sendMail.apply_async(kwargs={'subject': User.ACCOUNT_ACTIVATION, "message": html_message,
-                                        "recipients": [f"'{self.full_name}' <{self.email}>"],
-                                        "fail_silently": settings.DEBUG, "connection": None})
-
-            print(f"access_token_{self.id}_{User.EMAIL_CHANNEL}_{session_key}")
-            cache.delete_pattern(f"access_token_{self.id}_{User.EMAIL_CHANNEL}_*")
-            cache.set(f"access_token_{self.id}_{User.EMAIL_CHANNEL}_{session_key}", data, timeout=60*10)
-            return session_key
+        print(action, ' +++++****+++---data: ', data)
+        
+        html_message = render_to_string(template, {
+            'coy_name': settings.COMPANY_NAME,
+            'user': self,
+            'action_link': f"{client_callback_link if client_callback_link else domain}?link={action_link}&channel={channel}&token={token}&action={action}&processing_channel={extra['processing_channel']}&client_callback_link={extra['client_callback_link']}",
+            'domain': domain,
+            'token': token if processing_channel == UserModel.TOKEN else None,
+            'project_title': settings.PROJECT_TITLE.title()
+        })
+        
+        print(f"{client_callback_link if client_callback_link else domain}?link={action_link}&channel={channel}&token={token}&action={action}")
+        from core.tasks import sendMail
+        sendMail.apply_async(kwargs={'subject': subject, "message": html_message,
+                                    "recipients": [f"'{self.full_name}' <{self.email}>"],
+                                    "fail_silently": settings.DEBUG, "connection": None})
+ 
+        print(f" Key******** access_token_{self.id}_{action}_{channel}_{session_key}")
+        print(data)
+        account_activation_token.persist(self, action=action, channel=channel, session_key=session_key, data=data)
+        print('=====>>>> ', session_key)
+        return session_key
 
     def __str__(self):
         return self.full_name or ""

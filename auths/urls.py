@@ -53,8 +53,8 @@ urlpatterns = [
 
     path('sign-up/', views.sign_up, name='sign-up'),
     path('sign-up/success/', views.sign_up_acknowledge, name='sign-up-success'),
-    # re_path(r'^activate/(?P<uidb64>[0-9A-Za-z_\-]+)/$', views.send_activate, name='activation-send'),
-    path('activate/<uuid:uidb64>/', views.activation_send, name='activation-send'),
+    re_path(r'^activate/(?P<uidb64>[0-9A-Za-z_\-]+)/$', views.activation_send, name='activation-send-64'),
+    path('activate/<uuid:pk>/', views.activation_send, name='activation-send'),
     re_path(r'^activate/(?P<uuid>[0-9A-Za-z_\-]+)/(?P<token>[0-9A-Za-z]{1,13}-[0-9A-Za-z]{1,60})/$',
         views.activate, name='activate'),
     path('email/confirmation/sent/', views.email_confirmation_sent, name='confirmation-email-sent'),

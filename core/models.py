@@ -9,8 +9,10 @@ from django.db.models import Q, Prefetch
 from django.conf import settings
 from django.core.cache import cache
 from django.contrib.auth import get_user_model
+from django.contrib.gis.db import models as gis_model
 from django.core.validators import FileExtensionValidator
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
+from django.contrib.gis.geos import Point
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 from django.utils.deconstruct import deconstructible
@@ -25,6 +27,12 @@ UserModel = get_user_model()
 AUTO_MANAGE = True
 SELECT_EMPTY = ('', '------')
 
+
+def profile_upload_path(instance, filename):
+    path = f'uploads/rental/profile/images/'
+    filename = f"{instance.id}.{filename.split('.')[-1]}"
+    import os
+    return os.path.join(path, filename)
 
 class BaseModel(models.Model):
     """
@@ -218,18 +226,26 @@ class City(UntrackedModel):
 
 
 class Address(UntrackedModel):
-    country = models.CharField(max_length=254, verbose_name="Country")
+    # id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    country = models.CharField(max_length=254, verbose_name="Country", default="United States")
     street = models.CharField(max_length=254, verbose_name="Street", null=True, blank=True, default='')
     number = models.CharField(max_length=254, verbose_name="Number", null=True, blank=True, default='')
     city = models.ForeignKey(City, on_delete=models.CASCADE, verbose_name="City")
-    zip_code = models.CharField(max_length=10, verbose_name="Zip Code")
+    zip_code = models.CharField(max_length=10, verbose_name="Zip Code", null=True, blank=True, default='')
     more_info = models.CharField(max_length=512, verbose_name="Additional Info", null=True, blank=True, default='')
+    formatted = models.CharField(max_length=512, verbose_name="Formatted Address", null=True, blank=True, default='')
+    # srid (default 4326 = WGS84 dd)
+    # dim (default 2, 3 will support z)
+    # spatial_index (default True, spatial index is built)
+    # 1km = 1/111.325 degrees. 5km is therefore approximately 0.0449 or about 0.05 degrees
+    # location = gis_model.PointField(null=True, blank=True, spatial_index=True, geography=True, srid=4326, dim=3)
+    location = gis_model.PointField(null=True, blank=True, spatial_index=True, geography=True, srid=4326)
     hidden = models.BooleanField(default=False, )
     imported = models.BooleanField(default=False, )
     import_id = models.CharField(max_length=16, verbose_name="Imported Id", default='', blank=True, null=True)
     
     def __str__(self):
-        return 'No. {}, {}, {}, {}'.format(self.number, self.street, self.city, self.zip_code)
+        return self.more_info if self.more_info else self.formatted if self.formatted else 'No. {}, {}, {}, {}'.format(self.number, self.street, self.city, self.zip_code)
 
     def get_admin_url(self):
         return reverse('admin:{}_{}_change'.format(self._meta.app_label, self._meta.model_name), args=(self.pk, ))
@@ -241,59 +257,141 @@ class Address(UntrackedModel):
         verbose_name_plural = _('Addresses')
 
 
-class Company(UntrackedModel):
-    ref = models.CharField(max_length=16, verbose_name="Ref", unique=True)
-    name = models.CharField(max_length=254, verbose_name="Company Name", unique=True)
-    website = models.CharField(max_length=254, verbose_name="Website", default='', blank=True, null=True)
-    note = models.CharField(max_length=254, verbose_name="Note", default='', blank=True, null=True)
-    address = models.ForeignKey(Address, related_name='company_address', on_delete=models.CASCADE, null=True, blank=True)
-    email = models.CharField(max_length=128, verbose_name="email", default='', blank=True, null=True)
-    phone = models.CharField(max_length=16, verbose_name="phone", default='', blank=True, null=True)
-    logo = models.ImageField(blank=True, null=True, default=None)
-    # url = models.URLField(max_length=254, verbose_name="Facebook", default='', blank=True, null=True)
-    facebook = models.URLField(max_length=254, verbose_name="Facebook", default='', blank=True, null=True)
-    instagram = models.URLField(max_length=254, verbose_name="Instagram", default='', blank=True, null=True)
-    tiktok = models.URLField(max_length=254, verbose_name="TikTok", default='', blank=True, null=True)
-    twitter = models.URLField(max_length=254, verbose_name="Twitter", default='', blank=True, null=True)
-    google_business = models.URLField(max_length=254, verbose_name="GoogleBusiness", default='', blank=True, null=True)
-    yelp = models.URLField(max_length=254, verbose_name="Yelp", default='', blank=True, null=True)
+class Contact(StampedModel):
+    ref = models.CharField(max_length=16, verbose_name="Ref", unique=True, blank=False, null=False)
+    email = models.CharField(max_length=128, verbose_name="email")
+    name = models.CharField(max_length=128, verbose_name="name", null=True, blank=True, default=None)
+    company_name = models.CharField(max_length=128, verbose_name="Company Name", null=True, blank=True, default=None)
+    phone = models.CharField(max_length=128, verbose_name="phone", null=True, blank=True, default=None)
+    message = models.TextField()
+     
+    class Meta:
+        ordering = ('email',)
+        verbose_name = _('Contact')
+        verbose_name_plural = _('Contact')
+
+    def __str__(self):
+        return self.email
 
     def save(self, *args, **kwargs):
         if not self.created:
             try:
-                coy = Company.objects.latest('created')
-                x = int(coy.ref[1:])
-            except Company.DoesNotExist:
-                x = 0
-            x += 1
-            self.ref = f'K0{x}' if x < 10 else f'K{x}'
+                x = int(Contact.objects.latest('created').ref[1:]) + 1
+            except (AttributeError, TypeError, Contact.DoesNotExist):
+                x = 1
+            self.ref = f'X{x:04}'
+        return super(Contact, self).save(*args, **kwargs)
+
+
+class Company(TrackedModel):
+    ref = models.CharField(max_length=16, verbose_name="Ref", unique=True)
+    name = models.CharField(max_length=128, verbose_name="name")
+    website = models.URLField(max_length=254, verbose_name="Company URL", default="", blank=True, null=True)
+    contact_name = models.CharField(max_length=128, verbose_name="Contact name", null=True, blank=True, default='')
+    email = models.CharField(max_length=254, verbose_name="Email", null=True, blank=True, default='')
+    phone = models.CharField(max_length=16, verbose_name="Phone", null=True, blank=True, default='')
+    ext = models.CharField(max_length=8, verbose_name="Ext #", null=True, blank=True, default='')
+    description = models.TextField(verbose_name="Description", null=True, blank=True, default='')
+    country = models.CharField(max_length=128, verbose_name="Country", default="United States")
+    state = models.CharField(max_length=128, verbose_name="State")
+    street = models.CharField(max_length=254, verbose_name="Street", null=True, blank=True, default='')
+    number = models.CharField(max_length=32, verbose_name="Number", null=True, blank=True, default='')
+    city = models.ForeignKey(City, on_delete=models.CASCADE, verbose_name="City")
+    zip_code = models.CharField(max_length=10, verbose_name="Zip Code", null=True, blank=True, default='')
+    more_info = models.CharField(max_length=512, verbose_name="Additional Info", null=True, blank=True, default='')
+    formatted = models.CharField(max_length=512, verbose_name="Formatted Address", null=True, blank=True, default='')
+    # location = gis_model.PointField(null=True, blank=True, spatial_index=True, geography=True, srid=4326, dim=3)
+    
+    administrator = models.OneToOneField("Profile", on_delete=models.CASCADE, related_name='administrative_company', verbose_name="Admin", blank=True, null=True, default=None)
+    
+    class Meta:
+        ordering = ('name',)
+        unique_together = ('name', 'state')
+        verbose_name = _('Company')
+        verbose_name_plural = _('Companies')
+
+    def save(self, *args, **kwargs):
+        if not self.created:
+            try:
+                x = int(Company.objects.latest('created').ref[1:]) + 1
+            except (AttributeError, TypeError, Company.DoesNotExist):
+                x = 1
+            self.ref = f'C{x:05}'
         return super(Company, self).save(*args, **kwargs)
 
     def __str__(self):
         return self.name
 
-    def get_admin_url(self):
-        return reverse('admin:{}_{}_change'.format(self._meta.app_label, self._meta.model_name), args=(self.pk, ))
 
-    class Meta:
-        ordering = ('name', )
-        managed = AUTO_MANAGE
-        verbose_name = _('Company')
-        verbose_name_plural = _('Companies')
-
-
-class InterestedEMail(StampedModel):
-
-    email = models.CharField(max_length=24, verbose_name="Email", unique=True)
+class Invitation(StampedModel):
+    PENDING = 'pending'
+    CANCELLED = 'cancelled'
+    EJECTED = 'ejected'
+    SENT = 'sent'
+    RESENT = 'resent'
+    REJECTED = 'rejected'
+    REGISTERING = 'registering'
+    ACCEPTED = 'accepted'
+    STATUS = ((ACCEPTED, 'Accepted'),
+              (CANCELLED, 'Cancelled'),
+              (EJECTED, 'Ejected'),
+              (PENDING, 'pending'),
+              (REGISTERING, 'Registering'),
+              (REJECTED, 'Rejected'),
+              (RESENT, 'Resent'),
+              (SENT, 'Sent')
+              )
+    
+    email = models.CharField(max_length=128, verbose_name="email")
+    sent = models.DateTimeField(null=True, blank=True, default=None)
+    response = models.DateTimeField(null=True, blank=True, default=None)
+    exists = models.BooleanField(default=False, )
+    token = models.BigIntegerField(null=True, blank=True, default=None)
+    status = models.CharField(max_length=128, choices=STATUS, default=PENDING)
+    company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name='invitations')
+    sender = models.ForeignKey("Profile", on_delete=models.CASCADE, related_name='invites')
     
     class Meta:
         ordering = ('email',)
-        verbose_name = _('Interested EMail')
-        verbose_name_plural = _('Interested EMails')
-
+        unique_together = ('email', 'company')
+        verbose_name = _('Invitation')
+        verbose_name_plural = _('Invitations')
 
     def __str__(self):
         return self.email
+
+
+class Support(StampedModel):
+    MDL = 'mdl'
+    PDL = 'pdl'
+    OTHERS = 'others'
+    TYPE = ((MDL, 'A Management Company Listing'), 
+              (PDL, 'A Property Listing'),
+              (OTHERS, 'Others'))
+    
+    ref = models.CharField(max_length=16, verbose_name="Ref", unique=True, blank=False, null=False)
+    email = models.CharField(max_length=128, verbose_name="email")
+    name = models.CharField(max_length=128, verbose_name="name", null=True, blank=True, default=None)
+    company_name = models.CharField(max_length=128, verbose_name="Company Name", null=True, blank=True, default=None)
+    phone = models.CharField(max_length=128, verbose_name="phone", null=True, blank=True, default=None)
+    type = models.CharField(max_length=128, choices=TYPE)
+    
+    class Meta:
+        ordering = ('email',)
+        verbose_name = _('Support')
+        verbose_name_plural = _('Support')
+
+    def __str__(self):
+        return self.email
+
+    def save(self, *args, **kwargs):
+        if not self.created:
+            try:
+                x = int(Support.objects.latest('created').ref[1:]) + 1
+            except (AttributeError, TypeError, Support.DoesNotExist):
+                x = 1
+            self.ref = f'S{x:04}'
+        return super(Support, self).save(*args, **kwargs)
 
 
 class Profile(TrackedModel):
@@ -303,8 +401,9 @@ class Profile(TrackedModel):
     
     ref = models.CharField(max_length=16, verbose_name="Ref", unique=True, blank=False, null=False)
     user = models.OneToOneField(UserModel, on_delete=models.CASCADE, related_name='user_profile')
-    company = models.ForeignKey(Company, on_delete=models.CASCADE, blank=True, null=True, default=None, related_name='company_profiles')
-    address = models.ForeignKey(Address, on_delete=models.CASCADE, blank=True, null=True, default=None, related_name='address_profiles')
+    company = models.ForeignKey(Company, on_delete=models.SET_NULL, related_name='members', blank=True, null=True, default=None)
+    address = models.ForeignKey(Address, on_delete=models.CASCADE, related_name='address_profiles', blank=True, null=True, default=None)
+    image = models.ImageField(upload_to=profile_upload_path, blank=True, null=True, default=None)
     # position = models.CharField(max_length=32, verbose_name="Position", choices=POSITIONS, default="Worker")
     # status = models.CharField(max_length=32, verbose_name="Status", choices=STATUS, default=UNAVAILABLE)
     # projects = models.ManyToManyField('Project')
@@ -326,9 +425,8 @@ class Profile(TrackedModel):
     def save(self, *args, **kwargs):
         if not self.created:
             try:
-                profile = Profile.objects.latest('created')
-                x = int(profile.ref[1:]) + 1 if profile else 1
-            except Profile.DoesNotExist:
+                x = int(Profile.objects.latest('created').ref[1:]) + 1
+            except (AttributeError, TypeError, Profile.DoesNotExist):
                 x = 1
             self.ref = f'U{x:04}'
         return super(Profile, self).save(*args, **kwargs)

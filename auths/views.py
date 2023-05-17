@@ -17,6 +17,8 @@ from django.http import JsonResponse, HttpResponseRedirect, HttpResponseForbidde
 from django.http.response import Http404
 from django.shortcuts import redirect, render, get_object_or_404
 from django.template.loader import render_to_string
+from django.utils.encoding import force_str, force_bytes
+from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 from django.urls import reverse, reverse_lazy
 from django.utils import timezone
 from django.views.generic import FormView
@@ -274,8 +276,11 @@ def sign_up_acknowledge(request, first_name):
 
 
 def activation_send(request, uidb64):
+    return activation_send(request, urlsafe_base64_decode(uidb64).decode())
+
+def activation_send(request, pk):
     try:
-        user = UserModel.objects.get(pk=uidb64)
+        user = UserModel.objects.get(pk=pk)
         passw = user.password_generator()
         user.set_password(passw)
 
@@ -351,9 +356,8 @@ def activation_token_send(request, channel, email):
         that is only valid with this current session key
     """
     try:
-        token_length = settings.AUTH_TOKEN_LENGTH
         user = UserModel.objects.get(email=email)
-        session_key = user.send_access_token(token_length, channel)
+        session_key = user.send_access_token(get_domain(request), UserModel.ACCOUNT_ACTIVATION, channel)
         if isinstance(session_key, int):
             return JsonResponse({"msg": f'Authentication token has been sent to you via {channel}', "type": "success", "session_key": session_key}, safe=True)
         msg = "Something went wrong"

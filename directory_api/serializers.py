@@ -12,7 +12,7 @@ from rest_framework.fields import UUIDField
 
 from django.contrib.auth.models import Permission
 
-from auths_api.serializers import UserSerializer, UserUpdateSerializer, UserNameSerializer
+# from auths_api.serializers import UserSerializer, UserUpdateSerializer, UserNameSerializer
 from core.models import *
 from core_api.serializers import *
 from directory.models import *
@@ -29,7 +29,7 @@ class AccessibilitySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Accessibility
-        fields = ('id', 'name')
+        fields = ('id', 'name', 'icon')
 
 
 class ActivitySerializer(serializers.ModelSerializer):
@@ -37,7 +37,7 @@ class ActivitySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Activity
-        fields = ('id', 'name')
+        fields = ('id', 'name', 'icon')
 
 
 class BathroomSerializer(serializers.ModelSerializer):
@@ -45,7 +45,7 @@ class BathroomSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Bathroom
-        fields = ('id', 'name')
+        fields = ('id', 'name', 'icon')
 
 
 class BookerSerializer(serializers.ModelSerializer):
@@ -72,12 +72,20 @@ class BookingSiteFullSerializer(serializers.ModelSerializer):
         fields = ('id', 'booker', 'site', 'property')
 
 
+class InquiryMessageSerializer(serializers.ModelSerializer):
+    pass
+
+    class Meta:
+        model = InquiryMessage
+        exclude = ('enabled', )
+
+
 class EntertainmentSerializer(serializers.ModelSerializer):
     pass
 
     class Meta:
         model = Entertainment
-        fields = ('id', 'name')
+        fields = ('id', 'name', 'icon')
 
 
 class EssentialSerializer(serializers.ModelSerializer):
@@ -85,7 +93,7 @@ class EssentialSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Essential
-        fields = ('id', 'name')
+        fields = ('id', 'name', 'icon')
 
 
 class FamilySerializer(serializers.ModelSerializer):
@@ -93,7 +101,7 @@ class FamilySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Family
-        fields = ('id', 'name')
+        fields = ('id', 'name', 'icon')
 
 
 class FeatureSerializer(serializers.ModelSerializer):
@@ -101,7 +109,7 @@ class FeatureSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Feature
-        fields = ('id', 'name')
+        fields = ('id', 'name', 'icon')
 
 
 class KitchenSerializer(serializers.ModelSerializer):
@@ -109,7 +117,7 @@ class KitchenSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Kitchen
-        fields = ('id', 'name')
+        fields = ('id', 'name', 'icon')
 
 
 class LaundrySerializer(serializers.ModelSerializer):
@@ -117,7 +125,34 @@ class LaundrySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Laundry
-        fields = ('id', 'name')
+        fields = ('id', 'name', 'icon')
+
+
+class ManagerDirectorySerializer(serializers.ModelSerializer):
+    pass
+
+    class Meta:
+        model = ManagerDirectory
+        exclude = ('enabled', )
+
+
+class ManagerDirectoryDetailSerializer(serializers.ModelSerializer):
+    company = CompanySerializer(many=False, read_only=True)
+    
+    class Meta:
+        model = ManagerDirectory
+        # fields = ('email',)
+        exclude = ('enabled', )
+
+
+class OfficeSerializer(serializers.ModelSerializer):
+    pass
+
+    class Meta:
+        model = Office
+        exclude = ('enabled', )
+        exclude = ('enabled', 'updated_by')
+        read_only_fields = ('enabled', 'ref', 'updated_by')
 
 
 class OutsideSerializer(serializers.ModelSerializer):
@@ -125,7 +160,16 @@ class OutsideSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Outside
-        fields = ('id', 'name')
+        fields = ('id', 'name', 'icon')
+
+
+class PortfolioSerializer(serializers.ModelSerializer):
+    pass
+
+    class Meta:
+        model = Portfolio
+        read_only_fields = ('id', 'ref', 'enabled', 'updated', 'updated_by')
+        exclude = ('enabled', )
 
 
 class ParkingSerializer(serializers.ModelSerializer):
@@ -133,7 +177,7 @@ class ParkingSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Parking
-        fields = ('id', 'name')
+        fields = ('id', 'name', 'icon')
 
 
 class PoolSpaSerializer(serializers.ModelSerializer):
@@ -141,15 +185,14 @@ class PoolSpaSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = PoolSpa
-        fields = ('id', 'name')
-
+        fields = ('id', 'name', 'icon')
 
 
 class SleeperSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Sleeper
-        fields = ('id', 'name', )
+        fields = ('id', 'name', 'icon')
 
 
 class RoomTypeSerializer(serializers.ModelSerializer):
@@ -174,7 +217,7 @@ class SafetySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Safety
-        fields = ('id', 'name')
+        fields = ('id', 'name', 'icon')
 
 
 class SpaceSerializer(serializers.ModelSerializer):
@@ -182,7 +225,7 @@ class SpaceSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Space
-        fields = ('id', 'name')
+        fields = ('id', 'name', 'icon')
 
 
 class ServiceSerializer(serializers.ModelSerializer):
@@ -190,7 +233,7 @@ class ServiceSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Service
-        fields = ('id', 'name')
+        fields = ('id', 'name', 'icon')
 
 
 class SocialMediaLinkSerializer(serializers.ModelSerializer):
@@ -209,51 +252,13 @@ class PropertyPhotoSerializer(serializers.ModelSerializer):
 
 
 class PropertySerializer(serializers.ModelSerializer):
-    address = AddressCreateSerializer(many=False, read_only=False)
+    address = AddressCreateGeoSerializer(many=False, read_only=False)
     # address = serializers.SerializerMethodField("get_address")
     booking_sites = BookingSiteSerializer(many=True, read_only=False)
     social_media = SocialMediaLinkSerializer(many=True, read_only=False)
     pictures = PropertyPhotoSerializer(many=True, read_only=True)
     room_types = RoomTypeSerializer(many=True, read_only=False)
     
-    # def __init__(self, *args, **kwargs):
-    #     # # Don't pass the 'fields' arg up to the superclass
-    #     # request = kwargs.get('context', {}).get('request')
-    #     # str_fields = request.GET.get('fields', '') if request else None
-    #     # fields = str_fields.split(',') if str_fields else None
-    #     # # Instantiate the superclass 
-    #     print('=================11==================')
-    #     print(kwargs['data'])
-    #     print('=================111==================')
-    #     print(kwargs['data']['address'])
-    #     # print(kwargs['data']['address']['city'].get('id', None))
-    #     print('==================1111=================', )
-    #     super(PropertySerializer, self).__init__(*args, **kwargs)
-    #     # self.address = AddressSerializer(many=False, read_only=False) if kwargs['data']['address']['city'].get('id', None) else AddressDetailSerializer(many=False, read_only=False)
-    #     # print('=================2**2================== ', type(self.address))
-    #     # if fields is not None:
-    #     #     # Drop any fields that are not specified in the `fields`
-    #     #     # argument.
-    #     #     allowed = set(fields)
-    #     #     existing = set(self.fields)
-    #     #     for field_name in existing - allowed:
-    #     #         self.fields.pop(field_name)
-       
-    # def get_address(self, obj):
-    #     request = self.context.get('request')
-    #     print('+++++++++++++++++++++++++++++++')
-    #     print(request)
-    #     print(request.data)
-    #     # serializer_context = {'request': request }
-    #     # authors = obj.authors.all()
-    #     # serializer = AuthorModelSerializer(authors, many=True, context=serializer_context)
-    #     serializer = AddressSerializer(many=False, read_only=False) if request.data['address']['city'].get('id', None) else AddressDetailSerializer(many=False, read_only=False)
-        
-    #     print(type(serializer))
-    #     print(serializer.data)
-    #     print('+++++++++++++++++++++++++++++++')
-    #     return serializer.data
-               
     def create(self, validated_data):
         print('===========: ******** : 11============')
         print(validated_data)
@@ -298,11 +303,13 @@ class PropertySerializer(serializers.ModelSerializer):
             print(address_data.get('city'))
             print('****************************')
             if address_data.get('city'):
-                city = address_data.get('city')
+                cid = address_data.get('city')
             else:
-                city = City.objects.get_or_create(**city_data)
-                city = city[0].id
-            address_data['city_id'] = city
+                cid = city_data.pop('id', None)
+                if not cid:
+                    (city, created) = City.objects.get_or_create(name=city_data.pop('name', None), state_name=city_data.pop('state_name', None), country_name=city_data.pop('country_name', None), defaults=city_data)
+                    cid = city.id
+            address_data['city_id'] = cid
             address = Address.objects.create(**address_data)
             print('==== 3 ====')
             property = Property.objects.create(address=address, **validated_data)
@@ -480,8 +487,81 @@ class PropertySerializer(serializers.ModelSerializer):
         read_only_fields = ('id', 'ref', 'enabled', 'updated', 'updated_by')
 
 
+class OfficeDetailSerializer(serializers.ModelSerializer):
+    administrator = ProfileSerializer(many=False, read_only=True)
+    members = ProfileSerializer(many=True, read_only=True)
+    company = CompanySerializer(many=False, read_only=True)
+    city = CitySerializer(many=False, read_only=True)
+    
+    office_properties = PropertySerializer(many=True, read_only=True)
+    portfolio_properties = PropertySerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Office
+        exclude = ('enabled', )
+        exclude = ('enabled', 'updated_by')
+        read_only_fields = ('enabled', 'ref', 'updated_by', 'administrator', 'company')
+
+
+class OfficePropertiesSerializer(serializers.ModelSerializer):
+    office_properties = PropertySerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Office
+        exclude = ('enabled', 'updated_by')
+        read_only_fields = ('enabled', 'ref', 'updated_by')
+
+
+class PortfolioPropertiesSerializer(serializers.ModelSerializer):
+    portfolio_properties = PropertySerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Portfolio
+        exclude = ('enabled', )
+
+
+class PortfolioDetailSerializer(serializers.ModelSerializer):
+    administrator = ProfileSerializer(many=False, read_only=True)
+    members = ProfileSerializer(many=True, read_only=True)
+    company = CompanySerializer(many=False, read_only=True)
+    
+    office_properties = PropertySerializer(many=True, read_only=True)
+    portfolio_properties = PropertySerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Portfolio
+        exclude = ('enabled', )
+
+
+class PropertyListSerializer(serializers.ModelSerializer):
+    address = AddressGeoSerializer(many=False, read_only=False)
+    # address = serializers.SerializerMethodField("get_address")
+    booking_sites = BookingSiteSerializer(many=True, read_only=False)
+    social_media = SocialMediaLinkSerializer(many=True, read_only=False)
+    pictures = PropertyPhotoSerializer(many=True, read_only=True)
+    room_types = RoomTypeSerializer(many=True, read_only=False)
+    
+    class Meta:
+        model = Property
+        exclude = ()
+        read_only_fields = ('id', 'ref', 'enabled', 'updated', 'updated_by')
+
+
+class PropertySearchResultSerializer(serializers.ModelSerializer):
+    address = AddressDetailGeoSerializer(many=False, read_only=False)
+    booking_sites = BookingSiteSerializer(many=True, read_only=False)
+    social_media = SocialMediaLinkSerializer(many=True, read_only=False)
+    pictures = PropertyPhotoSerializer(many=True, read_only=True)
+    room_types = RoomTypeSerializer(many=True, read_only=False)
+    
+    class Meta:
+        model = Property
+        exclude = ('updated', 'updated_by', )
+        read_only_fields = ('id', 'ref', 'enabled', 'updated', 'updated_by')
+
+
 class PropertyDetailSerializer(serializers.ModelSerializer):
-    address = AddressDetailSerializer(many=False, read_only=True)
+    address = AddressDetailGeoSerializer(many=False, read_only=True)
     booking_sites = BookingSiteFullSerializer(many=True, read_only=True)
     social_media = SocialMediaLinkSerializer(many=True, read_only=True)
     pictures = PropertyPhotoSerializer(many=True, read_only=True)
@@ -505,6 +585,6 @@ class PropertyDetailSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Property
-        exclude = ()
+        exclude = ('updated', 'updated_by', )
         read_only_fields = ('id', 'ref', 'enabled', 'updated', 'updated_by')
         

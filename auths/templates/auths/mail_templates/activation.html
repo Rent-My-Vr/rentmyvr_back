@@ -10,7 +10,7 @@
                 <table width="100%" cellpadding="0" cellspacing="0" border="0">
                     <tbody>
                     <tr>
-                        <td align="center" valign="top" style="font-family: Calibri , Trebuchet , Arial , sans serif;font-size: 36.0px;line-height: 44.0px;color: rgb(51,51,51);"> Welcome to {{ project_title }}<br></td>
+                        <td align="center" valign="top" style="font-family: Calibri , Trebuchet , Arial , sans serif;font-size: 36.0px;line-height: 44.0px;color: rgb(51,51,51);"> Welcome to {{ coy_name }}<br></td>
                     </tr>
                     </tbody>
                 </table>
@@ -44,9 +44,16 @@
             <td align="center" style="padding: 0.0px 30.0px 30.0px 30.0px;">
                 <table border="0" cellspacing="0" cellpadding="0">
                     <tbody>
+                    {% if token %}
+                        <tr>
+                            <td bgcolor="#009cde" class="boxed" align="center" valign="middle" style="padding: 10.0px 90.0px 15.0px 90.0px;font-family: Calibri , Trebuchet , Arial , sans serif;font-size: 17.0px;line-height: 21.0px;color: rgba(255,255,255,.84);;">
+                                <em>Token: </em> {{ token }}<br>
+                            </td>
+                        </tr>
+                    {% endif %}
                     <tr>
                         <td bgcolor="#009cde" class="boxed" align="center" valign="middle" style="padding: 10.0px 90.0px 15.0px 90.0px;font-family: Calibri , Trebuchet , Arial , sans serif;font-size: 17.0px;line-height: 21.0px;color: rgba(255,255,255,.84);;">
-                            <a target="_blank" style="color: #c0e1fb;text-decoration: none;" href="{{ validation_url }}">Validate Email<br></a>
+                            <a target="_blank" style="color: #c0e1fb;text-decoration: none;" href="{{ action_link }}">Validate Email<br></a>
                         </td>
                     </tr>
                     </tbody>
