@@ -257,32 +257,6 @@ class Address(UntrackedModel):
         verbose_name_plural = _('Addresses')
 
 
-class Contact(StampedModel):
-    ref = models.CharField(max_length=16, verbose_name="Ref", unique=True, blank=False, null=False)
-    email = models.CharField(max_length=128, verbose_name="email")
-    name = models.CharField(max_length=128, verbose_name="name", null=True, blank=True, default=None)
-    company_name = models.CharField(max_length=128, verbose_name="Company Name", null=True, blank=True, default=None)
-    phone = models.CharField(max_length=128, verbose_name="phone", null=True, blank=True, default=None)
-    message = models.TextField()
-     
-    class Meta:
-        ordering = ('email',)
-        verbose_name = _('Contact')
-        verbose_name_plural = _('Contact')
-
-    def __str__(self):
-        return self.email
-
-    def save(self, *args, **kwargs):
-        if not self.created:
-            try:
-                x = int(Contact.objects.latest('created').ref[1:]) + 1
-            except (AttributeError, TypeError, Contact.DoesNotExist):
-                x = 1
-            self.ref = f'X{x:04}'
-        return super(Contact, self).save(*args, **kwargs)
-
-
 class Company(TrackedModel):
     ref = models.CharField(max_length=16, verbose_name="Ref", unique=True)
     name = models.CharField(max_length=128, verbose_name="name")
@@ -321,6 +295,33 @@ class Company(TrackedModel):
 
     def __str__(self):
         return self.name
+
+
+class Contact(StampedModel):
+    ref = models.CharField(max_length=16, verbose_name="Ref", unique=True, blank=False, null=False)
+    email = models.CharField(max_length=128, verbose_name="email")
+    name = models.CharField(max_length=128, verbose_name="name", null=True, blank=True, default=None)
+    company_name = models.CharField(max_length=128, verbose_name="Company Name", null=True, blank=True, default=None)
+    company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name="contacts", null=True, blank=True, default=None)
+    phone = models.CharField(max_length=128, verbose_name="phone", null=True, blank=True, default=None)
+    message = models.TextField()
+     
+    class Meta:
+        ordering = ('email',)
+        verbose_name = _('Contact')
+        verbose_name_plural = _('Contact')
+
+    def __str__(self):
+        return self.email
+
+    def save(self, *args, **kwargs):
+        if not self.created:
+            try:
+                x = int(Contact.objects.latest('created').ref[1:]) + 1
+            except (AttributeError, TypeError, Contact.DoesNotExist):
+                x = 1
+            self.ref = f'X{x:04}'
+        return super(Contact, self).save(*args, **kwargs)
 
 
 class Invitation(StampedModel):
@@ -372,9 +373,10 @@ class Support(StampedModel):
     ref = models.CharField(max_length=16, verbose_name="Ref", unique=True, blank=False, null=False)
     email = models.CharField(max_length=128, verbose_name="email")
     name = models.CharField(max_length=128, verbose_name="name", null=True, blank=True, default=None)
-    company_name = models.CharField(max_length=128, verbose_name="Company Name", null=True, blank=True, default=None)
+    company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name="supports", null=True, blank=True, default=None)
     phone = models.CharField(max_length=128, verbose_name="phone", null=True, blank=True, default=None)
     type = models.CharField(max_length=128, choices=TYPE)
+    message = models.TextField("message", null=True, blank=True, default=None)
     
     class Meta:
         ordering = ('email',)

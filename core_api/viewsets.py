@@ -227,6 +227,50 @@ class ContactViewSet(viewsets.ModelViewSet):
         #     return ContactSerializer
         return ContactSerializer
 
+    def perform_create(self, serializer):
+        return serializer.save()
+        
+    def create(self, request, *args, **kwargs):
+        print('****** 1');
+        data = request.data
+        print(data)
+        serializer = self.get_serializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        instance = self.perform_create(serializer)
+        
+        print(instance)
+        if instance.company is not None:
+            title = instance.company.name
+            email = instance.company.email if instance.company.email else instance.company.administrator.user.email
+        else:
+            email = 'info@rentmyvr.com'
+            title = settings.COMPANY_NAME
+            
+        domain = get_domain(request)
+        print({
+            'coy_name': settings.COMPANY_NAME,
+            'user': self,
+            'message': instance.message,
+            'domain': domain,
+            'project_title': title
+        })
+        html_message = render_to_string('email/message.html', {
+            'coy_name': settings.COMPANY_NAME,
+            'contact': instance,
+            'user': self,
+            'domain': domain,
+            'project_title': title
+        })
+        
+        from core.tasks import sendMail
+        sendMail.apply_async(kwargs={'subject': f"Lead's Inquiry", "message": html_message,
+                                    "recipients": [email],
+                                    "fail_silently": settings.DEBUG, "connection": None})
+
+        headers = self.get_success_headers(serializer.data)
+
+        return Response({"message": "Ok", "result": 'Message sent Successfully'}, status=status.HTTP_201_CREATED, headers=headers)
+    
 
 class CompanyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
     permission_classes = (IsAuthenticated, )
@@ -860,7 +904,8 @@ class ProfileViewSet(viewsets.ModelViewSet, AchieveModelMixin):
 
 class SupportViewSet(viewsets.ModelViewSet):
     permission_classes = (AllowAny, )
-    authentication_classes = ()
+    # authentication_classes = ()
+    authentication_classes = (TokenAuthentication, )
     parser_classes = (JSONParser, MultiPartParser)
         
     def get_queryset(self):
@@ -874,3 +919,41 @@ class SupportViewSet(viewsets.ModelViewSet):
         # if self.action in ['retrieve',]:
         #     return CitySerializer
         return SupportSerializer
+
+    def perform_create(self, serializer):
+        return serializer.save()
+        
+    def create(self, request, *args, **kwargs):
+        print('****** 1');
+        data = request.data
+        print(data)
+        serializer = self.get_serializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        instance = self.perform_create(serializer)
+        
+        print(instance)
+        if instance.company is not None:
+            title = instance.company.name
+            email = instance.company.email if instance.company.email else instance.company.administrator.user.email
+        else:
+            email = 'info@rentmyvr.com'
+            title = settings.COMPANY_NAME
+            
+        domain = get_domain(request)
+        html_message = render_to_string('email/support_inquiry.html', {
+            'coy_name': settings.COMPANY_NAME,
+            'support': instance,
+            'profile': request.user.user_profile,
+            'domain': domain,
+            'project_title': title
+        })
+        
+        from core.tasks import sendMail
+        sendMail.apply_async(kwargs={'subject': f"Support Needed", "message": html_message,
+                                    "recipients": [email],
+                                    "fail_silently": settings.DEBUG, "connection": None})
+
+        headers = self.get_success_headers(serializer.data)
+
+        return Response({"message": "Ok", "result": 'Message sent Successfully'}, status=status.HTTP_201_CREATED, headers=headers)
+    

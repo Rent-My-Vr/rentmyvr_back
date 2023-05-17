@@ -1,6 +1,6 @@
 {% for message in messages %}
-<span class="m-badge m-badge--{{ message.tags }} m-badge--wide m-badge--rounded">
-    <i class="fa fa-close"></i>
-    <span>{{ message|safe }}</span>
-</span>
+    <span class="m-badge m-badge--{{ message.tags }} m-badge--wide m-badge--rounded">
+        <i class="fa fa-close"></i>
+        <span>{{ message|safe }}</span>
+    </span>
 {% endfor %}
