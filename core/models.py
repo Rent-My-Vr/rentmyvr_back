@@ -366,25 +366,25 @@ class Support(StampedModel):
     MDL = 'mdl'
     PDL = 'pdl'
     OTHERS = 'others'
-    TYPE = ((MDL, 'A Management Company Listing'), 
+    TYPES = ((MDL, 'A Management Company Listing'), 
               (PDL, 'A Property Listing'),
               (OTHERS, 'Others'))
+    TYPE = {MDL: TYPES[0][1], PDL: TYPES[1][1], OTHERS: TYPES[2][1]}
     
     ref = models.CharField(max_length=16, verbose_name="Ref", unique=True, blank=False, null=False)
-    email = models.CharField(max_length=128, verbose_name="email")
     name = models.CharField(max_length=128, verbose_name="name", null=True, blank=True, default=None)
     company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name="supports", null=True, blank=True, default=None)
     phone = models.CharField(max_length=128, verbose_name="phone", null=True, blank=True, default=None)
-    type = models.CharField(max_length=128, choices=TYPE)
+    type = models.CharField(max_length=128, choices=TYPES)
     message = models.TextField("message", null=True, blank=True, default=None)
     
     class Meta:
-        ordering = ('email',)
+        ordering = ('type',)
         verbose_name = _('Support')
         verbose_name_plural = _('Support')
 
     def __str__(self):
-        return self.email
+        return self.message
 
     def save(self, *args, **kwargs):
         if not self.created:

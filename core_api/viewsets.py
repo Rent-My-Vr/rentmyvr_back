@@ -255,7 +255,7 @@ class ContactViewSet(viewsets.ModelViewSet):
         })
         
         from core.tasks import sendMail
-        sendMail.apply_async(kwargs={'subject': f"Lead's Inquiry", "message": html_message,
+        sendMail.apply_async(kwargs={'subject': f"Lead's Inquiry ({instance.ref})", "message": html_message,
                                     "recipients": [email],
                                     "fail_silently": settings.DEBUG, "connection": None})
 
@@ -928,7 +928,7 @@ class SupportViewSet(viewsets.ModelViewSet):
             title = instance.company.name
             email = instance.company.email if instance.company.email else instance.company.administrator.user.email
         else:
-            email = 'info@rentmyvr.com'
+            email = request.user.email
             title = settings.COMPANY_NAME
             
         domain = get_domain(request)
@@ -941,7 +941,7 @@ class SupportViewSet(viewsets.ModelViewSet):
         })
         
         from core.tasks import sendMail
-        sendMail.apply_async(kwargs={'subject': f"Support Needed", "message": html_message,
+        sendMail.apply_async(kwargs={'subject': f"Support Needed ({instance.ref})", "message": html_message,
                                     "recipients": [email],
                                     "fail_silently": settings.DEBUG, "connection": None})
 

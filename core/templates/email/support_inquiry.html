@@ -25,9 +25,10 @@
             You have got a suppory inquiry from a user with details below:
           </p>
           <li><em>Name: </em> {{profile.user.first_name}} {{profile.user.last_name}}</li>
-          <li><em>Phone: </em> {{profile.user.phone}}</li>
+          <li><em>Phone: </em> {{support.phone | profile.user.phone}}</li>
           <li><em>Email: </em> {{profile.user.email}}</li>
           <li><em>Type: </em> {{support.type}}</li>
+          {% if support.company is not None %}<li><em>Company: </em> {{support.company.name}}</li>{% endif %}
           <li><em>Message: </em> {{support.message}}</li>
         </div>
 		
