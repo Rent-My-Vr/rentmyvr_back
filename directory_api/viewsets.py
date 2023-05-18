@@ -31,7 +31,7 @@ from auths_api.serializers import UserSerializer, UserUpdateSerializer
 from notifications.signals import notify
 from core.models import *
 from core.utils import send_gmail
-from core_api.pagination import MyPagination, MyPaginationMixin
+from core_api.pagination import MyPagination
 from core_api.serializers import *
 from core_api.models import *
 from directory.models import *
@@ -47,9 +47,14 @@ class ManagerDirectoryViewSet(viewsets.ModelViewSet, AchieveModelMixin):
     authentication_classes = (TokenAuthentication,)
     parser_classes = (MultiPartParser, FormParser, JSONParser, FileUploadParser)
         
+    def get_permissions(self):
+        if self.action in ['search', 'retrieve']:
+            return []  # This method should return iterable of permissions
+        return super().get_permissions()
+
     def get_serializer_class(self):
-        # if self.action in ['create', 'update']:
-        #     return CompanySerializer
+        if self.action in ['search']:
+            return ManagerDirectoryListSerializer
         return ManagerDirectorySerializer
 
     def get_queryset(self):
@@ -106,12 +111,18 @@ class ManagerDirectoryViewSet(viewsets.ModelViewSet, AchieveModelMixin):
     def names(self, request, *args, **kwargs):
         return Response(self.get_queryset().values_list('email', flat=True), status=status.HTTP_200_OK)
 
+    @action(methods=['get'], detail=False, url_path='search', url_name='search')
+    def search(self, request, *args, **kwargs):
+        r = ManagerDirectory.objects.filter()
+        
+        return Response(self.get_serializer(instance=r, many=True).data)
+
 
 class OfficeViewSet(viewsets.ModelViewSet, AchieveModelMixin):
     permission_classes = (IsAuthenticated, )
     authentication_classes = (TokenAuthentication,)
     parser_classes = (MultiPartParser, FormParser, JSONParser, FileUploadParser)
-        
+    
     def get_serializer_class(self):
         if self.action in ['list', 'retrieve']:
             return OfficeDetailSerializer
@@ -222,6 +233,30 @@ class OfficeViewSet(viewsets.ModelViewSet, AchieveModelMixin):
     def names(self, request, *args, **kwargs):
         return Response(self.get_queryset().values_list('email', flat=True), status=status.HTTP_200_OK)
 
+    @action(methods=['post'], detail=True, url_path='delete/member/(?P<mid>[0-9A-Fa-f-]+)', url_name='delete-member')
+    def delete_member(self, request, *args, **kwargs):
+        instance = self.get_object()
+        p = request.user.user_profile
+        
+        if p.company is not None:
+            if  instance.company == p.company:
+                profile = Profile.objects.filter(id=kwargs['mid']).first()
+                if profile is not None and (profile.company == p.company or profile.company is None) and (instance in profile.offices.all() or instance.administrator == profile):
+                    if instance.administrator == profile:
+                        return Response({'message': 'You cannot evict the Administrator'}, status=status.HTTP_403_FORBIDDEN)
+                        
+                    removed = profile.offices.remove(instance)
+                    print('Removed..... ', removed)
+                    # profile.save()
+                    
+                    return Response({'message': 'Member is successfully Removed'}, status=status.HTTP_200_OK)
+                else:    
+                    return Response({'message': 'You are not authorised to perform this operation'}, status=status.HTTP_400_BAD_REQUEST)
+            else:    
+                return Response({'message': f'Only authorised members of the {instance.company} can perform this operation'}, status=status.HTTP_403_FORBIDDEN)
+        else:    
+            return Response({'message': 'You are not authorised to perform this operation.'}, status=status.HTTP_403_FORBIDDEN)
+   
 
 class PortfolioViewSet(viewsets.ModelViewSet, AchieveModelMixin):
     permission_classes = (IsAuthenticated, )
@@ -300,6 +335,30 @@ class PortfolioViewSet(viewsets.ModelViewSet, AchieveModelMixin):
     def names(self, request, *args, **kwargs):
         return Response(self.get_queryset().values_list('email', flat=True), status=status.HTTP_200_OK)
 
+    @action(methods=['post'], detail=True, url_path='delete/member/(?P<mid>[0-9A-Fa-f-]+)', url_name='delete-member')
+    def delete_member(self, request, *args, **kwargs):
+        instance = self.get_object()
+        p = request.user.user_profile
+        
+        if p.company is not None:
+            if  instance.company == p.company:
+                profile = Profile.objects.filter(id=kwargs['mid']).first()
+                if profile is not None and (profile.company == p.company or profile.company is None) and (instance in profile.portfolios.all() or instance.administrator == profile):
+                    if instance.administrator == profile:
+                        return Response({'message': 'You cannot evict the Administrator'}, status=status.HTTP_403_FORBIDDEN)
+                        
+                    removed = profile.portfolios.remove(instance)
+                    print('Removed..... ', removed)
+                    # profile.save()
+                    
+                    return Response({'message': 'Member is successfully Removed'}, status=status.HTTP_200_OK)
+                else:    
+                    return Response({'message': 'You are not authorised to perform this operation'}, status=status.HTTP_400_BAD_REQUEST)
+            else:    
+                return Response({'message': f'Only authorised members of the {instance.company} can perform this operation'}, status=status.HTTP_403_FORBIDDEN)
+        else:    
+            return Response({'message': 'You are not authorised to perform this operation.'}, status=status.HTTP_403_FORBIDDEN)
+   
 
 class InquiryMessageViewSet(viewsets.ModelViewSet, AchieveModelMixin):
     permission_classes = (AllowAny, )

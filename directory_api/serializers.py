@@ -14,7 +14,7 @@ from django.contrib.auth.models import Permission
 
 # from auths_api.serializers import UserSerializer, UserUpdateSerializer, UserNameSerializer
 from core.models import *
-from core_api.serializers import *
+from core_api.serializers import AddressDetailGeoSerializer, AddressCreateGeoSerializer, AddressGeoSerializer, CitySerializer, CompanySerializer, ProfileSerializer
 from directory.models import *
 
 
@@ -133,6 +133,21 @@ class ManagerDirectorySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ManagerDirectory
+        exclude = ('enabled', )
+
+
+class ManagerDirectoryListSerializer(serializers.ModelSerializer):
+    # administrator = ProfileSerializer(many=False, read_only=True)
+    # members = ProfileMoreSerializer(many=True, read_only=True)
+    city = CitySerializer(many=False, read_only=True)
+    # mdl = ManagerDirectorySerializer(many=False, read_only=True)
+    # invitations = InvitationListSerializer(many=True, read_only=True)
+    # company_offices = OfficeDetailSerializer(many=True, read_only=True)
+    # company_portfolios = PortfolioDetailSerializer(many=True, read_only=True)
+    
+    class Meta:
+        model = ManagerDirectory
+        # fields = ('email',)
         exclude = ('enabled', )
 
 
@@ -488,6 +503,7 @@ class PropertySerializer(serializers.ModelSerializer):
 
 
 class OfficeDetailSerializer(serializers.ModelSerializer):
+    # from core_api.serializers import ProfileMoreSerializer
     administrator = ProfileSerializer(many=False, read_only=True)
     members = ProfileSerializer(many=True, read_only=True)
     company = CompanySerializer(many=False, read_only=True)

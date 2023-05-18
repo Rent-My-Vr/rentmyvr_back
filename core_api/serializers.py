@@ -14,6 +14,7 @@ from django.contrib.auth.models import Permission
 
 from auths_api.serializers import UserSerializer, UserSerializerClean, UserUpdateSerializer
 from core.models import *
+from directory.models import Office, Portfolio
 
 
 log = logging.getLogger("{}.*".format(__package__))
@@ -149,6 +150,8 @@ class InvitationSerializer(serializers.ModelSerializer):
 class ProfileSerializer(serializers.ModelSerializer):
     user = UserSerializer(many=False, read_only=False)
     address = AddressSerializer(many=False, read_only=True)
+    offices = serializers.PrimaryKeyRelatedField(many=True, read_only=False, required=False, queryset=Office.objects.filter(enabled=True))
+    portfolios = serializers.PrimaryKeyRelatedField(many=True, read_only=False, required=False, queryset=Portfolio.objects.filter(enabled=True))
     company_id = serializers.PrimaryKeyRelatedField(many=False, read_only=True, required=False)
     # address = AddressSerializer(many=False, read_only=False, required=False)
     updated_by_id = serializers.SerializerMethodField()
