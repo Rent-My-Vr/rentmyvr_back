@@ -3,12 +3,12 @@ from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
 from django.utils.translation import gettext_lazy as _
 from core.models import *
+from directory.models import Property, ManagerDirectory
 
 
 class PriceChart(TrackedModel):
-    """ 
+    """
         Payable Product Price
-        
     """
     PREMIUM = 'premium'
     SERVICE_TYPES = ((PREMIUM, 'Premium'),)
@@ -24,6 +24,7 @@ class PriceChart(TrackedModel):
     
     start = models.DateField(verbose_name="Effective From")
     end = models.DateField(verbose_name="end Date", null=True, blank=True, default=None)
+    
     service_type = models.CharField(max_length=128, verbose_name="Service Type", choices=SERVICE_TYPES, default=PREMIUM)
     category = models.CharField(max_length=128, verbose_name="Category", choices=CATEGORIES, default=STANDARD, null=False, blank=False)
     type = models.CharField(max_length=128, verbose_name="type", choices=TYPES, default=STANDARD, null=False, blank=False)
@@ -44,46 +45,56 @@ class PriceChart(TrackedModel):
 class Transaction(TrackedModel):
     """ 
         We need to keep record of all attempted transactions both failed and successful here
-        
     """
     STRIPE = 'stripe'
     CHANNELS = ((STRIPE, 'Stripe'), )
     
-    OK = 200
-    BAD_REQUEST = 400
-    UNAUTHORIED = 401
-    REQUEST_FAILED = 402
-    FORBIDDEN = 403
-    NOT_FOUND = 404
-    CONFLICT = 409
-    MANY_REQUEST = 429
-    SERVER_ERROR = 500
+    COMPLETED = "completed"
+    CANCELLED = "cancelled"
+    FAILED = "failed"
+    PENDING = "pending"
+    REVERSE = "reverse"
+
+    STATUS_CHOICES = (
+        (PENDING, "Pending"),
+        (CANCELLED, "Cancelled"),
+        (COMPLETED, "Completed"),
+        (FAILED, "Failed"),
+        (REVERSE, "Reverse")
+    )
+    
+    PDL = 'pdl'
+    MDL = 'mdl'
+    SETUP = 'setup'
+    OTHER = 'other'
+    TYPES = ((MDL, 'MDL'), (PDL, 'PDL'),(SETUP, 'Setup'), (OTHER, 'Other'))
     
     ref = models.CharField(max_length=16, verbose_name="Ref", unique=True, blank=False, null=False)
-    date = models.DateTimeField(verbose_name="Start Date", null=True, blank=True, default=None)
-    external_ref = models.CharField(max_length=254, verbose_name="External Reference")
+    external_ref = models.CharField(max_length=254, verbose_name="External Reference", default="", null=False, blank=False)
     channel = models.CharField(max_length=128, verbose_name="Channel", default=STRIPE, null=False, blank=False)
-    status = models.IntegerField(verbose_name="status") # 200 means successful
-    content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
-    object_id = models.PositiveIntegerField()
-    content_object = GenericForeignKey("content_type", "object_id")
-    amount = models.DecimalField(verbose_name="Amonth", max_digits=6, decimal_places=2, help_text="Eg Pay $20 monthly if you intend to pay for one year upfront ($240 instead of $300)")
-    price = models.ForeignKey(PriceChart, on_delete=models.CASCADE)
+    status = models.CharField(verbose_name="status",  max_length=32,choices=STATUS_CHOICES, default=PENDING, null=True, blank=True)
+    type = models.CharField(verbose_name="type", max_length=32, choices=TYPES)
+    currency = models.CharField(verbose_name="curreny", max_length=32)
+    pdl = models.ForeignKey(Property, on_delete=models.CASCADE, related_name="transactions", default=None, null=True, blank=True)
+    mdl = models.ForeignKey(ManagerDirectory, on_delete=models.CASCADE, related_name="transactions", default=None, null=True, blank=True)
+    other = models.CharField(max_length=128, verbose_name="other", default=None, null=True, blank=True)
+    quantity = models.IntegerField(verbose_name="unit")
+    unit_price = models.DecimalField(verbose_name="unit price", max_digits=6, decimal_places=2, default=0.0)
+    total = models.DecimalField(verbose_name="total", max_digits=6, decimal_places=2, default=0.0)
     payee = models.ForeignKey(UserModel, on_delete=models.CASCADE, related_name="transaction_payee")
     
     class Meta:
         ordering = ('created',)
-        verbose_name = _('Subscription')
-        verbose_name_plural = _('Subscription')
+        verbose_name = _('Transaction')
+        verbose_name_plural = _('Transactions')
 
     def save(self, *args, **kwargs):
         if not self.created:
             try:
-                trx = Transaction.objects.latest('created')
-                x = int(trx.ref[1:]) + 1 if trx else 1
-            except Transaction.DoesNotExist:
+                x = int(Transaction.objects.latest('created').ref[1:]) + 1
+            except (AttributeError, TypeError, Transaction.DoesNotExist):
                 x = 1
-            self.ref = f'TX{x:04}'
+            self.ref = f'TX{x:06}'
         return super(Transaction, self).save(*args, **kwargs)
 
     def __str__(self):

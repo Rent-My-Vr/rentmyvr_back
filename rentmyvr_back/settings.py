@@ -54,6 +54,10 @@ SYSTEM_USER_ID = '975381fd-d8a4-40be-81c2-27e172194bf8'
 CODE_BASED_ACTIVATION = True
 IS_MULTITENANT = False
 
+# Stripe
+STRIPE_PUBLISHABLE_KEY = config('STRIPE_PUBLISHABLE_KEY', default='')
+STRIPE_SECRET_KEY = config('STRIPE_SECRET_KEY', default='' )
+
 DOMAIN = config('DOMAIN', default='rentmyvr.com')
 DOMAIN_URL = config('DOMAIN_URL', default=f'https://{DOMAIN}')
 AUTH_TOKEN_LENGTH = 6

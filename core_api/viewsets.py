@@ -319,6 +319,9 @@ class CompanyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             headers = self.get_success_headers(serializer.data)
             profile.company = company
             profile.save()
+            user = request.user
+            user.position = UserModel.ADMIN
+            user.save()
 
         return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
     
@@ -372,8 +375,8 @@ class CompanyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
         print(r)
         return Response(self.get_serializer(instance=r, many=True).data)
 
-    @action(methods=['get'], detail=False, url_path='me', url_name='me')
-    def me(self, request, *args, **kwargs):
+    @action(methods=['get'], detail=False, url_path='mine', url_name='mine')
+    def mine(self, request, *args, **kwargs):
         p = request.user.user_profile
         # company = Company.objects.filter(Q(administrator=p) | Q(members=p), enabled=True).prefetch_related(
         #     Prefetch('company_offices', queryset=Office.objects.filter(enabled=True).prefetch_related(
@@ -893,59 +896,3 @@ class ProfileViewSet(viewsets.ModelViewSet, AchieveModelMixin):
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
 
-
-class SupportViewSet(viewsets.ModelViewSet):
-    permission_classes = (AllowAny, )
-    # authentication_classes = ()
-    authentication_classes = (TokenAuthentication, )
-    parser_classes = (JSONParser, MultiPartParser)
-        
-    def get_queryset(self):
-        """
-        This view should return a list of all the Company for
-        the user as determined by currently logged in user.
-        """
-        return Support.objects.filter(enabled=True)
- 
-    def get_serializer_class(self):
-        # if self.action in ['retrieve',]:
-        #     return CitySerializer
-        return SupportSerializer
-
-    def perform_create(self, serializer):
-        return serializer.save()
-        
-    def create(self, request, *args, **kwargs):
-        print('****** 1');
-        data = request.data
-        print(data)
-        serializer = self.get_serializer(data=data)
-        serializer.is_valid(raise_exception=True)
-        instance = self.perform_create(serializer)
-        
-        print(instance)
-        if instance.company is not None:
-            title = instance.company.name
-            email = instance.company.email if instance.company.email else instance.company.administrator.user.email
-        else:
-            email = request.user.email
-            title = settings.COMPANY_NAME
-            
-        domain = get_domain(request)
-        html_message = render_to_string('email/support_inquiry.html', {
-            'coy_name': settings.COMPANY_NAME,
-            'support': instance,
-            'profile': request.user.user_profile,
-            'domain': domain,
-            'project_title': title
-        })
-        
-        from core.tasks import sendMail
-        sendMail.apply_async(kwargs={'subject': f"Support Needed ({instance.ref})", "message": html_message,
-                                    "recipients": [email],
-                                    "fail_silently": settings.DEBUG, "connection": None})
-
-        headers = self.get_success_headers(serializer.data)
-
-        return Response({"message": "Ok", "result": 'Message sent Successfully'}, status=status.HTTP_201_CREATED, headers=headers)
-    

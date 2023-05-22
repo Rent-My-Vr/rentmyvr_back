@@ -257,7 +257,7 @@ class ManagerDirectory(TrackedModel):
     location = gis_model.PointField(null=True, blank=True, spatial_index=True, geography=True, srid=4326, dim=3)
     phone_2 = models.CharField(max_length=16, verbose_name="Phone 2", null=True, blank=True, default='')
     ext_2 = models.CharField(max_length=8, verbose_name="Ext #", null=True, blank=True, default='')
-    # website = models.URLField(max_length=254, verbose_name="Company URL", default="", blank=True, null=True)
+    social_links = models.JSONField(null=False, blank=True, default=list)
     logo = models.ImageField(upload_to=manager_image_upload_path, blank=True, null=True, default=None)
     facebook = models.URLField(max_length=254, verbose_name="Facebook", default='', blank=True, null=True)
     instagram = models.URLField(max_length=254, verbose_name="Instagram", default='', blank=True, null=True)
@@ -619,7 +619,6 @@ class Property(StampedUpdaterModel):
         (AIR_MATTRESS_FLOOR_MATTRESS, 'Air Mattress/Floor Mattress')
     )
     
-    
     STABILITY = (
         
     )
@@ -634,11 +633,12 @@ class Property(StampedUpdaterModel):
     virtual_tour = models.FileField(upload_to="property_video_upload_path", blank=True, null=True, default=None)
     is_draft = models.BooleanField(verbose_name="is draft", default=False)
     is_published = models.BooleanField(verbose_name="is draft", default=False)
+    # subscription = models.CharField(max_length=254, verbose_name="Subscription", choices=SUBSCRIPTIONS, default=STANDARD)
     subscription = models.CharField(max_length=254, verbose_name="Subscription", choices=SUBSCRIPTIONS, default=STANDARD)
     type = models.CharField(max_length=254, verbose_name="Type", choices=TYPES)
     space = models.CharField(max_length=254, verbose_name="Booked Space", choices=BOOKED_SPACE)
     hosted_by = models.CharField(max_length=254, verbose_name="Hosted By", blank=True, null=True, default=None)
-    max_no_of_guest = models.IntegerField(verbose_name="Max No of Guest", )
+    max_no_of_guest = models.IntegerField(verbose_name="Max No of Guest")
     no_of_bedrooms = models.IntegerField(verbose_name="No of Bedrooms")
     no_of_bathrooms = models.DecimalField(verbose_name="No of Bathrooms", max_digits=5, decimal_places=1, default=0.0)
     is_pet_allowed = models.BooleanField(default=True, )
@@ -808,6 +808,41 @@ class SocialMediaLink(StampedModel):
 
     def __str__(self):
         return self.name
+
+
+class Support(StampedModel):
+    MDL = 'mdl'
+    PDL = 'pdl'
+    OTHERS = 'others'
+    TYPES = ((MDL, 'A Management Company Listing'), 
+              (PDL, 'A Property Listing'),
+              (OTHERS, 'Others'))
+    TYPE = {MDL: TYPES[0][1], PDL: TYPES[1][1], OTHERS: TYPES[2][1]}
+    
+    ref = models.CharField(max_length=16, verbose_name="Ref", unique=True, blank=False, null=False)
+    name = models.CharField(max_length=128, verbose_name="name", null=True, blank=True, default=None)
+    company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name="supports", null=True, blank=True, default=None)
+    property = models.ForeignKey(Property, on_delete=models.CASCADE, related_name="supports", null=True, blank=True, default=None)
+    phone = models.CharField(max_length=128, verbose_name="phone", null=True, blank=True, default=None)
+    type = models.CharField(max_length=128, choices=TYPES)
+    message = models.TextField("message", null=True, blank=True, default=None)
+    
+    class Meta:
+        ordering = ('type',)
+        verbose_name = _('Support')
+        verbose_name_plural = _('Support')
+
+    def __str__(self):
+        return self.message
+
+    def save(self, *args, **kwargs):
+        if not self.created:
+            try:
+                x = int(Support.objects.latest('created').ref[1:]) + 1
+            except (AttributeError, TypeError, Support.DoesNotExist):
+                x = 1
+            self.ref = f'S{x:04}'
+        return super(Support, self).save(*args, **kwargs)
 
   
 

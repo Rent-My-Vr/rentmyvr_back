@@ -17,6 +17,7 @@ from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 from django.utils.deconstruct import deconstructible
 from django.template.defaultfilters import filesizeformat
+
 # from django_mysql.models import ListCharField
 
 
@@ -362,38 +363,40 @@ class Invitation(StampedModel):
         return self.email
 
 
-class Support(StampedModel):
-    MDL = 'mdl'
-    PDL = 'pdl'
-    OTHERS = 'others'
-    TYPES = ((MDL, 'A Management Company Listing'), 
-              (PDL, 'A Property Listing'),
-              (OTHERS, 'Others'))
-    TYPE = {MDL: TYPES[0][1], PDL: TYPES[1][1], OTHERS: TYPES[2][1]}
+# class Support(StampedModel):
+#     from directory.models import Property
+#     MDL = 'mdl'
+#     PDL = 'pdl'
+#     OTHERS = 'others'
+#     TYPES = ((MDL, 'A Management Company Listing'), 
+#               (PDL, 'A Property Listing'),
+#               (OTHERS, 'Others'))
+#     TYPE = {MDL: TYPES[0][1], PDL: TYPES[1][1], OTHERS: TYPES[2][1]}
     
-    ref = models.CharField(max_length=16, verbose_name="Ref", unique=True, blank=False, null=False)
-    name = models.CharField(max_length=128, verbose_name="name", null=True, blank=True, default=None)
-    company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name="supports", null=True, blank=True, default=None)
-    phone = models.CharField(max_length=128, verbose_name="phone", null=True, blank=True, default=None)
-    type = models.CharField(max_length=128, choices=TYPES)
-    message = models.TextField("message", null=True, blank=True, default=None)
+#     ref = models.CharField(max_length=16, verbose_name="Ref", unique=True, blank=False, null=False)
+#     name = models.CharField(max_length=128, verbose_name="name", null=True, blank=True, default=None)
+#     company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name="supports", null=True, blank=True, default=None)
+#     property = models.ForeignKey(Property, on_delete=models.CASCADE, related_name="supports", null=True, blank=True, default=None)
+#     phone = models.CharField(max_length=128, verbose_name="phone", null=True, blank=True, default=None)
+#     type = models.CharField(max_length=128, choices=TYPES)
+#     message = models.TextField("message", null=True, blank=True, default=None)
     
-    class Meta:
-        ordering = ('type',)
-        verbose_name = _('Support')
-        verbose_name_plural = _('Support')
+#     class Meta:
+#         ordering = ('type',)
+#         verbose_name = _('Support')
+#         verbose_name_plural = _('Support')
 
-    def __str__(self):
-        return self.message
+#     def __str__(self):
+#         return self.message
 
-    def save(self, *args, **kwargs):
-        if not self.created:
-            try:
-                x = int(Support.objects.latest('created').ref[1:]) + 1
-            except (AttributeError, TypeError, Support.DoesNotExist):
-                x = 1
-            self.ref = f'S{x:04}'
-        return super(Support, self).save(*args, **kwargs)
+#     def save(self, *args, **kwargs):
+#         if not self.created:
+#             try:
+#                 x = int(Support.objects.latest('created').ref[1:]) + 1
+#             except (AttributeError, TypeError, Support.DoesNotExist):
+#                 x = 1
+#             self.ref = f'S{x:04}'
+#         return super(Support, self).save(*args, **kwargs)
 
 
 class Profile(TrackedModel):

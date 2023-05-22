@@ -210,15 +210,6 @@ class InvitationListSerializer(serializers.ModelSerializer):
         read_only_fields = ('id', 'enabled',  'updated_by', 'sender', 'company', 'status', 'sent', 'email')
 
 
-class SupportSerializer(serializers.ModelSerializer):
-
-    class Meta:
-        model = Support
-        exclude = ('enabled', )
-        read_only_fields = ('id', 'enabled', 'ref')
-
-
-
 class CompanyMineSerializer(serializers.ModelSerializer):
     from directory_api.serializers import ManagerDirectorySerializer, OfficeSerializer, PortfolioSerializer
     administrator = ProfileSerializer(many=False, read_only=True)

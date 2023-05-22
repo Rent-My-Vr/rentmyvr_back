@@ -129,11 +129,12 @@ class LaundrySerializer(serializers.ModelSerializer):
 
 
 class ManagerDirectorySerializer(serializers.ModelSerializer):
-    pass
+    logo = serializers.ImageField(required=True)
 
     class Meta:
         model = ManagerDirectory
         exclude = ('enabled', )
+        read_only_fields = ('id', 'ref', 'created', 'import_id', 'imported', 'updated', 'updated_by')
 
 
 class ManagerDirectoryListSerializer(serializers.ModelSerializer):
@@ -257,6 +258,14 @@ class SocialMediaLinkSerializer(serializers.ModelSerializer):
     class Meta:
         model = SocialMediaLink
         fields = ('id', 'name', 'site', 'property')
+
+
+class SupportSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Support
+        exclude = ('enabled', )
+        read_only_fields = ('id', 'enabled', 'ref')
 
 
 class PropertyPhotoSerializer(serializers.ModelSerializer):

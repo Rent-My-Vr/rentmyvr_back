@@ -14,7 +14,6 @@ router_v1.register(r'contact', vs.ContactViewSet, basename="contact")
 router_v1.register(r'country', vs.CountryViewSet, basename="country")
 router_v1.register(r'invitation', vs.InvitationViewSet, basename="invitation")
 router_v1.register(r'profile', vs.ProfileViewSet, basename="profile")
-router_v1.register(r'support', vs.SupportViewSet, basename="support")
 router_v1.register(r'state', vs.StateViewSet, basename="state")
 # router_v1.register(r'test', vs.TestViewset, basename="test")
 

@@ -25,6 +25,7 @@ from django.db.models import Q, Prefetch
 from django.contrib.auth import get_user_model
 from django.contrib.gis.geos import Point, Polygon, GEOSGeometry
 from django.contrib.gis.measure import Distance
+from django.template.loader import render_to_string
 
 from auths.utils import get_domain
 from auths_api.serializers import UserSerializer, UserUpdateSerializer
@@ -45,7 +46,8 @@ log.setLevel(settings.LOGGING_LEVEL)
 class ManagerDirectoryViewSet(viewsets.ModelViewSet, AchieveModelMixin):
     permission_classes = (IsAuthenticated, )
     authentication_classes = (TokenAuthentication,)
-    parser_classes = (MultiPartParser, FormParser, JSONParser, FileUploadParser)
+    parser_classes = (MultiPartParser, FormParser)
+    # parser_classes = (MultiPartParser, FormParser, JSONParser, FileUploadParser)
         
     def get_permissions(self):
         if self.action in ['search', 'retrieve']:
@@ -72,14 +74,49 @@ class ManagerDirectoryViewSet(viewsets.ModelViewSet, AchieveModelMixin):
     
     def create(self, request, *args, **kwargs):
         print(request.data)
-        verifyServer = f"https://www.google.com/recaptcha/api/siteverify?secret={settings.RECAPTCHA_SECRET_KEY}&response={request.data.get('token')}"
-        r = requests.get(verifyServer)
-        print(r.json())
-        d = r.json()
+        # verifyServer = f"https://www.google.com/recaptcha/api/siteverify?secret={settings.RECAPTCHA_SECRET_KEY}&response={request.data.get('token')}"
+        # r = requests.get(verifyServer)
+        # print(r.json())
+        # d = r.json()
         # print()
-        
-        if r.status_code == 200 and d.get("success") and float(d.get("score")) > 0.5:
-            serializer = self.get_serializer(data=request.data)
+        profile = request.user.user_profile
+        if request.user.position == UserModel.ADMIN and (profile.company is not None or profile.administrative_company is not None):
+            data = request.data
+            data['company'] = profile.company.id if profile.company else profile.administrative_company.id
+            
+            data['city'] = dict()
+            data['city']['id'] = data.get('city[id]', None)
+            data['city']['name'] = data.get('city[name]')
+            data['city']['state_name'] = data.get('city[state_name]')
+            data['city']['country_name'] = data.get('city[country_name]')
+            data['city']['approved'] = True if data['city']['id'] else False
+            data['city_data'] = data['city']
+            
+            data.pop("city[id]", None)
+            data.pop("city[imported]", None)
+            data.pop("city[import_id]", None)
+            data.pop("city[name]", None)
+            data.pop("city[state_name]", None)
+            data.pop("city[updated]", None)
+            data.pop("city[created]", None)
+            data.pop("city[country_name]", None)
+            data.pop("city[approved]", None)
+            
+            if data.get('city').get('id', None):
+                print('====Have City****')
+                data['country'] = data.get('city').get('country_name')
+                data['state'] = data.get('city').get('state_name')
+                data['city'] = data.get('city').get('id')
+            else:
+                print('====Create City****')
+                ser = CitySerializer(data=data.get('city'))
+                ser.is_valid(raise_exception=True)
+                inst = ser.save()
+                data['country'] = inst.country_name
+                data['state'] = inst.state_name
+                data['city'] = inst.id
+            
+            serializer = self.get_serializer(data=data)
             serializer.is_valid(raise_exception=True)
             instance = self.perform_create(serializer)
 
@@ -87,7 +124,17 @@ class ManagerDirectoryViewSet(viewsets.ModelViewSet, AchieveModelMixin):
 
             return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
         else:
-            return Response({"message": "Recaptcha validation failed"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"message": "This is not authorised!!!"}, status=status.HTTP_403_FORBIDDEN)
+        # if r.status_code == 200 and d.get("success") and float(d.get("score")) > 0.5:
+        #     serializer = self.get_serializer(data=request.data)
+        #     serializer.is_valid(raise_exception=True)
+        #     instance = self.perform_create(serializer)
+
+        #     headers = self.get_success_headers(serializer.data)
+
+        #     return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+        # else:
+        #     return Response({"message": "Recaptcha validation failed"}, status=status.HTTP_400_BAD_REQUEST)
 
     @action(methods=['get'], detail=False, url_path='me', url_name='me')
     def me(self, request, *args, **kwargs):
@@ -1295,3 +1342,79 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
         instance.save()
         
         return Response(PropertyListSerializer(instance=instance).data)
+    
+    @action(methods=['get'], detail=False, url_path='mine', url_name='mine')
+    def mine(self, request, *args, **kwargs):
+        p = request.user.user_profile
+        company = Property.objects.filter(Q(administrator=p) | Q(members=p), enabled=True).prefetch_related(
+            Prefetch('company_offices', queryset=Office.objects.filter(enabled=True).prefetch_related(
+                Prefetch('office_properties', queryset=Property.objects.filter(enabled=True)))), 
+            Prefetch('company_portfolios', queryset=Portfolio.objects.filter(enabled=True).prefetch_related(
+                Prefetch('portfolio_properties', queryset=Property.objects.filter(enabled=True)))),
+            Prefetch('members', queryset=Profile.objects.filter(enabled=True).prefetch_related(
+                Prefetch('portfolios', queryset=Portfolio.objects.filter(enabled=True)),
+                Prefetch('offices', queryset=Office.objects.filter(enabled=True)))),
+            Prefetch('invitations', queryset=Invitation.objects.filter(enabled=True))
+        ).first()
+        if company:
+            return Response(CompanyMDLDetailSerializer(company).data, status=status.HTTP_200_OK)
+        else:
+            return Response(None, status=status.HTTP_200_OK)
+
+    
+class SupportViewSet(viewsets.ModelViewSet):
+    permission_classes = (AllowAny, )
+    # authentication_classes = ()
+    authentication_classes = (TokenAuthentication, )
+    parser_classes = (JSONParser, MultiPartParser)
+        
+    def get_queryset(self):
+        """
+        This view should return a list of all the Company for
+        the user as determined by currently logged in user.
+        """
+        return Support.objects.filter(enabled=True)
+ 
+    def get_serializer_class(self):
+        # if self.action in ['retrieve',]:
+        #     return CitySerializer
+        return SupportSerializer
+
+    def perform_create(self, serializer):
+        return serializer.save()
+        
+    def create(self, request, *args, **kwargs):
+        print('****** 1');
+        data = request.data
+        print(data)
+        serializer = self.get_serializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        instance = self.perform_create(serializer)
+        
+        print(instance)
+        if instance.company is not None:
+            title = instance.company.name
+            # email = instance.company.email if instance.company.email else instance.company.administrator.user.email
+        else:
+            # email = request.user.email
+            title = settings.COMPANY_NAME
+        email = 'info@rentmyvr.com'
+        
+        domain = get_domain(request)
+        html_message = render_to_string('email/support_inquiry.html', {
+            'coy_name': settings.COMPANY_NAME,
+            'support': instance,
+            'profile': request.user.user_profile,
+            'domain': domain,
+            'project_title': title
+        })
+        
+        from core.tasks import sendMail
+        sendMail.apply_async(kwargs={'subject': f"Support Needed ({instance.ref})", "message": html_message,
+                                    "recipients": [email],
+                                    "fail_silently": settings.DEBUG, "connection": None})
+
+        headers = self.get_success_headers(serializer.data)
+
+        return Response({"message": "Ok", "result": 'Message sent Successfully'}, status=status.HTTP_201_CREATED, headers=headers)
+    
