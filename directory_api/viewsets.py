@@ -158,11 +158,35 @@ class ManagerDirectoryViewSet(viewsets.ModelViewSet, AchieveModelMixin):
     def names(self, request, *args, **kwargs):
         return Response(self.get_queryset().values_list('email', flat=True), status=status.HTTP_200_OK)
 
-    @action(methods=['get'], detail=False, url_path='search', url_name='search')
+    @action(methods=['post'], detail=False, url_path='search', url_name='search')
     def search(self, request, *args, **kwargs):
-        r = ManagerDirectory.objects.filter()
+        print('-------')
+        print(request.data)
+        data = request.data
         
-        return Response(self.get_serializer(instance=r, many=True).data)
+        qs = Company.objects.filter(enabled=True)
+        if len(data.get('state', '')) > 0:
+            print('1. ', data.get('state'))
+            qs = qs.filter(mdl__state=data.get('state'))
+        if len(data.get('city', '')) > 0:
+            print('2. ', data.get('state'))
+            qs = qs.filter(mdl__city_id=data.get('city').get('id', None))
+        if len(data.get('zip_code', '')) > 0:
+            print('3. ', data.get('state'))
+            qs = qs.filter(mdl__zip_code=data.get('zip_code'))
+            
+        qs = qs.prefetch_related(
+            Prefetch('company_offices', queryset=Office.objects.filter(enabled=True).prefetch_related(
+                Prefetch('office_properties', queryset=Property.objects.filter(enabled=True)))), 
+            Prefetch('company_portfolios', queryset=Portfolio.objects.filter(enabled=True).prefetch_related(
+                Prefetch('portfolio_properties', queryset=Property.objects.filter(enabled=True)))),
+            Prefetch('members', queryset=Profile.objects.filter(enabled=True).prefetch_related(
+                Prefetch('portfolios', queryset=Portfolio.objects.filter(enabled=True)),
+                Prefetch('offices', queryset=Office.objects.filter(enabled=True)))),
+            Prefetch('invitations', queryset=Invitation.objects.filter(enabled=True))
+    )
+        print(qs.query)
+        return Response(CompanyMDLDetailSerializer(qs, many=True).data)
 
 
 class OfficeViewSet(viewsets.ModelViewSet, AchieveModelMixin):

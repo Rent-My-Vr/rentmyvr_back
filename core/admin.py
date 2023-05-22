@@ -150,7 +150,7 @@ class CompanyResource(resources.ModelResource):
 class CompanyAdmin(ImportExportModelAdmin):
     resource_classes = [CompanyResource]
     list_filter = ('city',)
-    list_display = ('ref', 'name', 'administrator', 'website', 'contact_name', 'email', 'phone', 'ext', 'city', 'country')
+    list_display = ('ref', 'name', 'mdl', 'administrator', 'website', 'contact_name', 'email', 'phone', 'ext', 'city', 'state')
 
     @admin.display(description='Phone')
     def phone(self, instance):

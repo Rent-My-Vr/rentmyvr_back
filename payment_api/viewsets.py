@@ -149,9 +149,12 @@ class ProcessingView(viewsets.ViewSet):
         txn.updated_by = request.user
         txn.save()
         
+        print()
         checkout_session = stripe.checkout.Session.create(
-            success_url=f"http://localhost:3002/payment/success/?txn_id={txn.id}&item_id={data.get('item_id', None)}&type={txn.type}",
-            cancel_url=f"http://localhost:3002/payment/cancel/?txn_id={txn.id}&item_id={data.get('item_id', None)}&type={txn.type}",
+            # success_url=f"http://localhost:3002/payments/success/?txn_id={txn.id}&item_id={data.get('item_id', None)}&type={txn.type}",
+            # cancel_url=f"http://localhost:3002/payments/cancel/?txn_id={txn.id}&item_id={data.get('item_id', None)}&type={txn.type}",
+            success_url=f"data['success_url']?txn_id={txn.id}&item_id={data.get('item_id', None)}&type={txn.type}&next={meta.get('url', None)}",
+            cancel_url=f"{data['cancel_url']}?txn_id={txn.id}&item_id={data.get('item_id', None)}&type={txn.type}&next={meta.get('url', None)}",
             payment_method_types=["card"],
             line_items=[{"price": data["price"]["id"], "quantity": data.get("quantity", 1)}],
             metadata=data.get("metadata"),
