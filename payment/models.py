@@ -79,8 +79,8 @@ class Transaction(TrackedModel):
     mdl = models.ForeignKey(ManagerDirectory, on_delete=models.CASCADE, related_name="transactions", default=None, null=True, blank=True)
     other = models.CharField(max_length=128, verbose_name="other", default=None, null=True, blank=True)
     quantity = models.IntegerField(verbose_name="unit")
-    unit_price = models.DecimalField(verbose_name="unit price", max_digits=6, decimal_places=2, default=0.0)
-    total = models.DecimalField(verbose_name="total", max_digits=6, decimal_places=2, default=0.0)
+    unit_price = models.DecimalField(verbose_name="unit price", max_digits=12, decimal_places=2, default=0.0)
+    total = models.DecimalField(verbose_name="total", max_digits=12, decimal_places=2, default=0.0)
     payee = models.ForeignKey(UserModel, on_delete=models.CASCADE, related_name="transaction_payee")
     
     class Meta:
@@ -91,14 +91,14 @@ class Transaction(TrackedModel):
     def save(self, *args, **kwargs):
         if not self.created:
             try:
-                x = int(Transaction.objects.latest('created').ref[1:]) + 1
+                x = int(Transaction.objects.latest('created').ref[2:]) + 1
             except (AttributeError, TypeError, Transaction.DoesNotExist):
                 x = 1
             self.ref = f'TX{x:06}'
         return super(Transaction, self).save(*args, **kwargs)
 
     def __str__(self):
-        return self.date
+        return self.ref
 
 
 class Subscription(TrackedModel):

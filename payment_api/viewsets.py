@@ -142,18 +142,20 @@ class ProcessingView(viewsets.ViewSet):
         txn.currency = data["price"]["currency"]
         txn.pdl = Property.objects.filter(id=meta.get('item_id', None)).first() if txn.type == Transaction.PDL else None
         txn.mdl = ManagerDirectory.objects.filter(id=meta.get('item_id', None)).first() if txn.type == Transaction.MDL else None
-        txn.other = data.get('item_id', None)
-        txn.quantity = data["quantity"]
-        txn.unit_price = data["price"]["unit_amount"]
+        txn.other = meta.get('item_id', None) if txn.type in [Transaction.SETUP, Transaction.OTHER] else None
+        txn.quantity = int(data["quantity"])
+        txn.unit_price = float(data["price"]["unit_amount"])
         txn.payee = request.user
         txn.updated_by = request.user
         txn.save()
         
-        print()
+        print('==========')
+        print(f"{data['success_url']}?txn_id={txn.id}&item_id={data.get('item_id', None)}&type={txn.type}&next={meta.get('url', None)}")
+        print(f"{data['cancel_url']}?txn_id={txn.id}&item_id={data.get('item_id', None)}&type={txn.type}&next={meta.get('url', None)}")
         checkout_session = stripe.checkout.Session.create(
             # success_url=f"http://localhost:3002/payments/success/?txn_id={txn.id}&item_id={data.get('item_id', None)}&type={txn.type}",
             # cancel_url=f"http://localhost:3002/payments/cancel/?txn_id={txn.id}&item_id={data.get('item_id', None)}&type={txn.type}",
-            success_url=f"data['success_url']?txn_id={txn.id}&item_id={data.get('item_id', None)}&type={txn.type}&next={meta.get('url', None)}",
+            success_url=f"{data['success_url']}?txn_id={txn.id}&item_id={data.get('item_id', None)}&type={txn.type}&next={meta.get('url', None)}",
             cancel_url=f"{data['cancel_url']}?txn_id={txn.id}&item_id={data.get('item_id', None)}&type={txn.type}&next={meta.get('url', None)}",
             payment_method_types=["card"],
             line_items=[{"price": data["price"]["id"], "quantity": data.get("quantity", 1)}],
