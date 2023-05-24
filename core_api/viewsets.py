@@ -323,7 +323,7 @@ class CompanyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             user.position = UserModel.ADMIN
             user.save()
 
-        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+        return Response(CompanyMinSerializer(company).data, status=status.HTTP_201_CREATED, headers=headers)
     
     def update(self, request, *args, **kwargs):
         with transaction.atomic():
@@ -397,6 +397,7 @@ class CompanyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
                 Prefetch('offices', queryset=Office.objects.filter(enabled=True)))),
             Prefetch('invitations', queryset=Invitation.objects.filter(enabled=True))
         ).first()
+        print("Company: ", company)
         if company:
             return Response(CompanyMDLDetailSerializer(company).data, status=status.HTTP_200_OK)
         else:
@@ -864,20 +865,23 @@ class ProfileViewSet(viewsets.ModelViewSet, AchieveModelMixin):
         prof = map(lambda x: {"id": str(x['id']), "name": f"{x['user__first_name']} {x['user__last_name']}", "position": x['position']}, profiles)
         return Response(prof, status=status.HTTP_200_OK)
 
-    @action(methods=['patch', 'post'], detail=True, url_path='picture/update', url_name='picture-update')
-    def update_picture(self, request, *args, **kwargs):
+    @action(methods=['patch', 'post'], detail=False, url_path='picture/update', url_name='picture-update')
+    def picture_update(self, request, *args, **kwargs):
         data=request.data
-        instance = self.get_object()
-        serializer = self.get_serializer(instance, data=request.data, partial=True)
+        print(data)
+        instance = request.user.user_profile
+        serializer = ProfileImageSerializer(instance, data=data, partial=True)
         serializer.is_valid(raise_exception=True)
-        self.perform_update(serializer)
+        instance = serializer.save()
+        
+        print(instance.image)
 
         if getattr(instance, '_prefetched_objects_cache', None):
             # If 'prefetch_related' has been applied to a queryset, we need to
             # forcibly invalidate the prefetch cache on the instance.
             instance._prefetched_objects_cache = {}
 
-        return Response(ProfileSerializer(instance).data)
+        return Response(ProfileImageSerializer(instance).data)
 
     def list(self, request, *args, **kwargs):
         queryset = Profile.objects.filter(enabled=True).prefetch_related(Prefetch('worker_statuses', queryset=WorkStatus.objects.filter(enabled=True, project__enabled=True)))

@@ -73,12 +73,15 @@ class ManagerDirectoryViewSet(viewsets.ModelViewSet, AchieveModelMixin):
         return serializer.save(updated_by_id=self.request.user.id)
     
     def create(self, request, *args, **kwargs):
+        print('---- data----')
         print(request.data)
+        
         # verifyServer = f"https://www.google.com/recaptcha/api/siteverify?secret={settings.RECAPTCHA_SECRET_KEY}&response={request.data.get('token')}"
         # r = requests.get(verifyServer)
         # print(r.json())
         # d = r.json()
         # print()
+        
         profile = request.user.user_profile
         if request.user.position == UserModel.ADMIN and (profile.company is not None or profile.administrative_company is not None):
             data = request.data
@@ -91,7 +94,7 @@ class ManagerDirectoryViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             data['city']['country_name'] = data.get('city[country_name]')
             data['city']['approved'] = True if data['city']['id'] else False
             data['city_data'] = data['city']
-            
+
             data.pop("city[id]", None)
             data.pop("city[imported]", None)
             data.pop("city[import_id]", None)

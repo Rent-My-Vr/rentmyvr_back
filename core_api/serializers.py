@@ -124,6 +124,16 @@ class CompanySerializer(serializers.ModelSerializer):
         read_only_fields = ('enabled', 'ref', 'updated_by')
 
 
+class CompanyMinSerializer(serializers.ModelSerializer):
+    city = CitySerializer(many=False, read_only=True)
+    
+    class Meta:
+        model = Company
+        # fields = ('email',)
+        exclude = ('enabled', 'updated_by')
+        read_only_fields = ('enabled', 'ref', 'updated_by')
+
+
 class ContactSerializer(serializers.ModelSerializer):
 
     class Meta:
@@ -156,7 +166,7 @@ class ProfileSerializer(serializers.ModelSerializer):
     # address = AddressSerializer(many=False, read_only=False, required=False)
     updated_by_id = serializers.SerializerMethodField()
     # worker_statuses = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
-    image_url = serializers.ImageField(required=False)
+    # image_url = serializers.ImageField(required=False)
 
     def get_updated_by_id(self, obj):
         return obj.updated_by.id
@@ -185,6 +195,15 @@ class ProfileSerializer(serializers.ModelSerializer):
         exclude = ('updated_by', )
         # extra_kwargs = {'updated_by': {'read_only': True}}
         read_only_fields = ('id', 'ref', 'enabled', 'updated', 'updated_by')
+
+
+class ProfileImageSerializer(serializers.ModelSerializer):
+    # image = serializers.ImageField(required=True)
+
+    class Meta:
+        model = Profile
+        fields = ['image']
+        # extra_kwargs = {'image': {'write_only': True}}
 
 
 class ProfileUpdateSerializer(ProfileSerializer):

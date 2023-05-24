@@ -435,7 +435,15 @@ class Profile(TrackedModel):
                 x = 1
             self.ref = f'U{x:04}'
         return super(Profile, self).save(*args, **kwargs)
-
+    
+    @property
+    def image_url(self):
+        try:
+            if self.image is not None and hasattr(self.image, 'url'):
+                return self.image.url
+        except:
+            pass
+        
     @property
     def fullname(self):
         return f"{self.user.full_name if self.pk else self.user.email}"

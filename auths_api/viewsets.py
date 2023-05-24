@@ -47,7 +47,7 @@ from auths.models import CustomGroup
 from auths.custom_exception import ActivationRequired
 
 from auths_api import serializers
-from auths_api.serializers import SavvybizGroupSerializer, PermissionSerializer, UserPasswordChangeSerializer, UserSerializer, PasswordResetSerializer as MyPasswordResetSerializer, PasswordResetConfirmSerializer as MyPasswordResetConfirmSerializer, PasswordTokenConfirmSerializer as MyPasswordTokenConfirmSerializer
+from auths_api.serializers import SavvybizGroupSerializer, PermissionSerializer, UserPasswordChangeSerializer, UserSessionSerializer, PasswordResetSerializer as MyPasswordResetSerializer, PasswordResetConfirmSerializer as MyPasswordResetConfirmSerializer, PasswordTokenConfirmSerializer as MyPasswordTokenConfirmSerializer
 from auths_api.utils import authenticate
 
 from sesame.utils import get_token
@@ -259,9 +259,7 @@ class LoginView(DJ_LoginView):
         serializer_class = self.get_response_serializer()
 
         if getattr(settings, 'REST_USE_JWT', False):
-            from rest_framework_simplejwt.settings import (
-                api_settings as jwt_settings,
-            )
+            from rest_framework_simplejwt.settings import (api_settings as jwt_settings,)
             access_token_expiration = (timezone.now() + jwt_settings.ACCESS_TOKEN_LIFETIME)
             refresh_token_expiration = (timezone.now() + jwt_settings.REFRESH_TOKEN_LIFETIME)
             return_expiration_times = getattr(settings, 'JWT_AUTH_RETURN_EXPIRATION', False)
@@ -288,7 +286,7 @@ class LoginView(DJ_LoginView):
         else:
             return Response(status=status.HTTP_204_NO_CONTENT)
 
-        data = {"key": serializer.data.get('key'), "user": UserSerializer(self.user).data}
+        data = {"key": serializer.data.get('key'), "user": UserSessionSerializer(self.user).data}
         response = Response(data, status=status.HTTP_200_OK)
         if getattr(settings, 'REST_USE_JWT', False):
             from .jwt_auth import set_jwt_cookies
@@ -411,7 +409,7 @@ class ActivationRequestView(viewsets.ViewSet, DJ_PasswordResetView):
 
             return Response({
                 "message": f"Account activation Token successfully sent to '{user.email}'", 
-                "user": UserSerializer(user).data,
+                "user": UserSessionSerializer(user).data,
                 "resend_url": f'{request_url}?action={action}&channel={channel}&processing_channel={processing_channel}&client_callback_link={client_callback_link}',
                 "activation_url": f"{activation_url}?action={action}&channel={channel}&processing_channel={processing_channel}&client_callback_link={client_callback_link}"
                 }, status=status.HTTP_200_OK)
@@ -485,7 +483,7 @@ class ActivationRequestView(viewsets.ViewSet, DJ_PasswordResetView):
                     if hasattr(user, "phone_verified") and channel == UserModel.PHONE_CHANNEL:
                         user.phone_verified = True
                     user.save()
-                    return Response({"message": "ok", "user": UserSerializer(user).data}, status=status.HTTP_200_OK)
+                    return Response({"message": "ok", "user": UserSessionSerializer(user).data}, status=status.HTTP_200_OK)
                 else:
                     return Response({"message": messages}, status=status.HTTP_400_BAD_REQUEST)
             elif data and action == UserModel.PASSWORD_RESET:
@@ -549,7 +547,7 @@ class ActivationRequestView(viewsets.ViewSet, DJ_PasswordResetView):
         #         self.user.phone_verified = True
         #     self.user.save()
             
-        #     return Response({"message": "ok", "user": UserSerializer(self.user).data}, status=status.HTTP_200_OK)
+        #     return Response({"message": "ok", "user": UserSessionSerializer(self.user).data}, status=status.HTTP_200_OK)
         # elif data and action == UserModel.PASSWORD_RESET:
             
         #     return Response({"message": "ok"}, status=status.HTTP_200_OK)
@@ -589,6 +587,12 @@ class PasswordResetView(DJ_PasswordResetView):
         session_key, user = serializer.save(data)
         print(session_key,' *****3***** ', data)
         
+        if user is None:
+            return Response({
+                "message": 'Password reset e-mail has been sent to this email if it exists on our system', 
+                # "resend_url": f"{request_url}?action={action}&channel={channel}&processing_channel={processing_channel}&client_callback_link={client_callback_link}",
+                # "activation_url": f"{activation_url}?action={action}&channel={channel}&processing_channel={processing_channel}&client_callback_link={client_callback_link}"
+                }, status=status.HTTP_200_OK)
         print(' 2 -- session_key: ', user.id)
         # Return the success message with OK HTTP status
         
@@ -734,7 +738,7 @@ class UserViewSet(viewsets.ModelViewSet):
         # print('********', self.request.method, "   ", self.action)
         if self.action == 'update_picture':
             return UserPasswordChangeSerializer
-        return UserSerializer
+        return UserSessionSerializer
 
     def perform_create(self, serializer): 
         return serializer.save() 
@@ -816,7 +820,7 @@ class UserViewSet(viewsets.ModelViewSet):
 
     @action(methods=['get'], detail=False, url_path='me', url_name='me')
     def me(self, request, *args, **kwargs):
-        return Response(UserSerializer(request.user).data, status=status.HTTP_200_OK)
+        return Response(UserSessionSerializer(request.user).data, status=status.HTTP_200_OK)
 
 
 

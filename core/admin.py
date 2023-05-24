@@ -149,7 +149,8 @@ class CompanyResource(resources.ModelResource):
 @admin.register(Company)
 class CompanyAdmin(ImportExportModelAdmin):
     resource_classes = [CompanyResource]
-    list_filter = ('city',)
+    search_fields = ('ref', 'name', 'email', 'website', 'contact_name', 'phone', 'mdl__name', 'mdl__ref')
+    list_filter = ('city', 'state')
     list_display = ('ref', 'name', 'mdl', 'administrator', 'website', 'contact_name', 'email', 'phone', 'ext', 'city', 'state')
 
     @admin.display(description='Phone')
@@ -179,8 +180,8 @@ class StateAdmin(admin.ModelAdmin):
 class ProfileAdmin(admin.ModelAdmin):
     list_display_links = ('first_name', 'last_name', 'email',)
     list_filter = ('company', )
-    search_fields = ('user__first_name', 'user__last_name', 'user__email', 'user__phone')
-    list_display = ('first_name', 'last_name', 'email', 'phone', 'company', 'is_active', 'is_staff', 'is_superuser')
+    search_fields = ('user__first_name', 'user__last_name', 'user__email', 'user__phone', 'company__name')
+    list_display = ('first_name', 'last_name', 'email', 'phone', 'company', 'is_active', 'is_staff', 'is_superuser', 'image')
     # list_display = ("ref", "employment_type", "position", "status", "first_name", "last_name", "email", "phone", "is_active", "is_staff", "is_superuser", 'enabled', "address")
 
     @admin.display(ordering='user__first_name', description='First Name')

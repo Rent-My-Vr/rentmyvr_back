@@ -632,7 +632,7 @@ class Property(StampedUpdaterModel):
     video = models.FileField(upload_to="property_video_upload_path", blank=True, null=True, default=None)
     virtual_tour = models.FileField(upload_to="property_video_upload_path", blank=True, null=True, default=None)
     is_draft = models.BooleanField(verbose_name="is draft", default=False)
-    is_published = models.BooleanField(verbose_name="is draft", default=False)
+    is_published = models.BooleanField(verbose_name="is published", default=False)
     # subscription = models.CharField(max_length=254, verbose_name="Subscription", choices=SUBSCRIPTIONS, default=STANDARD)
     subscription = models.CharField(max_length=254, verbose_name="Subscription", choices=SUBSCRIPTIONS, default=STANDARD)
     type = models.CharField(max_length=254, verbose_name="Type", choices=TYPES)

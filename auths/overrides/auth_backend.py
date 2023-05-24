@@ -17,9 +17,9 @@ from rest_framework.authtoken.management.commands import drf_create_token
 
 from rest_framework import exceptions
 
-from auths.custom_exception import ActivationRequired
+# from auths.custom_exception import ActivationRequired
 from auths.utils import get_domain
-from auths_api.serializers import UserSerializer, UserSpecialSerializer
+from auths_api.serializers import UserSessionSerializer
 
 
 UserModel = get_user_model()
@@ -239,8 +239,7 @@ def allow_login(user, request):
         
         if is_json:
             # raise exceptions.ValidationError(verification)
-            # return UserSerializer(user).data
-            return UserSpecialSerializer(user).data
+            return UserSessionSerializer(user).data
         else:
             messages.success(request, f"<div class='text-center'>Hello {user.full_name or user.username or user.email, settings.DEFAULT_COY_NAME}</div>", 
             f"""<h3 style='color:white'>{'<img style="border-radius: 50%;width:50px;height:50px;" src="https://s3-us-west-1.amazonaws.com/cdn-savvybiz/static/img/SavvyBiz-logo-Icon.png">'} <i>READY TO ROCK!</i></h3>""")

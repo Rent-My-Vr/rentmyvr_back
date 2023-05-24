@@ -222,22 +222,7 @@ class PermissionSerializer(serializers.ModelSerializer):
 
 class UserSerializer(serializers.ModelSerializer):
     profile_id = serializers.SerializerMethodField(source='user_profile')
-    company = serializers.SerializerMethodField(source='user_profile__company')
-    
-    def get_company(self, obj):
-        try:
-            c =  obj.user_profile.company
-            if c:
-                try:
-                    return {'id': c.id, 'name': c.name, 'mdl': c.mdl.id }
-                except Exception:
-                    return {'id': str(c.id), 'name': c.name, 'mdl': None}
-            else:
-                return None
-        except Exception as e:
-            print('==> ', e)
-            return None
-
+    # company = serializers.SerializerMethodField(source='user_profile__company')
     
     def get_profile_id(self, obj):
         try:
@@ -256,31 +241,23 @@ class UserSerializer(serializers.ModelSerializer):
         'is_active', 'email_verified', 'is_manager', 'failed_attempts', 
         'last_password_change', 'force_password_change', 'remember', 
         'last_login_signature', 'user_permissions', 'groups', 'blacklist_permissions')
-        fields = ('id', 'first_name', 'last_name', 'phone', 'email', 'password', 'profile_id', 'company')
+        fields = ('id', 'first_name', 'last_name', 'phone', 'email', 'password', 'profile_id')
         # fields = ('id', 'first_name', 'last_name', 'phone', 'email', 'password', 'user_profile', 'company')
         extra_kwargs = {'password': {'write_only': True}}
 
 
-class UserSpecialSerializer(serializers.ModelSerializer):
+class UserSessionSerializer(serializers.ModelSerializer):
     # profile_id = serializers.SerializerMethodField(source='user_profile')
     company = serializers.SerializerMethodField(source='user_profile__company')
-
-    def get_profile_id(self, obj):
-        try:
-            return obj.user_profile.id
-        except UserModel.DoesNotExist:
-            print('1111')
-            return ''
-        except Exception:
-            print('2222')
-            return ''
+    image_url = serializers.SerializerMethodField(source='user_profile.image')
     
     def get_company(self, obj):
         try:
             c =  obj.user_profile.company
             if c:
                 try:
-                    return {'id': c.id, 'name': c.name, 'mdl': c.mdl.id }
+                    ob =  {'id': c.id, 'name': c.name, 'mdl': c.mdl.id }
+                    return ob
                 except Exception:
                     return {'id': str(c.id), 'name': c.name, 'mdl': None}
             else:
@@ -289,15 +266,19 @@ class UserSpecialSerializer(serializers.ModelSerializer):
             print('==> ', e)
             return None
 
+    def get_image_url(self, obj):
+        try:
+            return obj.user_profile.image_url
+        except:
+            return None
+
     class Meta:
         model = UserModel
-        # exclude = ('username', )
         read_only_fields = ('id', 'last_login', 'is_superuser', 'is_staff',
         'is_active', 'email_verified', 'is_manager', 'failed_attempts', 
         'last_password_change', 'force_password_change', 'remember', 
         'last_login_signature', 'user_permissions', 'groups', 'blacklist_permissions')
-        fields = ('id', 'first_name', 'last_name', 'phone', 'email', 'password', 'company')
-        # fields = ('id', 'first_name', 'last_name', 'phone', 'email', 'password', 'user_profile', 'company')
+        fields = ('id', 'first_name', 'last_name', 'phone', 'email', 'password', 'is_manager', 'position', 'image_url', 'company')
         extra_kwargs = {'password': {'write_only': True}}
 
 

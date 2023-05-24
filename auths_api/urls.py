@@ -18,8 +18,6 @@ router_v1.register(r'activation', viewsets.ActivationRequestView, basename='acti
 
 schema_view = get_schema_view(title=AuthsApiConfig.verbose_name)
 
-
-
 app_name = AuthsApiConfig.name
 urlpatterns = [
     path('', include(router_v1.urls)),
