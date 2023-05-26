@@ -84,7 +84,7 @@ class ManagerDirectoryViewSet(viewsets.ModelViewSet, AchieveModelMixin):
         
         profile = request.user.user_profile
         if request.user.position == UserModel.ADMIN and (profile.company is not None or profile.administrative_company is not None):
-            data = request.data
+            data = request.data.dict()
             data['company'] = profile.company.id if profile.company else profile.administrative_company.id
             
             data['city'] = dict()
@@ -118,7 +118,7 @@ class ManagerDirectoryViewSet(viewsets.ModelViewSet, AchieveModelMixin):
                 data['country'] = inst.country_name
                 data['state'] = inst.state_name
                 data['city'] = inst.id
-            
+            data['social_links'] = request.data.getlist('social_links[]', [])
             serializer = self.get_serializer(data=data)
             serializer.is_valid(raise_exception=True)
             instance = self.perform_create(serializer)
@@ -504,7 +504,7 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
     def get_serializer_class(self):
         if self.action in ['retrieve']:
             return PropertyDetailSerializer
-        elif self.action in ['list', 'search']:
+        elif self.action in ['list', 'search', 'publisher']:
             return PropertyListSerializer
         return PropertySerializer
 
@@ -1135,6 +1135,8 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             size = int(size) if size and int(size) > 0 else 100
             print(222)
             print(page_number, '   ', page_number*size, ' ---- ', size)
+            print(request.user.is_manager)
+            
             if request.user.is_manager:
                 print(2222)
                 total = Property.objects.filter(enabled=True).count()
@@ -1154,6 +1156,7 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
                     queryset = Property.objects.filter(Q(Q(company__isnull=False, company=profile.company) | Q(administrator=profile)), Q(Q(ref__icontains=search) | Q(name__icontains=search) | Q(type__icontains=search) | Q(space__icontains=search)), enabled=True).order_by(sortby)[page_number*size:(page_number*size)+size]
                 else:
                     print("3333b")
+                    total = Property.objects.filter(Q(Q(company__isnull=False, company=profile.company) | Q(administrator=profile)), enabled=True).order_by(sortby).count()
                     queryset = Property.objects.filter(Q(Q(company__isnull=False, company=profile.company) | Q(administrator=profile)), enabled=True).order_by(sortby)[page_number*size:(page_number*size)+size]
                 # queryset = queryset[page_number*size:(page_number*size)+size]
             serializer = self.get_serializer(queryset, many=True)
@@ -1362,13 +1365,19 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             'sleeper_types': Property.SLEEPER_TYPES
             }, status=status.HTTP_201_CREATED)
 
-    @action(methods=['patch', 'post'], detail=True, url_path='publish', url_name='publish')
-    def publish(self, request, *args, **kwargs):
+    @action(methods=['patch', 'post'], detail=True, url_path='publisher', url_name='publish')
+    def publisher(self, request, *args, **kwargs):
         instance = self.get_object()
+        profile = request.user.user_profile
+        if (instance.company is not None and instance.company != profile.company) or (instance.company is None and instance.administrator != profile and not profile.user.is_manager):
+            return Response({"message": "You are not authorised to perform this action", "required": []}, status=status.HTTP_403_FORBIDDEN)
+        
+        if not instance.is_published and len(instance.pictures.all()) == 0:
+            return Response({"message": "Atleast 1 picture is required for publication", "required": ["pictures"]}, status=status.HTTP_400_BAD_REQUEST)
         instance.is_published = not instance.is_published
         instance.save()
         
-        return Response(PropertyListSerializer(instance=instance).data)
+        return Response(self.get_serializer(instance=instance).data)
     
     @action(methods=['get'], detail=False, url_path='mine', url_name='mine')
     def mine(self, request, *args, **kwargs):

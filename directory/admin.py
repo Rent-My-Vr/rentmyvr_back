@@ -63,8 +63,9 @@ class LaundryAdmin(admin.ModelAdmin):
 
 @admin.register(ManagerDirectory)
 class ManagerDirectoryAdmin(admin.ModelAdmin):
+    search_fields = ('ref', 'name', 'email', 'website', 'contact_name', 'phone', 'company__name', 'company__ref')
     list_filter = ('manage_for_others', 'state')
-    list_display = ('name', 'company', 'administrator', 'website', 'contact_name', 'email', 'phone', 'phone_2', 'ext_2', 'state', 'city', 'zip_code', 'manage_for_others', 'description')
+    list_display = ('ref', 'name', 'company', 'administrator', 'website', 'contact_name', 'email', 'phone', 'phone_2', 'ext_2', 'state', 'city', 'zip_code', 'manage_for_others', 'description')
 
     @admin.display(ordering='name', description='Name')
     def name(self, instance):
