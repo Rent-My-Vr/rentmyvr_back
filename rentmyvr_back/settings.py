@@ -57,6 +57,7 @@ IS_MULTITENANT = False
 # Stripe
 STRIPE_PUBLISHABLE_KEY = config('STRIPE_PUBLISHABLE_KEY', default='')
 STRIPE_SECRET_KEY = config('STRIPE_SECRET_KEY', default='' )
+STRIPE_ENDPOINT_SECRET = config('STRIPE_ENDPOINT_SECRET', default='' )
 
 DOMAIN = config('DOMAIN', default='rentmyvr.com')
 DOMAIN_URL = config('DOMAIN_URL', default=f'https://{DOMAIN}')

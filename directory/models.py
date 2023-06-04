@@ -18,6 +18,7 @@ from django.template.defaultfilters import filesizeformat
 # from django_mysql.models import ListCharField
 
 from core.models import *
+from payment.models import Subscription
 
 
 # Create your models here.
@@ -233,10 +234,18 @@ class Laundry(StampedModel):
 
 
 class ManagerDirectory(TrackedModel):
+    DRAFT = 'draft'
+    DEACTIVATED = 'deactivated'
+    EXPIRED = 'expired'
+    IMPORTED = 'imported'
+    PUBLISHED = 'published'
+    
+    STATUS_CHOICES = ((DRAFT, 'Draft'), (DEACTIVATED, 'Deactivated'), (EXPIRED, 'Expired'), (IMPORTED, 'Imported'), (PUBLISHED, 'Published'))
     # ref = models.CharField(max_length=16, verbose_name="Ref", default=None, blank=True, null=True)
     ref = models.CharField(max_length=16, verbose_name="Ref", unique=True)
     name = models.CharField(max_length=254, verbose_name="name")
     is_active = models.BooleanField(default=False)
+    status = models.CharField(verbose_name="status", max_length=32, choices=STATUS_CHOICES, default=DRAFT)
     manage_for_others = models.BooleanField(default=False)
     
     website = models.URLField(max_length=254, verbose_name="Company URL", default="", blank=True, null=True)
@@ -267,6 +276,7 @@ class ManagerDirectory(TrackedModel):
     yelp = models.URLField(max_length=254, verbose_name="Yelp", default='', blank=True, null=True)
 
     company = models.OneToOneField(Company, on_delete=models.CASCADE, related_name='mdl')
+    subscription = models.OneToOneField(Subscription, on_delete=models.CASCADE, related_name='mdl', default=None, blank=True, null=True)
     
     class Meta:
         ordering = ('company__name',)
@@ -634,7 +644,7 @@ class Property(StampedUpdaterModel):
     is_draft = models.BooleanField(verbose_name="is draft", default=False)
     is_published = models.BooleanField(verbose_name="is published", default=False)
     # subscription = models.CharField(max_length=254, verbose_name="Subscription", choices=SUBSCRIPTIONS, default=STANDARD)
-    subscription = models.CharField(max_length=254, verbose_name="Subscription", choices=SUBSCRIPTIONS, default=STANDARD)
+    # subscription = models.CharField(max_length=254, verbose_name="Subscription", choices=SUBSCRIPTIONS, default=STANDARD)
     type = models.CharField(max_length=254, verbose_name="Type", choices=TYPES)
     space = models.CharField(max_length=254, verbose_name="Booked Space", choices=BOOKED_SPACE)
     hosted_by = models.CharField(max_length=254, verbose_name="Hosted By", blank=True, null=True, default=None)
@@ -679,6 +689,7 @@ class Property(StampedUpdaterModel):
     administrator = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name='administrative_properties', blank=True, null=True, default=None)
     office = models.ForeignKey(Office, on_delete=models.CASCADE, related_name='office_properties', blank=True, null=True, default=None)
     portfolio = models.ForeignKey(Portfolio, on_delete=models.CASCADE, related_name='portfolio_properties', blank=True, null=True, default=None)
+    subscription = models.OneToOneField(Subscription, on_delete=models.CASCADE, related_name='pdl', default=None, blank=True, null=True)
     
     imported = models.BooleanField(default=False, )
     import_id = models.CharField(max_length=128, verbose_name="import id", default='', blank=True, null=True)

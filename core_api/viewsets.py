@@ -37,6 +37,7 @@ from core.utils import send_gmail
 from core.custom_permission import IsAuthenticatedOrCreate
 from core_api.serializers import *
 from core_api.models import *
+from payment.models import Transaction
 
 
 log = logging.getLogger(f"{__package__}.*")
@@ -349,9 +350,9 @@ class CompanyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             serializer = self.get_serializer(instance, data=request.data, partial=partial)
             
             serializer.is_valid(raise_exception=True)
-            instance = serializer.save()
+            # instance = serializer.save()
             
-            self.perform_update(serializer)
+            instance = self.perform_update(serializer)
 
         if getattr(instance, '_prefetched_objects_cache', None):
             # If 'prefetch_related' has been applied to a queryset, we need to
@@ -397,8 +398,10 @@ class CompanyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
                 Prefetch('offices', queryset=Office.objects.filter(enabled=True)))),
             Prefetch('invitations', queryset=Invitation.objects.filter(enabled=True))
         ).first()
+        
         print("Company: ", company)
         if company:
+            
             return Response(CompanyMDLDetailSerializer(company).data, status=status.HTTP_200_OK)
         else:
             return Response(None, status=status.HTTP_200_OK)

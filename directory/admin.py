@@ -261,9 +261,9 @@ class InquiryMessageAdmin(admin.ModelAdmin):
 @admin.register(Property)
 class PropertyAdmin(ImportExportModelAdmin):
     resource_classes = [PropertyResource]
-    search_fields = ['id','ref', 'name', 'subscription', 'type', 'space', 'hosted_by', 'suitabilities', 'price_night', 'email', 'phone', ]
+    search_fields = ['id','ref', 'name', 'type', 'space', 'hosted_by', 'suitabilities', 'price_night', 'email', 'phone', ]
     list_filter = ('imported', 'enabled', 'is_draft', 'type', 'space', 'is_pet_allowed', 'suitabilities')
-    list_display = ('ref', 'name', 'video', 'virtual_tour', 'subscription', 'is_draft', 'type', 'space', 'hosted_by', 'max_no_of_guest', 'no_of_bedrooms', 'no_of_bathrooms', 'is_pet_allowed', 'suitabilities', 'price_night', 'address', 'email', 'phone', 'logo', 'imported', 'enabled', 'created', 'updated', 'updated_by')
+    list_display = ('ref', 'name', 'video', 'virtual_tour', 'is_draft', 'type', 'space', 'hosted_by', 'max_no_of_guest', 'no_of_bedrooms', 'no_of_bathrooms', 'is_pet_allowed', 'suitabilities', 'price_night', 'address', 'email', 'phone', 'logo', 'imported', 'enabled', 'created', 'updated', 'updated_by')
 
 
 @admin.register(PropertyPhoto)

@@ -28,3 +28,19 @@ class PriceChartSerializer(serializers.ModelSerializer):
         model = PriceChart
         exclude = ('enabled', )
 
+
+class SubscriptionSerializer(serializers.ModelSerializer):
+    pass
+
+    class Meta:
+        model = Subscription
+        exclude = ('enabled', )
+
+
+class TransactionSerializer(serializers.ModelSerializer):
+    pass
+
+    class Meta:
+        model = Transaction
+        exclude = ('enabled', )
+

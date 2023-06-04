@@ -230,10 +230,10 @@ class InvitationListSerializer(serializers.ModelSerializer):
 
 
 class CompanyMineSerializer(serializers.ModelSerializer):
-    from directory_api.serializers import ManagerDirectorySerializer, OfficeSerializer, PortfolioSerializer
+    from directory_api.serializers import ManagerDirectoryListSerializer, OfficeSerializer, PortfolioSerializer
     administrator = ProfileSerializer(many=False, read_only=True)
     members = ProfileSerializer(many=True, read_only=True)
-    mdl = ManagerDirectorySerializer(many=False, read_only=True)
+    mdl = ManagerDirectoryListSerializer(many=False, read_only=True)
     offices = OfficeSerializer(many=True, read_only=True)
     portfolios = PortfolioSerializer(many=True, read_only=True)
 
@@ -259,11 +259,11 @@ class ProfileMoreSerializer(serializers.ModelSerializer):
 
 
 class CompanyMDLDetailSerializer(serializers.ModelSerializer):
-    from directory_api.serializers import ManagerDirectorySerializer, OfficeDetailSerializer, PortfolioDetailSerializer
+    from directory_api.serializers import ManagerDirectoryListSerializer, OfficeDetailSerializer, PortfolioDetailSerializer
     administrator = ProfileSerializer(many=False, read_only=True)
     members = ProfileMoreSerializer(many=True, read_only=True)
     city = CitySerializer(many=False, read_only=True)
-    mdl = ManagerDirectorySerializer(many=False, read_only=True)
+    mdl = ManagerDirectoryListSerializer(many=False, read_only=True)
     invitations = InvitationListSerializer(many=True, read_only=True)
     company_offices = OfficeDetailSerializer(many=True, read_only=True)
     company_portfolios = PortfolioDetailSerializer(many=True, read_only=True)

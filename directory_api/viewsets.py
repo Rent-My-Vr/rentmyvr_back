@@ -104,6 +104,9 @@ class ManagerDirectoryViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             data.pop("city[created]", None)
             data.pop("city[country_name]", None)
             data.pop("city[approved]", None)
+            data.pop("city[updated]", None)
+            data.pop("city[created]", None)
+            data.pop("city[approved]", None)
             
             if data.get('city').get('id', None):
                 print('====Have City****')
@@ -119,10 +122,83 @@ class ManagerDirectoryViewSet(viewsets.ModelViewSet, AchieveModelMixin):
                 data['state'] = inst.state_name
                 data['city'] = inst.id
             data['social_links'] = request.data.getlist('social_links[]', [])
+            
             serializer = self.get_serializer(data=data)
             serializer.is_valid(raise_exception=True)
             instance = self.perform_create(serializer)
 
+            serializer = ManagerDirectoryListSerializer(instance)
+            headers = self.get_success_headers(serializer.data)
+
+            return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+        else:
+            return Response({"message": "This is not authorised!!!"}, status=status.HTTP_403_FORBIDDEN)
+        # if r.status_code == 200 and d.get("success") and float(d.get("score")) > 0.5:
+        #     serializer = self.get_serializer(data=request.data)
+        #     serializer.is_valid(raise_exception=True)
+        #     instance = self.perform_create(serializer)
+
+        #     headers = self.get_success_headers(serializer.data)
+
+        #     return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+        # else:
+        #     return Response({"message": "Recaptcha validation failed"}, status=status.HTTP_400_BAD_REQUEST)
+
+    def update(self, request, *args, **kwargs):
+        print('---- data----')
+        print(request.data)
+        
+        profile = request.user.user_profile
+        if request.user.position == UserModel.ADMIN and (profile.company is not None or profile.administrative_company is not None):
+            data = request.data.dict()
+            
+            data['city'] = dict()
+            data['city']['id'] = data.get('city[id]', None)
+            data['city']['name'] = data.get('city[name]')
+            data['city']['state_name'] = data.get('city[state_name]')
+            data['city']['country_name'] = data.get('city[country_name]')
+            data['city']['approved'] = True if data['city']['id'] else False
+            data['city_data'] = data['city']
+
+            data.pop("city[id]", None)
+            data.pop("city[imported]", None)
+            data.pop("city[import_id]", None)
+            data.pop("city[name]", None)
+            data.pop("city[state_name]", None)
+            data.pop("city[updated]", None)
+            data.pop("city[created]", None)
+            data.pop("city[country_name]", None)
+            data.pop("city[approved]", None)
+            
+            if data.get('city').get('id', None):
+                print('====Have City****')
+                data['country'] = data.get('city').get('country_name')
+                data['state'] = data.get('city').get('state_name')
+                data['city'] = data.get('city').get('id')
+            else:
+                print('====Create City****')
+                ser = CitySerializer(data=data.get('city'))
+                ser.is_valid(raise_exception=True)
+                inst = ser.save()
+                data['country'] = inst.country_name
+                data['state'] = inst.state_name
+                data['city'] = inst.id
+            data['social_links'] = request.data.getlist('social_links[]', [])
+              
+            if type(data['logo']) == str:
+                data.pop('logo', None)
+            
+            print('==========')
+            print(data)
+            partial = kwargs.pop('partial', False)
+            instance = self.get_object()
+            
+            print('==========', partial)
+            serializer = self.get_serializer(instance, data=data, partial=partial)
+            serializer.is_valid(raise_exception=True)
+            instance = self.perform_update(serializer)
+
+            serializer = ManagerDirectoryListSerializer(instance)
             headers = self.get_success_headers(serializer.data)
 
             return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
@@ -741,6 +817,13 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             print('----------------')
             print(data.get('address'))
             print('============ 4 =============')
+
+
+            profile = request.user.user_profile
+            data['administrator'] = profile.id
+            if profile.company:
+                data['company'] = profile.company.id
+                
             serializer = PropertySerializer(data=data, context={'city_data': data['address']['properties']['city_data']})
             print('============ 5 =============')
             serializer.is_valid(raise_exception=True)
@@ -1112,10 +1195,13 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
         search = request.query_params.get('search', None)
         direction = '' if request.query_params.get('direction', 'asc') == 'asc' else '-'
         sortby = f"{direction}{request.query_params.get('sortby', 'created')}"
-        print('...: ', page_number)
-        print('...: ', request.query_params)
+        print('sortby:...: ', sortby)
+        print('page_number...: ', page_number)
+        print('query_params...: ', request.query_params)
         print('...: ', type(request.query_params))
-        
+        print('Company: ', profile.company)
+        print('Profile: ', profile)
+
         # queryset = self.filter_queryset(self.get_queryset())
         queryset = Property.objects.filter(Q(Q(company__isnull=False, company=profile.company) | Q(administrator=profile)), enabled=True).order_by(sortby)
 
@@ -1157,7 +1243,8 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
                 else:
                     print("3333b")
                     total = Property.objects.filter(Q(Q(company__isnull=False, company=profile.company) | Q(administrator=profile)), enabled=True).order_by(sortby).count()
-                    queryset = Property.objects.filter(Q(Q(company__isnull=False, company=profile.company) | Q(administrator=profile)), enabled=True).order_by(sortby)[page_number*size:(page_number*size)+size]
+                    queryset = Property.objects.filter(Q(Q(company__isnull=False, company=profile.company) | Q(administrator=profile)), enabled=True).order_by(sortby)
+                    # queryset = Property.objects.filter(Q(Q(company__isnull=False, company=profile.company) | Q(administrator=profile)), enabled=True).order_by(sortby)[page_number*size:(page_number*size)+size]
                 # queryset = queryset[page_number*size:(page_number*size)+size]
             serializer = self.get_serializer(queryset, many=True)
             return Response({"data": serializer.data, "total_count": total})
@@ -1312,28 +1399,35 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             
     @action(methods=['get'], detail=False, url_path='form/items', url_name='form-items')
     def form_items(self, request, *args, **kwargs):
-        orderedDict = BookerSerializer(Booker.objects.filter(enabled=True), many=True).data
-        data = list(map(lambda d: dict(d), orderedDict))
-        sort_order = {x['name']: i for i, x in enumerate(data) if 'Additional' not in x['name'] or 'Direct Booking' not in x['name']}
-        data.sort(key=lambda x: sort_order.get(x["name"], 1000 if 'Additional' in x["name"] else -10))
-        bookers = data
-        services = ServiceSerializer(Service.objects.filter(enabled=True), many=True).data
-        sleepers = SleeperSerializer(Sleeper.objects.filter(enabled=True), many=True).data
-        spaces = SpaceSerializer(Space.objects.filter(enabled=True), many=True).data
-        bathrooms = BathroomSerializer(Bathroom.objects.filter(enabled=True), many=True).data
-        kitchens = KitchenSerializer(Kitchen.objects.filter(enabled=True), many=True).data
-        pool_spas = PoolSpaSerializer(PoolSpa.objects.filter(enabled=True), many=True).data
-        outsides = OutsideSerializer(Outside.objects.filter(enabled=True), many=True).data
-        essentials = EssentialSerializer(Essential.objects.filter(enabled=True), many=True).data
-        entertainments = EntertainmentSerializer(Entertainment.objects.filter(enabled=True), many=True).data
-        laundries = LaundrySerializer(Laundry.objects.filter(enabled=True), many=True).data
-        families = FamilySerializer(Family.objects.filter(enabled=True), many=True).data
-        parking = ParkingSerializer(Parking.objects.filter(enabled=True), many=True).data
-        accessibility = AccessibilitySerializer(Accessibility.objects.filter(enabled=True), many=True).data
+        selective = request.query_params.get('selective', '').split(',')
+        if len(selective) == 1 and selective[0] == '':
+            selective = []
+        print(selective)
+
+        bookers = []
+        if 'bookers' in selective or len(selective) == 0:
+            data = list(map(lambda d: dict(d), BookerSerializer(Booker.objects.filter(enabled=True), many=True).data))
+            sort_order = {x['name']: i for i, x in enumerate(data) if 'Additional' not in x['name'] or 'Direct Booking' not in x['name']}
+            data.sort(key=lambda x: sort_order.get(x["name"], 1000 if 'Additional' in x["name"] else -10))
+            bookers = data
         
-        safeties = SafetySerializer(Safety.objects.filter(enabled=True), many=True).data
-        features = FeatureSerializer(Feature.objects.filter(enabled=True), many=True).data
-        activities = ActivitySerializer(Activity.objects.filter(enabled=True), many=True).data
+        services = ServiceSerializer(Service.objects.filter(enabled=True), many=True).data if 'services' in selective or len(selective) == 0 else []
+        sleepers = SleeperSerializer(Sleeper.objects.filter(enabled=True), many=True).data if 'sleepers' in selective or len(selective) == 0 else []
+        spaces = SpaceSerializer(Space.objects.filter(enabled=True), many=True).data if 'spaces' in selective or len(selective) == 0 else []
+        bathrooms = BathroomSerializer(Bathroom.objects.filter(enabled=True), many=True).data if 'bathrooms' in selective or len(selective) == 0 else []
+        kitchens = KitchenSerializer(Kitchen.objects.filter(enabled=True), many=True).data if 'kitchens' in selective or len(selective) == 0 else []
+        pool_spas = PoolSpaSerializer(PoolSpa.objects.filter(enabled=True), many=True).data if 'pool_spas' in selective or len(selective) == 0 else []
+        outsides = OutsideSerializer(Outside.objects.filter(enabled=True), many=True).data if 'outsides' in selective or len(selective) == 0 else []
+        essentials = EssentialSerializer(Essential.objects.filter(enabled=True), many=True).data if 'essentials' in selective or len(selective) == 0 else []
+        entertainments = EntertainmentSerializer(Entertainment.objects.filter(enabled=True), many=True).data if 'entertainments' in selective or len(selective) == 0 else []
+        laundries = LaundrySerializer(Laundry.objects.filter(enabled=True), many=True).data if 'laundries' in selective or len(selective) == 0 else []
+        families = FamilySerializer(Family.objects.filter(enabled=True), many=True).data if 'families' in selective or len(selective) == 0 else []
+        parking = ParkingSerializer(Parking.objects.filter(enabled=True), many=True).data if 'parking' in selective or len(selective) == 0 else []
+        accessibility = AccessibilitySerializer(Accessibility.objects.filter(enabled=True), many=True).data if 'accessibility' in selective or len(selective) == 0 else []
+        
+        safeties = SafetySerializer(Safety.objects.filter(enabled=True), many=True).data if 'safeties' in selective or len(selective) == 0 else []
+        features = FeatureSerializer(Feature.objects.filter(enabled=True), many=True).data if 'features' in selective or len(selective) == 0 else []
+        activities = ActivitySerializer(Activity.objects.filter(enabled=True), many=True).data if 'activities' in selective or len(selective) == 0 else []
 
         return Response({
             'bookers': bookers, 
@@ -1353,8 +1447,9 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             'safeties': safeties,
             'features': features,
             'activities': activities
-            }, status=status.HTTP_201_CREATED)
-
+        }, status=status.HTTP_201_CREATED)
+    
+            
     @action(methods=['get'], detail=False, url_path='fixed/items', url_name='fixed-items')
     def fixed_items(self, request, *args, **kwargs):
         

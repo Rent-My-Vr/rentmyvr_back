@@ -9,13 +9,25 @@ from import_export.widgets import ForeignKeyWidget
 
 
 
+@admin.register(PaymentProfile)
+class PaymentProfile(admin.ModelAdmin):
+    list_filter = ('enabled', 'channel')
+    list_display = ('external_ref', 'external_obj', 'channel', 'profile', 'enabled')
+
+
 @admin.register(PriceChart)
 class PriceChartAdmin(admin.ModelAdmin):
     list_filter = ('enabled', 'category', 'type', 'service_type')
     list_display = ('start', 'end', 'type', 'category', 'service_type', 'monthly_price', 'yearly_price', 'emails')
 
 
+@admin.register(Subscription)
+class SubscriptionAdmin(admin.ModelAdmin):
+    list_filter = ('enabled', 'status', 'type')
+    list_display = ('ref', 'external_ref', 'start_date', 'end_date', 'transaction', 'status', 'type', 'item', 'enabled', )
+
+
 @admin.register(Transaction)
 class TransactionAdmin(admin.ModelAdmin):
     list_filter = ('enabled', 'channel', 'status', 'type', 'currency')
-    list_display = ('ref', 'external_ref', 'quantity', 'unit_price', 'total', 'channel', 'status', 'type', 'currency', 'pdl', 'mdl', 'other', 'payee')
+    list_display = ('ref', 'external_ref', 'quantity', 'unit_price', 'total', 'channel', 'status', 'type', 'currency', 'items')

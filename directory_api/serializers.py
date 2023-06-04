@@ -16,6 +16,7 @@ from django.contrib.auth.models import Permission
 from core.models import *
 from core_api.serializers import AddressDetailGeoSerializer, AddressCreateGeoSerializer, AddressGeoSerializer, CitySerializer, CompanySerializer, ProfileSerializer
 from directory.models import *
+from payment_api.serializers import *
 
 
 log = logging.getLogger("{}.*".format(__package__))
@@ -138,9 +139,9 @@ class ManagerDirectorySerializer(serializers.ModelSerializer):
 
 
 class ManagerDirectoryListSerializer(serializers.ModelSerializer):
-    # administrator = ProfileSerializer(many=False, read_only=True)
-    # members = ProfileMoreSerializer(many=True, read_only=True)
+    logo = serializers.ImageField(required=True)
     city = CitySerializer(many=False, read_only=True)
+    subscription = SubscriptionSerializer(many=False, read_only=True)
     # mdl = ManagerDirectorySerializer(many=False, read_only=True)
     # invitations = InvitationListSerializer(many=True, read_only=True)
     # company_offices = OfficeDetailSerializer(many=True, read_only=True)

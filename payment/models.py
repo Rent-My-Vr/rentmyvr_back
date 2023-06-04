@@ -3,7 +3,6 @@ from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
 from django.utils.translation import gettext_lazy as _
 from core.models import *
-from directory.models import Property, ManagerDirectory
 
 
 class PriceChart(TrackedModel):
@@ -42,24 +41,50 @@ class PriceChart(TrackedModel):
         return f"{self.yearly_price}|{self.monthly_price} ({self.category})"
 
 
-class Transaction(TrackedModel):
+class PaymentProfile(StampedModel):
     """ 
-        We need to keep record of all attempted transactions both failed and successful here
+        This will store all form of subscriptions including PDL/MDLs
+        All Subscriptions must be associated to a Transaction and the 
+        transaction status MUST be Successful  
     """
     STRIPE = 'stripe'
     CHANNELS = ((STRIPE, 'Stripe'), )
     
+    external_ref = models.CharField(max_length=254, verbose_name="External Reference Id")
+    external_obj = models.CharField(max_length=128, verbose_name="External Reference Object")
+    channel = models.CharField(max_length=16, verbose_name="Channel", choices=CHANNELS, default=STRIPE)
+    profile = models.OneToOneField(Profile, on_delete=models.CASCADE, related_name="payment")
+    
+    class Meta:
+        ordering = ('channel',)
+        verbose_name = _('Payment Profile')
+        verbose_name_plural = _('Payment Profiles')
+
+    def __str__(self):
+        return self.channel
+
+
+class Transaction(TrackedModel):
+    """ 
+        We need to keep record of all attempted transactions both failed and successful here
+    """
     COMPLETED = "completed"
     CANCELLED = "cancelled"
+    DISPUTED = "disputed"
+    EXPIRED = "expired"
     FAILED = "failed"
-    PENDING = "pending"
+    OPEN = "open"
+    REFUND = "refund"
     REVERSE = "reverse"
 
     STATUS_CHOICES = (
-        (PENDING, "Pending"),
         (CANCELLED, "Cancelled"),
         (COMPLETED, "Completed"),
+        (DISPUTED, "Disputed"),
+        (EXPIRED, 'Expired'),
         (FAILED, "Failed"),
+        (OPEN, "Open"),
+        (REFUND, "Refund"),
         (REVERSE, "Reverse")
     )
     
@@ -69,19 +94,42 @@ class Transaction(TrackedModel):
     OTHER = 'other'
     TYPES = ((MDL, 'MDL'), (PDL, 'PDL'),(SETUP, 'Setup'), (OTHER, 'Other'))
     
+    CHECKOUT = 'checkout'
+    CHARGE = 'charge'
+    PAYMENT = 'payment'
+    SUBSCRIPTION = 'subscription'
+    EXT_OBJECTS = ((CHECKOUT, 'Checkout'), (CHARGE, 'Charge'), (PAYMENT, 'Payment'), (SUBSCRIPTION, 'Subscription'))
+    
+    # draft, open, paid, uncollectible, or void
+    DRAFT = 'draft'
+    OPEN = 'open'
+    PAID = 'paid'
+    UNCOLLECTIBLE = 'uncollectible'
+    VOID = 'void'
+    INVOICE_STATUSES = ((DRAFT, 'Draft'), (OPEN, 'Open'), (PAID, 'Paid'), (UNCOLLECTIBLE, 'Uncollectible'), (VOID, 'Void'))
+    
     ref = models.CharField(max_length=16, verbose_name="Ref", unique=True, blank=False, null=False)
-    external_ref = models.CharField(max_length=254, verbose_name="External Reference", default="", null=False, blank=False)
-    channel = models.CharField(max_length=128, verbose_name="Channel", default=STRIPE, null=False, blank=False)
-    status = models.CharField(verbose_name="status",  max_length=32,choices=STATUS_CHOICES, default=PENDING, null=True, blank=True)
-    type = models.CharField(verbose_name="type", max_length=32, choices=TYPES)
+    ext_subscription_ref = models.CharField(max_length=254, verbose_name="Ext. Subscription Reference", default=None, null=True, blank=True)
+    external_ref = models.CharField(max_length=254, verbose_name="External Reference", null=False, blank=False)
+    external_obj = models.CharField(max_length=32, choices=EXT_OBJECTS, verbose_name="External Object", null=False, blank=False)
+    channel = models.CharField(max_length=128, verbose_name="Channel", choices=PaymentProfile.CHANNELS, default=PaymentProfile.STRIPE, null=False, blank=False)
+    status = models.CharField(verbose_name="status", max_length=32,choices=STATUS_CHOICES, default=OPEN, null=True, blank=True)
     currency = models.CharField(verbose_name="curreny", max_length=32)
-    pdl = models.ForeignKey(Property, on_delete=models.CASCADE, related_name="transactions", default=None, null=True, blank=True)
-    mdl = models.ForeignKey(ManagerDirectory, on_delete=models.CASCADE, related_name="transactions", default=None, null=True, blank=True)
-    other = models.CharField(max_length=128, verbose_name="other", default=None, null=True, blank=True)
+    type = models.CharField(verbose_name="type", max_length=32, choices=TYPES)
+    items = models.JSONField(verbose_name="items", max_length=128, default=list)
+    # pdl = models.ForeignKey(Property, on_delete=models.CASCADE, related_name="transactions", default=None, null=True, blank=True)
+    # mdl = models.ForeignKey(ManagerDirectory, on_delete=models.CASCADE, related_name="transactions", default=None, null=True, blank=True)
+    # other = models.CharField(max_length=128, verbose_name="other", default=None, null=True, blank=True)
+    discount_id = models.CharField(max_length=128, verbose_name="discount_id", default=None, null=True, blank=True)
+    discount = models.DecimalField(verbose_name="discount", max_digits=12, decimal_places=2, default=0.0)
     quantity = models.IntegerField(verbose_name="unit")
     unit_price = models.DecimalField(verbose_name="unit price", max_digits=12, decimal_places=2, default=0.0)
     total = models.DecimalField(verbose_name="total", max_digits=12, decimal_places=2, default=0.0)
-    payee = models.ForeignKey(UserModel, on_delete=models.CASCADE, related_name="transaction_payee")
+    invoice_id = models.CharField(max_length=254, verbose_name="invoice_id", default=None, null=True, blank=True)
+    invoice_status = models.CharField(max_length=32, verbose_name="invoice_status", choices=INVOICE_STATUSES, default=None, null=True, blank=True)
+    invoice_url = models.URLField(verbose_name="invoice_url", default=None, null=True, blank=True)
+    invoice_pdf = models.URLField(verbose_name="invoice_pdf", default=None, null=True, blank=True)
+    payee = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name="transactions")
     
     class Meta:
         ordering = ('created',)
@@ -101,22 +149,45 @@ class Transaction(TrackedModel):
         return self.ref
 
 
-class Subscription(TrackedModel):
+class Subscription(StampedModel):
     """ 
         This will store all form of subscriptions including PDL/MDLs
         All Subscriptions must be associated to a Transaction and the 
-        transaction status MUST be Successful
-    
+        transaction status MUST be Successful  
     """
-    ref = models.CharField(max_length=16, verbose_name="Ref", unique=True, blank=False, null=False)
-    start_date = models.DateField(verbose_name="Start Date")
-    end_date = models.DateField(verbose_name="End Date")
-    transaction = models.ForeignKey(Transaction, on_delete=models.CASCADE)
-    content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
-    object_id = models.PositiveIntegerField()
-    content_object = GenericForeignKey("content_type", "object_id")
-    subscriber = models.ForeignKey(UserModel, on_delete=models.CASCADE, related_name="subscriber")
+     
+    ACTIVE = 'active'
+    CANCELLED = 'canceled'
+    INCOMPLETE = 'incomplete'
+    INCOMPLETE_EXPIRED = 'incomplete_expired'
+    PAST_DUE = 'past_due'
+    PAUSED = 'paused'
+    TRIALING = 'trialing'
+    UNPAID = 'unpaid'
+    STATUS_CHOICES = (
+        (ACTIVE, 'Active'),
+        (CANCELLED, 'Cancelled'),
+        (INCOMPLETE, 'Incomplete'),
+        (INCOMPLETE_EXPIRED, 'Incomplete Expired'),
+        (PAST_DUE, 'Past Due'),
+        (PAUSED, 'Paused'),
+        (TRIALING, 'Trialing'),
+        (UNPAID, 'Unpaid')
+        )
     
+    ref = models.CharField(max_length=16, verbose_name="Ref", unique=True, blank=False, null=False)
+    external_ref = models.CharField(max_length=254, verbose_name="External Reference")
+    external_obj = models.CharField(max_length=32, choices=Transaction.EXT_OBJECTS, verbose_name="External Object")
+    start_date = models.DateField(verbose_name="Start Date")
+    end_date = models.DateField(verbose_name="End Date", null=True, blank=True, default=None)
+    transaction = models.ForeignKey(Transaction, on_delete=models.CASCADE, related_name="subscriptions")
+    status = models.CharField(verbose_name="status", max_length=32,choices=STATUS_CHOICES, default=UNPAID)
+    type = models.CharField(verbose_name="type", max_length=32, choices=Transaction.TYPES)
+    item = models.CharField(verbose_name="item", max_length=128, default=None, null=True, blank=True)
+    # pdl = models.ForeignKey(Property, on_delete=models.CASCADE, related_name="subscriptions", default=None, null=True, blank=True)
+    # mdl = models.ForeignKey(ManagerDirectory, on_delete=models.CASCADE, related_name="subscriptions", default=None, null=True, blank=True)
+    # other = models.CharField(max_length=128, verbose_name="other", default=None, null=True, blank=True)
+    subscriber = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name="subscriptions")
     
     class Meta:
         ordering = ('start_date',)
@@ -126,14 +197,11 @@ class Subscription(TrackedModel):
     def save(self, *args, **kwargs):
         if not self.created:
             try:
-                trx = Subscription.objects.latest('created')
-                x = int(trx.ref[1:]) + 1 if trx else 1
+                x = int(Subscription.objects.latest('created').ref[1:]) + 1
             except Subscription.DoesNotExist:
                 x = 1
-            self.ref = f'B{x:04}'
+            self.ref = f'B{x:05}'
         return super(Subscription, self).save(*args, **kwargs)
 
-
     def __str__(self):
-        return self.start_date
-
+        return f'{self.status.title()} {self.type.upper()}'
