@@ -290,6 +290,8 @@ WSGI_APPLICATION = f'{PROJECT_NAME}.wsgi.application'
 
 IS_PORTABLE_DB = config('PORTABLE_DB', default=True, cast=bool)
 
+# django.db.utils.OperationalError: error in trigger ISO_metadata_reference_row_id_value_insert: no such column: rowid
+# python manage.py shell -c "import django;django.db.connection.cursor().execute('SELECT InitSpatialMetaData(1);')";
 if IS_PORTABLE_DB:
     DATABASES = {
         'default': {
