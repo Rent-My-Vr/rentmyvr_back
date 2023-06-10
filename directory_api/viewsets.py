@@ -557,6 +557,7 @@ class InquiryMessageViewSet(viewsets.ModelViewSet, AchieveModelMixin):
         return Response(self.get_queryset().values_list('email', flat=True), status=status.HTTP_200_OK)
 
 
+# https://github.com/andrewramsay/ical_to_gcal_sync/blob/master/config.py.example
 class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
     pagination_class = MyPagination
     # pagination_class = api_settings.DEFAULT_PAGINATION_CLASS
@@ -1448,8 +1449,7 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             'features': features,
             'activities': activities
         }, status=status.HTTP_201_CREATED)
-    
-            
+     
     @action(methods=['get'], detail=False, url_path='fixed/items', url_name='fixed-items')
     def fixed_items(self, request, *args, **kwargs):
         

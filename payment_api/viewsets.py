@@ -97,7 +97,7 @@ class ProcessingView(viewsets.ViewSet):
     # permission_classes = []
     permission_classes = (IsAuthenticated,)  
     authentication_classes = (TokenAuthentication,)
-    parser_classes = (MultiPartParser, JSONParser)
+    parser_classes = (JSONParser,)
 
     def get_permissions(self):
         if self.action in ['callback']:
@@ -161,8 +161,8 @@ class ProcessingView(viewsets.ViewSet):
             # txn.pdl = Property.objects.filter(id=meta.get('item_ids', None)).first() if txn.type == Transaction.PDL else None
             # txn.mdl = ManagerDirectory.objects.filter(id=meta.get('item_ids', None)).first() if txn.type == Transaction.MDL else None
             # txn.other = meta.get('item_ids', None) if txn.type in [Transaction.SETUP, Transaction.OTHER] else None
-            txn.quantity = int(data["quantity"])
-            txn.unit_price = float(data["price"]["unit_amount"])
+            txn.quantity = int(data.get("quantity", 1))
+            txn.unit_price = float(data["price"]["unit_amount"] if data.get('billing_scheme') == 'per_unit' else 0.0)
             txn.payee = profile
             txn.updated_by = request.user
             txn.save()
@@ -324,6 +324,7 @@ class ProcessingView(viewsets.ViewSet):
                     txn.invoice_id = checkoutSession['invoice']
                     if txn.ext_subscription_ref is None:
                         txn.ext_subscription_ref = checkoutSession['subscription']
+                    # txn.quantity = checkoutSession['quantity']
                     txn.save()
                     
                     print('=======>>>> ', TransactionSerializer(txn).data)
@@ -353,9 +354,6 @@ class ProcessingView(viewsets.ViewSet):
                                     subscrip.status = subscription['status']
                                     subscrip.item = it
                                     subscrip.type = txn.type
-                                    # subscrip.pdl = txn.pdl
-                                    # subscrip.mdl = txn.mdl
-                                    # subscrip.other = txn.other
                                     subscrip.subscriber = txn.payee
                                     subscrip.save()
                                     if txn.type == Transaction.MDL:
@@ -364,6 +362,15 @@ class ProcessingView(viewsets.ViewSet):
                                         Property.objects.filter(id=it).update(subscription=subscrip)
                                     else:
                                         print('..... ', txn.type)
+                                else:
+                                    subscrip = Subscription.objects.get(external_ref=subscription_id, transaction=txn, item=it, type=txn.type, transaction__channel=PaymentProfile.STRIPE)
+                                    if txn.type == Transaction.MDL:
+                                        ManagerDirectory.objects.filter(id=it).update(subscription=subscrip)
+                                    elif txn.type == Transaction.PDL:
+                                        Property.objects.filter(id=it).update(subscription=subscrip)
+                                    else:
+                                        print('..... ', txn.type)
+                                    
                 print('\nDone with checkout *******\n', checkoutSession)
             elif event.get('type', None) == 'checkout.session.expired':
                 # Occurs when a Checkout Session is expired.
@@ -371,7 +378,9 @@ class ProcessingView(viewsets.ViewSet):
                 if checkoutSession['mode'] == 'subscription':
                     txn = Transaction.objects.get(external_ref=checkoutSession['id'])
                     txn.status = Transaction.EXPIRED
-                    txn.subscriptions.all().update(status=Subscription.INCOMPLETE_EXPIRED)
+                    txn.quantity = checkoutSession['quantity']
+                    count = txn.subscriptions.all().update(status=Subscription.INCOMPLETE_EXPIRED)
+                    
                     # for s in txn.subscriptions.all():
                     #     s.status=Subscription.INCOMPLETE_EXPIRED
                     #     s.save()
@@ -474,20 +483,88 @@ class ProcessingView(viewsets.ViewSet):
                 subscription = event['data']['object']
                 subscrips = Subscription.objects.filter(external_ref=subscription['id'], transaction__channel=PaymentProfile.STRIPE)
                 subscrips.update(status=subscription['status'])
+                
                 print('subscrips: ', subscrips)
-                st = subscription['status']
                 if len(subscrips) > 0:
-                    ty = subscrips[0].type
-                    s = subscrips[0]
-                    if st == Subscription.ACTIVE and s.transaction.invoice_status == Transaction.PAID:
-                        if ty == Transaction.MDL:
+                    txn = subscrips[0].transaction
+                    
+                    if subscription['status'] == Subscription.ACTIVE and txn.invoice_status == Transaction.PAID:
+                        if subscrips[0].type == Transaction.MDL:
                             mdl = ManagerDirectory.objects.filter(subscription__in=subscrips).update(is_active=True)
                             print('MDL Updated: ', mdl)
-                        elif ty == Transaction.PDL:
+                        elif subscrips[0].type == Transaction.PDL:
                             pdl = Property.objects.filter(subscription__in=subscrips).update(is_active=True)
                             print('PDL Updated: ', pdl)
                         else:
                             print(3)
+                        if len(subscrips) != len(txn.items):
+                            if txn.type == Transaction.MDL:
+                                for md in ManagerDirectory.objects.filter(subscription__isnull=True, id__in=txn.items):
+                                    sub = Subscription()
+                                    sub.external_ref=subscription['id']
+                                    sub.external_obj = "subscription"
+                                    sub.start_date = datetime.fromtimestamp(subscription['current_period_start'])
+                                    sub.end_date = datetime.fromtimestamp(subscription['current_period_end'])
+                                    sub.transaction = txn
+                                    sub.status = subscription['status']
+                                    sub.item = it
+                                    sub.type = txn.type
+                                    sub.subscriber = txn.payee
+                                    sub.save()
+                                    
+                                    md.is_active = True
+                                    md.subscription = sub
+                                    md.save()
+                            elif txn.type == Transaction.PDL:
+                                for pro in Property.objects.filter(subscription__isnull=True, id__in=txn.items):
+                                    sub = Subscription()
+                                    sub.external_ref=subscription['id']
+                                    sub.external_obj = "subscription"
+                                    sub.start_date = datetime.fromtimestamp(subscription['current_period_start'])
+                                    sub.end_date = datetime.fromtimestamp(subscription['current_period_end'])
+                                    sub.transaction = txn
+                                    sub.status = subscription['status']
+                                    sub.item = it
+                                    sub.type = txn.type
+                                    sub.subscriber = txn.payee
+                                    sub.save()
+                                    
+                                    pro.is_active = True
+                                    pro.subscription = sub
+                                    pro.save()
+                else:
+                    txn = Transaction.objects.filter(ext_subscription_ref=subscription['id'], channel=PaymentProfile.STRIPE).first()
+                    if txn:
+                        txn.quantity = subscription['quantity'] if txn.quantity < subscription['quantity'] else txn.quantity
+                        txn.save()
+                        
+                        for it in txn.items:
+                            subscrip = Subscription()
+                            subscrip.external_ref = subscription_id
+                            subscrip.external_obj = "subscription"
+                            subscrip.start_date = datetime.fromtimestamp(subscription['current_period_start'])
+                            subscrip.end_date = datetime.fromtimestamp(subscription['current_period_end'])
+                            subscrip.transaction = txn
+                            subscrip.status = subscription['status']
+                            subscrip.type = txn.type
+                            subscrip.item = it
+                            subscrip.subscriber = txn.payee
+                            subscrip.save()
+                            if subscription['status'] == Subscription.ACTIVE and txn.invoice_status == Transaction.PAID:
+                                if txn.type == Transaction.MDL:
+                                    ManagerDirectory.objects.filter(id=it).update(subscription=subscrip, is_active=True)
+                                elif txn.type == Transaction.PDL:
+                                    Property.objects.filter(id=it).update(subscription=subscrip, is_active=True)
+                                else:
+                                    print('..... ', txn.type)
+                            else:
+                                if txn.type == Transaction.MDL:
+                                    ManagerDirectory.objects.filter(id=it).update(subscription=subscrip)
+                                elif txn.type == Transaction.PDL:
+                                    Property.objects.filter(id=it).update(subscription=subscrip)
+                                else:
+                                    print('..... ', txn.type)
+                    
                 print('\nDone with subscription: *******\n', subscription)
             # elif event.get('type', None) == 'customer.updated':
             #     # Occurs whenever any property of a customer changes.
@@ -501,6 +578,14 @@ class ProcessingView(viewsets.ViewSet):
                 txn = Transaction.objects.filter(ext_subscription_ref=invoice['subscription'], channel=PaymentProfile.STRIPE).first()
                 
                 print('Updating... ', txn)
+                
+                if txn:
+                    # txn.quantity = 
+                    txn.total = invoice['total']
+                    txn.unit_price = 0.0 if not invoice['amount_paid'] else float(invoice['amount_paid'])
+                    # txn.discount = 
+                    # txn.discount_id = 
+                    txn.save()
                 if txn is not None and txn.invoice_url is None:
                     print('Updating... Transaction')
                     txn.invoice_url = invoice['hosted_invoice_url']
@@ -525,6 +610,15 @@ class ProcessingView(viewsets.ViewSet):
                 # Occurs whenever any property of a customer changes.
                 invoice = event['data']['object']
                 txn = Transaction.objects.filter(ext_subscription_ref=invoice['subscription'], channel=PaymentProfile.STRIPE).first()
+                
+                if txn:
+                    # txn.quantity = 
+                    txn.total = invoice['total']
+                    txn.unit_price = 0.0 if not invoice['amount_paid'] else float(invoice['amount_paid'])
+                    # txn.discount = 
+                    # txn.discount_id = 
+                    txn.save()
+                    
                 if txn is not None and txn.invoice_url is None:
                     txn.invoice_url = invoice['hosted_invoice_url']
                     txn.invoice_pdf = invoice['invoice_pdf']
@@ -544,11 +638,18 @@ class ProcessingView(viewsets.ViewSet):
                     
                     txn = Transaction.objects.filter(Q(Q(invoice_id=invoice['id']) | Q(ext_subscription_ref=subscription_id)), channel=PaymentProfile.STRIPE).first()
                     print(' TXN: ', txn)
+                    
                     if txn:
                         txn.invoice_url = invoice['hosted_invoice_url']
                         txn.invoice_pdf = invoice['invoice_pdf']
                         txn.invoice_status = invoice['status']
+                        # txn.quantity = 
+                        txn.total = invoice['total']
+                        txn.unit_price = 0.0 if not invoice['amount_paid'] else float(invoice['amount_paid'])
+                        # txn.discount = 
+                        # txn.discount_id = 
                         txn.save()
+                        
                     else:
                         return Response({"message": "Something is inconsistent"}, status=status.HTTP_400_BAD_REQUEST) 
                     if txn is not None and len(subscrips) == 0:
@@ -564,9 +665,6 @@ class ProcessingView(viewsets.ViewSet):
                             subscrip.status = subscription['status']
                             subscrip.type = txn.type
                             subscrip.item = it
-                            # subscrip.pdl = txn.pdl
-                            # subscrip.mdl = txn.mdl
-                            # subscrip.other = txn.other
                             subscrip.subscriber = txn.payee
                             subscrip.save()
                             if txn.type == Transaction.MDL:
@@ -581,9 +679,11 @@ class ProcessingView(viewsets.ViewSet):
                                     Property.objects.filter(id=it).update(subscription=subscrip)
                             else:
                                 print('..... ', txn.type)
-                    if len(subscrips) > 0:
-                        print('++++ ', subscrips[0].status)
-                        if subscrips[0].status == Subscription.ACTIVE:
+                    
+                    # if len(subscrips) > 0:
+                    for sub in subscrips: 
+                        print('++++ ', sub.status)
+                        if sub.status == Subscription.ACTIVE:
                             if txn.type == Transaction.MDL:
                                 ManagerDirectory.objects.filter(subscription__in=subscrips).update(is_active=True)
                             elif txn.type == Transaction.PDL:
@@ -644,6 +744,7 @@ class PriceChartViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             instance._prefetched_objects_cache = {}
 
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+
 
 class TransactionViewSet(viewsets.ModelViewSet, AchieveModelMixin):
     permission_classes = (IsAuthenticated, )
@@ -716,16 +817,35 @@ class TransactionViewSet(viewsets.ModelViewSet, AchieveModelMixin):
         if msg is None:
             if txn.invoice_status != Transaction.PAID:
                 invoice = stripe.Invoice.retrieve(txn.invoice_id)
-                txn.invoice_status = invoice['status']
+                
                 txn.invoice_url = invoice['hosted_invoice_url']
                 txn.invoice_pdf = invoice['invoice_pdf']
+                txn.invoice_status = invoice['status']
+                # txn.quantity = 
+                txn.total = invoice['total']
+                txn.unit_price = 0.0 if not invoice['amount_paid'] else float(invoice['amount_paid'])
+                # txn.discount = 
+                # txn.discount_id = 
+                
                 if invoice['status'] != Transaction.PAID:
                     msg = f"Payment not successful \"{invoice['status']}\""
         if msg is None:
             if txn.ext_subscription_ref:
-                ids = Subscription.objects.filter(external_ref=txn.ext_subscription_ref, type=txn.type, transaction=txn).values_list('id', flat=True)
+                # ids = Subscription.objects.filter(external_ref=txn.ext_subscription_ref, type=txn.type, transaction=txn).values_list('id', flat=True)
                 subscription = stripe.Subscription.retrieve(txn.ext_subscription_ref)
                 if subscription['active'] == Subscription.ACTIVE:
+                    invoice = stripe.Invoice.retrieve(txn.invoice_id)
+                    
+                    txn.invoice_url = invoice['hosted_invoice_url']
+                    txn.invoice_pdf = invoice['invoice_pdf']
+                    txn.invoice_status = invoice['status']
+                    txn.quantity = subscription['quantity']
+                    txn.total = invoice['total']
+                    txn.unit_price = 0.0 if not invoice['amount_paid'] else float(invoice['amount_paid'])
+                    # txn.discount = 
+                    # txn.discount_id = 
+                    txn.save()
+                    
                     for it in txn.items:
                         subscrips = Subscription.objects.filter(external_ref=txn.ext_subscription_ref, item=it, type=txn.type, transaction=txn)
                         if len(subscrips) == 0:
@@ -747,11 +867,10 @@ class TransactionViewSet(viewsets.ModelViewSet, AchieveModelMixin):
                             else:
                                 print('..... ', txn.type)
                         elif len(subscrips) == 1:
-                            subscrips = subscrips[0]
                             if txn.type == Transaction.MDL:
-                                ManagerDirectory.objects.filter(id=it).update(subscription=subscrips, is_active=True)
+                                ManagerDirectory.objects.filter(id=it).update(subscription=subscrips[0], is_active=True)
                             elif txn.type == Transaction.PDL:
-                                Property.objects.filter(id=it).update(subscription=subscrips, is_active=True)
+                                Property.objects.filter(id=it).update(subscription=subscrips[0], is_active=True)
                             else:
                                 print('..... ', txn.type)
                         else:
@@ -774,3 +893,4 @@ class TransactionViewSet(viewsets.ModelViewSet, AchieveModelMixin):
                             else:
                                 pass
                     
+        txn.save()

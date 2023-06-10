@@ -151,7 +151,7 @@ class CompanyAdmin(ImportExportModelAdmin):
     resource_classes = [CompanyResource]
     search_fields = ('ref', 'name', 'email', 'website', 'contact_name', 'phone', 'mdl__name', 'mdl__ref')
     list_filter = ('city', 'state')
-    list_display = ('ref', 'name', 'mdl', 'administrator', 'website', 'contact_name', 'email', 'phone', 'ext', 'city', 'state')
+    list_display = ('ref', 'name', 'mdl', 'administrator', 'website', 'contact_name', 'email', 'phone', 'ext', 'city', 'state', 'created', 'updated')
 
     @admin.display(description='Phone')
     def phone(self, instance):
@@ -167,7 +167,7 @@ class CountryAdmin(admin.ModelAdmin):
 @admin.register(Invitation)
 class InvitationAdmin(admin.ModelAdmin):
     list_filter = ('enabled', 'company')
-    list_display = ('email', 'sent', 'token', 'status', 'company', 'sender')
+    list_display = ('email', 'sent', 'token', 'status', 'company', 'sender', 'created', 'updated')
 
 
 @admin.register(State)
@@ -181,7 +181,7 @@ class ProfileAdmin(admin.ModelAdmin):
     list_display_links = ('first_name', 'last_name', 'email',)
     list_filter = ('company', )
     search_fields = ('user__first_name', 'user__last_name', 'user__email', 'user__phone', 'company__name')
-    list_display = ('first_name', 'last_name', 'email', 'phone', 'company', 'is_active', 'is_staff', 'is_superuser', 'image')
+    list_display = ('first_name', 'last_name', 'email', 'phone', 'company', 'is_active', 'is_staff', 'is_superuser', 'image', 'created', 'updated')
     # list_display = ("ref", "employment_type", "position", "status", "first_name", "last_name", "email", "phone", "is_active", "is_staff", "is_superuser", 'enabled', "address")
 
     @admin.display(ordering='user__first_name', description='First Name')

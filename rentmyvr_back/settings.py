@@ -126,11 +126,13 @@ INSTALLED_APPS = [
     'core.apps.CoreConfig',
     'directory.apps.DirectoryConfig',
     'payment.apps.PaymentConfig',
+    'schedule.apps.ScheduleConfig',
 
     'auths_api.apps.AuthsApiConfig',
     'core_api.apps.CoreApiConfig',
     'directory_api.apps.DirectoryApiConfig',
     'payment_api.apps.PaymentApiConfig',
+    'schedule_api.apps.ScheduleApiConfig',
 
     'django.contrib.admin',
     'django.contrib.auth',

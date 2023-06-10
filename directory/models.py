@@ -19,7 +19,7 @@ from django.template.defaultfilters import filesizeformat
 
 from core.models import *
 from payment.models import Subscription
-
+from schedule.models.calendars import Calendar
 
 # Create your models here.
 
@@ -633,18 +633,13 @@ class Property(StampedUpdaterModel):
         
     )
     
-    STANDARD = "standard"
-    PREMIUM = "premium"
-    SUBSCRIPTIONS = ((STANDARD, "Standard"), (PREMIUM, "Premium"))
-    
     ref = models.CharField(max_length=16, verbose_name="Ref", unique=True)
     name = models.CharField(max_length=254, verbose_name="Name") # db_index=False
     video = models.FileField(upload_to="property_video_upload_path", blank=True, null=True, default=None)
     virtual_tour = models.FileField(upload_to="property_video_upload_path", blank=True, null=True, default=None)
+    is_active = models.BooleanField(verbose_name="Is Active", default=False)
     is_draft = models.BooleanField(verbose_name="is draft", default=False)
     is_published = models.BooleanField(verbose_name="is published", default=False)
-    # subscription = models.CharField(max_length=254, verbose_name="Subscription", choices=SUBSCRIPTIONS, default=STANDARD)
-    # subscription = models.CharField(max_length=254, verbose_name="Subscription", choices=SUBSCRIPTIONS, default=STANDARD)
     type = models.CharField(max_length=254, verbose_name="Type", choices=TYPES)
     space = models.CharField(max_length=254, verbose_name="Booked Space", choices=BOOKED_SPACE)
     hosted_by = models.CharField(max_length=254, verbose_name="Hosted By", blank=True, null=True, default=None)
@@ -656,6 +651,8 @@ class Property(StampedUpdaterModel):
     description = models.TextField(verbose_name="Description")
     host_note = models.TextField(verbose_name="Host Notes", default='', blank=True, null=True)
     cancellation_policy = models.TextField(verbose_name="Cancellation Policy", default='', blank=True, null=True)
+    ical_url = models.URLField(verbose_name="iCal URL", default=None, blank=True, null=True)
+    calendar = models.ForeignKey(Calendar, on_delete=models.SET_NULL, related_name="properties", default=None, blank=True, null=True)
     # room_type = models.CharField(max_length=32, verbose_name="Room Type", choices=ROOM_TYPES)
     # sleeper_type = models.CharField(max_length=32, verbose_name="Sleeper Type", choices=SLEEPER_TYPES)
     
