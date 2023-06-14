@@ -111,6 +111,7 @@ class CompanyResource(resources.ModelResource):
             user.save()
             pass
         
+        print('+++++++++  ', row)
         self.mdl = ManagerDirectory()
         self.mdl.name = row['Company Name']
         self.mdl.status = ManagerDirectory.IMPORTED
@@ -125,11 +126,11 @@ class CompanyResource(resources.ModelResource):
         self.mdl.phone_2 = row['Phone 2']
         self.mdl.social_links = []
  
-        if len(row['FB']) > 8:
+        if row.get('FB') and len(row.get('FB')) > 8:
             self.mdl.social_links.append(row['FB'])
-        if len(row['IG']) > 8:
+        if row.get('IG') and len(row.get('IG')) > 8:
             self.mdl.social_links.append(row['IG'])
-        if len(row['TT']) > 8:
+        if row.get('TT') and len(row.get('TT')) > 8:
             self.mdl.social_links.append(row['TT'])
         self.mdl.updated_by = user
         # print(' 22===> Done!')
