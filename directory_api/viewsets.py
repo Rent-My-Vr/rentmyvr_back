@@ -824,7 +824,10 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             data['administrator'] = profile.id
             if profile.company:
                 data['company'] = profile.company.id
-                
+               
+            print(profile.id, ' P:::C ', profile.company.id,'  ============ *****= + =***** =============') 
+            print(data)
+            
             serializer = PropertySerializer(data=data, context={'city_data': data['address']['properties']['city_data']})
             print('============ 5 =============')
             serializer.is_valid(raise_exception=True)
@@ -1196,6 +1199,7 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
         search = request.query_params.get('search', None)
         direction = '' if request.query_params.get('direction', 'asc') == 'asc' else '-'
         sortby = f"{direction}{request.query_params.get('sortby', 'created')}"
+        print('size: ', size)
         print('sortby:...: ', sortby)
         print('page_number...: ', page_number)
         print('query_params...: ', request.query_params)
@@ -1207,6 +1211,7 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
         queryset = Property.objects.filter(Q(Q(company__isnull=False, company=profile.company) | Q(administrator=profile)), enabled=True).order_by(sortby)
 
         if size == 0 and page_number:
+            # Remote Loader
             print(111)
             pagy = self.paginate_queryset(queryset)
             total = Property.objects.filter(Q(Q(company__isnull=False, company=profile.company) | Q(administrator=profile)), enabled=True).count()
@@ -1220,39 +1225,47 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
         else:
             page_number = int(page_number) if page_number else 1
             size = int(size) if size and int(size) > 0 else 100
-            print(222)
+            print("A222")
             print(page_number, '   ', page_number*size, ' ---- ', size)
             print(request.user.is_manager)
             
-            if request.user.is_manager:
-                print(2222)
-                total = Property.objects.filter(enabled=True).count()
+            if profile.company:
+                total = Property.objects.filter(Q(Q(company=profile.company) | Q(administrator=profile)), enabled=True).count()
                 if search:
-                    print("2222a")
-                    total = Property.objects.filter(Q(ref__icontains=search) | Q(name__icontains=search) | Q(type__icontains=search) | Q(space__icontains=search)).count()
-                    queryset = Property.objects.filter(Q(ref__icontains=search) | Q(name__icontains=search) | Q(type__icontains=search) | Q(space__icontains=search)).order_by(sortby)[page_number*size:(page_number*size)+size]
+                    print("A333a")
+                    queryset = Property.objects.filter(Q(Q(company=profile.company) | Q(administrator=profile)), Q(Q(ref__icontains=search) | Q(name__icontains=search) | Q(type__icontains=search) | Q(space__icontains=search)), enabled=True).order_by(sortby)[page_number*size:(page_number*size)+size]
+                    total = len(queryset)
                 else:
-                    print("2222b")
-                    queryset = Property.objects.filter(enabled=True).order_by(sortby)[page_number*size:(page_number*size)+size]
-            else:
-                print("3333")
-                total = Property.objects.filter(Q(Q(company__isnull=False, company=profile.company) | Q(administrator=profile)), enabled=True).count()
-                if search:
-                    print("3333a")
-                    total = Property.objects.filter(Q(Q(company__isnull=False, company=profile.company) | Q(administrator=profile)), Q(Q(ref__icontains=search) | Q(name__icontains=search) | Q(type__icontains=search) | Q(space__icontains=search)), enabled=True).count()
-                    queryset = Property.objects.filter(Q(Q(company__isnull=False, company=profile.company) | Q(administrator=profile)), Q(Q(ref__icontains=search) | Q(name__icontains=search) | Q(type__icontains=search) | Q(space__icontains=search)), enabled=True).order_by(sortby)[page_number*size:(page_number*size)+size]
-                else:
-                    print("3333b")
-                    total = Property.objects.filter(Q(Q(company__isnull=False, company=profile.company) | Q(administrator=profile)), enabled=True).order_by(sortby).count()
-                    queryset = Property.objects.filter(Q(Q(company__isnull=False, company=profile.company) | Q(administrator=profile)), enabled=True).order_by(sortby)
+                    print("A333b")
+                    queryset = Property.objects.filter(Q(Q(company=profile.company) | Q(administrator=profile)), enabled=True).order_by(sortby)
+                    total = len(queryset)
                     # queryset = Property.objects.filter(Q(Q(company__isnull=False, company=profile.company) | Q(administrator=profile)), enabled=True).order_by(sortby)[page_number*size:(page_number*size)+size]
+            elif request.user.is_manager:
+                if search:
+                    print("A444a")
+                    queryset = Property.objects.filter(Q(Q(ref__icontains=search) | Q(name__icontains=search) | Q(type__icontains=search) | Q(space__icontains=search)), company__isnull=True, enabled=True).order_by(sortby)[page_number*size:(page_number*size)+size]
+                    total = len(queryset)
+                else:
+                    print("A444b")
+                    queryset = Property.objects.filter(company__isnull=True, enabled=True).order_by(sortby)[page_number*size:(page_number*size)+size]
+                    total = len(queryset)
+            else:
+                if search:
+                    print("A555a")
+                    queryset = Property.objects.filter(Q(Q(ref__icontains=search) | Q(name__icontains=search) | Q(type__icontains=search) | Q(space__icontains=search)), company__isnull=True, enabled=True).order_by(sortby)[page_number*size:(page_number*size)+size]
+                    total = len(queryset)
+                else:
+                    print("A555b")
+                    queryset = Property.objects.filter(company__isnull=True, enabled=True).order_by(sortby)[page_number*size:(page_number*size)+size]
+                    total = len(queryset)
+                
                 # queryset = queryset[page_number*size:(page_number*size)+size]
             serializer = self.get_serializer(queryset, many=True)
             return Response({"data": serializer.data, "total_count": total})
         
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
-
+    
     @action(methods=['post', 'get'], detail=False, url_path='search', url_name='search')
     def search(self, request, *args, **kwargs):
         self.pagination_class.page_size = 20

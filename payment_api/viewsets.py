@@ -381,20 +381,19 @@ class ProcessingView(viewsets.ViewSet):
                     txn.quantity = checkoutSession['quantity']
                     count = txn.subscriptions.all().update(status=Subscription.INCOMPLETE_EXPIRED)
                     
-                    # for s in txn.subscriptions.all():
-                    #     s.status=Subscription.INCOMPLETE_EXPIRED
-                    #     s.save()
                     txn.save()
                 print('\nDone with subscriptions*******\n', checkoutSession)
             elif event.get('type', None) == 'customer.created':
                 # Occurs whenever a new customer is created.
                 customer = event['data']['object']
                 profile = Profile.objects.get(user__email=customer['email'])
+                
                 (paymentProfile, created) = PaymentProfile.objects.get_or_create(external_ref=customer['id'], profile=profile, defaults={"external_obj": 'customer', "profile": profile}) 
                 print(created, '  ', paymentProfile)
                 meta = {"profile_ref": profile.ref}
                 desc = f"{profile.ref} - Private member"
                 pref = profile.ref
+                
                 if profile.company:
                     meta["company_ref"] = profile.company.ref
                     desc = f"{profile.company.ref}-{profile.ref} {profile.company.name} member"

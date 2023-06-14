@@ -29,6 +29,12 @@ def add(x =2, y=3):
     return x + y
 
 
+@shared_task
+def processPropertyEvents(prop_id):
+    print('Property id:  ', prop_id)
+    return prop_id
+
+
 @shared_task(name='core.sendMail')
 def sendMail(subject, message, recipients, fail_silently=settings.DEBUG,
              connection=None, cc=None, bcc=None, files=None, use_signature=None, context_data=None):
