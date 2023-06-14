@@ -29,10 +29,10 @@ def add(x =2, y=3):
     return x + y
 
 
-@shared_task
-def processPropertyEvents(prop_id):
-    print('Property id:  ', prop_id)
-    return prop_id
+@shared_task(name='core.processPropertyEvents')
+def processPropertyEvents(property_id):
+    print('***********************************88Property id:  ', property_id)
+    return property_id
 
 
 @shared_task(name='core.sendMail')

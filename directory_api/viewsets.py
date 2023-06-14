@@ -35,6 +35,7 @@ from core.utils import send_gmail
 from core_api.pagination import MyPagination
 from core_api.serializers import *
 from core_api.models import *
+from core.tasks import processPropertyEvents
 from directory.models import *
 from directory_api.serializers import *
 
@@ -819,7 +820,6 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             print(data.get('address'))
             print('============ 4 =============')
 
-
             profile = request.user.user_profile
             data['administrator'] = profile.id
             if profile.company:
@@ -848,12 +848,22 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
                 ser.is_valid(raise_exception=True)
                 pic = self.perform_create(ser)
             print('============ 8 =============')
-            return Response(PropertySerializer(instance).data, status=status.HTTP_201_CREATED)
+            
+            cal = Calendar(name=instance.name, slug=instance.ref)
+            cal.save()
+            instance.calendar = cal
+            instance.save()
+            processPropertyEvents.apply_async(kwargs={'property_id': instance.id})
+            data = PropertySerializer(instance).data
+            if request.data.get('paying', None):
+                data['paying'] = instance.id
+            return Response(data, status=status.HTTP_201_CREATED)
 
     def update(self, request, *args, **kwargs):
         with transaction.atomic():
             partial = kwargs.pop('partial', False)
             instance = self.get_object()
+            ical_old = instance.ical_url
             print('============ 0 update =============')
             print(request.data)
             print('============ 1 update =============')
@@ -1190,6 +1200,8 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             #     p_ids.append(inst.id)
             # PropertyPhoto.objects.filter(~Q(id__in=p_ids), property=instance).delete()
             print('============ 8 =============')
+            if instance.ical_url != ical_old:    
+                processPropertyEvents.apply_async(kwargs={'property_id': instance.id})
             return Response(PropertySerializer(instance).data, status=status.HTTP_201_CREATED)
     
     def list(self, request, *args, **kwargs):
