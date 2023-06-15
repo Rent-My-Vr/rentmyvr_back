@@ -7,7 +7,9 @@ from . import viewsets as vs
 
 router_v1 = routers.DefaultRouter()
 
-router_v1.register(r'price-chart', vs.PriceChartViewSet, basename="price-chart")
+router_v1.register(r'processing', vs.ProcessingView, basename="processing")
+router_v1.register(r'transaction', vs.TransactionViewSet, basename="transaction")
+# router_v1.register(r'price-chart', vs.PriceChartViewSet, basename="price-chart")
 # router_v1.register(r'test', vs.TestViewset, basename="test")
 
 app_name = PaymentApiConfig.name

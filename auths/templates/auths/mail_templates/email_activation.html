@@ -16,18 +16,24 @@
 </style>
   <body style="background-color: #222533; padding: 20px; font-family: font-size: 14px; line-height: 1.43; font-family: &quot;Helvetica Neue&quot;, &quot;Segoe UI&quot;, Helvetica, Arial, sans-serif;">
     <div style="max-width: 600px; margin: 0px auto; background-color: #fff; box-shadow: 0px 20px 50px rgba(0,0,0,0.05);">
-      <div style="padding: 60px 70px; border-top: 1px solid rgba(0,0,0,0.05);">
+      <div style="padding: 60px 70px; border-top: 1px solid rgba(0,0,0,0.05); display: flex; flex-direction: column; align-items: center;">
+        <img src="{{domain}}/assets/images/rentmyvr-logo.svg" alt="logo" style="margin-bottom: 20px;" />
         <h1 style="margin-top: 0px;">
-          Hi {{first_name}},
+          Hi {{user.first_name}},
         </h1>
         <div style="color: #636363; font-size: 14px;"
           <p>
-            Your account at <a href="{{web_site}}" title="{{coy_name}}">{{coy_name}}</a> has been created. However, there is one more step before you can use it, you need to activate your account by clicking the link below. Once you click the button, just login to your account and you are set to go.
+            Your account at <a href="{{domain}}" title="{{coy_name}}">{{coy_name}}</a> has been created. However, there is one more step before you can use it, you need to activate your account by clicking the link below. Once you click the button, just login to your account and you are set to go.
           </p>
         </div>
-		
+        
+        {% if token %}
+          <h5 style="margin-bottom: 10px;">
+            <em>Token: </em> {{ token }}
+          </h5>
+        {% endif %}
 		<a target="_blank" class="boxed" style="font-weight: 500; display: block; width: max-content; border-radius: .125rem; cursor: pointer; white-space: normal; background-color: #4285f4!important; color: #fff!important;text-decoration: none; padding: .54rem 2.14rem; font-size: 1.0rem; -webkit-box-shadow: 0 2px 5px 0 rgba(0,0,0,.16), 0 2px 10px 0 rgba(0,0,0,.12); box-shadow: 0 2px 5px 0 rgba(0,0,0,.16), 0 2px 10px 0 rgba(0,0,0,.12); -webkit-transition: color .15s ease-in-out,background-color .15s ease-in-out,border-color .15s ease-in-out,-webkit-box-shadow .15s ease-in-out; -o-transition: color .15s ease-in-out,background-color .15s ease-in-out,border-color .15s ease-in-out,box-shadow .15s ease-in-out; transition: color .15s ease-in-out,background-color .15s ease-in-out,border-color .15s ease-in-out,box-shadow .15s ease-in-out; transition: color .15s ease-in-out,background-color .15s ease-in-out,border-color .15s ease-in-out,box-shadow .15s ease-in-out,-webkit-box-shadow .15s ease-in-out; -webkit-border-radius: .125rem;" 
-		href="{{ validation_url }}">Validate Email</a>
+		href="{{ action_link }}">Validate Email</a>
 		
         <h4 style="margin-bottom: 10px;">
           Need Help?
@@ -56,7 +62,7 @@
             {{address_text}}
           </div>
           <div style="color: #A5A5A5; font-size: 10px;">
-            Copyright 2018 {{coy_name}}. All rights reserved.
+            Copyright 2023 {{coy_name}}. All rights reserved.
           </div>
         </div>
       </div>

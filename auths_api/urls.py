@@ -18,8 +18,6 @@ router_v1.register(r'activation', viewsets.ActivationRequestView, basename='acti
 
 schema_view = get_schema_view(title=AuthsApiConfig.verbose_name)
 
-
-
 app_name = AuthsApiConfig.name
 urlpatterns = [
     path('', include(router_v1.urls)),
@@ -32,6 +30,8 @@ urlpatterns = [
     # path('password/reset/confirm/', viewsets.PasswordResetConfirmView.as_view(), name='password-reset-confirm'),
     re_path(r'^password/reset/confirm/(?P<uidb64>[0-9A-Za-z_\-]+)/(?P<token>[0-9A-Za-z]{1,13}-[0-9A-Za-z]{1,60})/',
         viewsets.PasswordResetConfirmView.as_view(), name='password-reset-confirm'),
+    re_path(r'^password/reset/confirm/(?P<uidb64>[0-9A-Za-z_\-]+)/(?P<session_key>\d+)/',
+        viewsets.PasswordResetConfirmView.as_view(), name='password-reset-confirm-token'),
 
     path('social/facebook/login/', viewsets.FacebookLogin.as_view(), name='facebook-login'),
     path('social/facebook/connect/', viewsets.FacebookConnect.as_view(), name='facebook-connect'),

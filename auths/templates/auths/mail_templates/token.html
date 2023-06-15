@@ -28,7 +28,7 @@
                         <td align="center" class="boxed"
                             style="vertical-align: top;padding: 0.0px 0.0px 0.0px 0.0px;font-family: Calibri , Trebuchet , Arial , sans serif;font-size: 19.0px;line-height: 24.0px;color: rgb(119,119,119);">
                             <p style="padding: 15px; border-radius: 1px;">
-                                Use the 4 digits code below to continue<br>
+                                Use the 6 digits code below to continue<br>
                             </p>
                         </td>
                     </tr>
@@ -44,6 +44,13 @@
             <td align="center" style="padding: 0.0px 30.0px 30.0px 30.0px;">
                 <table border="0" cellspacing="0" cellpadding="0">
                     <tbody>
+                    {% if token %}
+                        <tr>
+                            <td bgcolor="#009cde" class="boxed" align="center" valign="middle" style="padding: 10.0px 90.0px 15.0px 90.0px;font-family: Calibri , Trebuchet , Arial , sans serif;font-size: 17.0px;line-height: 21.0px;color: rgba(255,255,255,.84);;">
+                                <em>Token: </em> {{ token }}<br>
+                            </td>
+                        </tr>
+                    {% endif %}
                     <tr>
                         <td bgcolor="#009cde" class="boxed" align="center" valign="middle" style="padding: 10.0px 90.0px 15.0px 90.0px;font-family: Calibri , Trebuchet , Arial , sans serif;font-size: 17.0px;line-height: 21.0px;color: rgba(255,255,255,.84);;">
                             <a target="_blank" style="color: #e3e8eb;text-decoration: none;font-size: 36px;letter-spacing: 6px;" href="#">{{token}}<br></a>

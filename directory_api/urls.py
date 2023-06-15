@@ -5,14 +5,15 @@ from rest_framework import routers
 from .apps import DirectoryApiConfig 
 from . import viewsets as vs
 
+
 router_v1 = routers.DefaultRouter()
 
-router_v1.register(r'company', vs.CompanyViewSet, basename="company")
-router_v1.register(r'manager', vs.ManagerDirectoryViewSet, basename="manager")
+router_v1.register(r'management', vs.ManagerDirectoryViewSet, basename="management")
 router_v1.register(r'office', vs.OfficeViewSet, basename="office")
 router_v1.register(r'portfolio', vs.PortfolioViewSet, basename="portfolio")
 router_v1.register(r'inquiry/message', vs.InquiryMessageViewSet, basename="inquiry-message")
 router_v1.register(r'property', vs.PropertyViewSet, basename="property")
+router_v1.register(r'support', vs.SupportViewSet, basename="support")
 # router_v1.register(r'category', vs.CategoryViewSet, basename="category")
 # router_v1.register(r'client', vs.ClientViewSet, basename="client")
 

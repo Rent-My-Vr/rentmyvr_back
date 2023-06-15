@@ -25,15 +25,17 @@ from django.db.models import Q, Prefetch
 from django.contrib.auth import get_user_model
 from django.contrib.gis.geos import Point, Polygon, GEOSGeometry
 from django.contrib.gis.measure import Distance
+from django.template.loader import render_to_string
 
 from auths.utils import get_domain
 from auths_api.serializers import UserSerializer, UserUpdateSerializer
 from notifications.signals import notify
 from core.models import *
 from core.utils import send_gmail
-from core_api.pagination import MyPagination, MyPaginationMixin
+from core_api.pagination import MyPagination
 from core_api.serializers import *
 from core_api.models import *
+from core.tasks import processPropertyEvents
 from directory.models import *
 from directory_api.serializers import *
 
@@ -42,61 +44,20 @@ log = logging.getLogger(f"{__package__}.*")
 log.setLevel(settings.LOGGING_LEVEL)
 
 
-class CompanyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
-    permission_classes = (IsAuthenticated, )
-    authentication_classes = (TokenAuthentication,)
-    parser_classes = (MultiPartParser, FormParser, JSONParser, FileUploadParser)
-        
-    def get_serializer_class(self):
-        # if self.action in ['create', 'update']:
-        #     return CompanySerializer
-        return CompanySerializer
-
-    def get_queryset(self):
-        """
-        This view should return a list of all the Interested EMail
-        """
-         
-        return Company.objects.filter(enabled=True)
- 
-    def perform_create(self, serializer):
-        return serializer.save(updated_by_id=self.request.user.id)
-        
-    def perform_update(self, serializer):
-        return serializer.save(updated_by_id=self.request.user.id)
-    
-    def create(self, request, *args, **kwargs):
-        print(request.data)
-        verifyServer = f"https://www.google.com/recaptcha/api/siteverify?secret={settings.RECAPTCHA_SECRET_KEY}&response={request.data.get('token')}"
-        r = requests.get(verifyServer)
-        print(r.json())
-        d = r.json()
-        # print()
-        
-        if r.status_code == 200 and d.get("success") and float(d.get("score")) > 0.5:
-            serializer = self.get_serializer(data=request.data)
-            serializer.is_valid(raise_exception=True)
-            instance = self.perform_create(serializer)
-
-            headers = self.get_success_headers(serializer.data)
-
-            return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
-        else:
-            return Response({"message": "Recaptcha validation failed"}, status=status.HTTP_400_BAD_REQUEST)
-        
-    @action(methods=['get'], detail=False, url_path='names', url_name='names')
-    def names(self, request, *args, **kwargs):
-        return Response(self.get_queryset().values_list('email', flat=True), status=status.HTTP_200_OK)
-
-
 class ManagerDirectoryViewSet(viewsets.ModelViewSet, AchieveModelMixin):
     permission_classes = (IsAuthenticated, )
     authentication_classes = (TokenAuthentication,)
-    parser_classes = (MultiPartParser, FormParser, JSONParser, FileUploadParser)
+    parser_classes = (MultiPartParser, FormParser)
+    # parser_classes = (MultiPartParser, FormParser, JSONParser, FileUploadParser)
         
+    def get_permissions(self):
+        if self.action in ['search', 'retrieve']:
+            return []  # This method should return iterable of permissions
+        return super().get_permissions()
+
     def get_serializer_class(self):
-        # if self.action in ['create', 'update']:
-        #     return CompanySerializer
+        if self.action in ['search']:
+            return ManagerDirectoryListSerializer
         return ManagerDirectorySerializer
 
     def get_queryset(self):
@@ -113,37 +74,209 @@ class ManagerDirectoryViewSet(viewsets.ModelViewSet, AchieveModelMixin):
         return serializer.save(updated_by_id=self.request.user.id)
     
     def create(self, request, *args, **kwargs):
+        print('---- data----')
         print(request.data)
-        verifyServer = f"https://www.google.com/recaptcha/api/siteverify?secret={settings.RECAPTCHA_SECRET_KEY}&response={request.data.get('token')}"
-        r = requests.get(verifyServer)
-        print(r.json())
-        d = r.json()
+        
+        # verifyServer = f"https://www.google.com/recaptcha/api/siteverify?secret={settings.RECAPTCHA_SECRET_KEY}&response={request.data.get('token')}"
+        # r = requests.get(verifyServer)
+        # print(r.json())
+        # d = r.json()
         # print()
         
-        if r.status_code == 200 and d.get("success") and float(d.get("score")) > 0.5:
-            serializer = self.get_serializer(data=request.data)
+        profile = request.user.user_profile
+        if request.user.position == UserModel.ADMIN and (profile.company is not None or profile.administrative_company is not None):
+            data = request.data.dict()
+            data['company'] = profile.company.id if profile.company else profile.administrative_company.id
+            
+            data['city'] = dict()
+            data['city']['id'] = data.get('city[id]', None)
+            data['city']['name'] = data.get('city[name]')
+            data['city']['state_name'] = data.get('city[state_name]')
+            data['city']['country_name'] = data.get('city[country_name]')
+            data['city']['approved'] = True if data['city']['id'] else False
+            data['city_data'] = data['city']
+
+            data.pop("city[id]", None)
+            data.pop("city[imported]", None)
+            data.pop("city[import_id]", None)
+            data.pop("city[name]", None)
+            data.pop("city[state_name]", None)
+            data.pop("city[updated]", None)
+            data.pop("city[created]", None)
+            data.pop("city[country_name]", None)
+            data.pop("city[approved]", None)
+            data.pop("city[updated]", None)
+            data.pop("city[created]", None)
+            data.pop("city[approved]", None)
+            
+            if data.get('city').get('id', None):
+                print('====Have City****')
+                data['country'] = data.get('city').get('country_name')
+                data['state'] = data.get('city').get('state_name')
+                data['city'] = data.get('city').get('id')
+            else:
+                print('====Create City****')
+                ser = CitySerializer(data=data.get('city'))
+                ser.is_valid(raise_exception=True)
+                inst = ser.save()
+                data['country'] = inst.country_name
+                data['state'] = inst.state_name
+                data['city'] = inst.id
+            data['social_links'] = request.data.getlist('social_links[]', [])
+            
+            serializer = self.get_serializer(data=data)
             serializer.is_valid(raise_exception=True)
             instance = self.perform_create(serializer)
 
+            serializer = ManagerDirectoryListSerializer(instance)
             headers = self.get_success_headers(serializer.data)
 
             return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
         else:
-            return Response({"message": "Recaptcha validation failed"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"message": "This is not authorised!!!"}, status=status.HTTP_403_FORBIDDEN)
+        # if r.status_code == 200 and d.get("success") and float(d.get("score")) > 0.5:
+        #     serializer = self.get_serializer(data=request.data)
+        #     serializer.is_valid(raise_exception=True)
+        #     instance = self.perform_create(serializer)
+
+        #     headers = self.get_success_headers(serializer.data)
+
+        #     return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+        # else:
+        #     return Response({"message": "Recaptcha validation failed"}, status=status.HTTP_400_BAD_REQUEST)
+
+    def update(self, request, *args, **kwargs):
+        print('---- data----')
+        print(request.data)
+        
+        profile = request.user.user_profile
+        if request.user.position == UserModel.ADMIN and (profile.company is not None or profile.administrative_company is not None):
+            data = request.data.dict()
+            
+            data['city'] = dict()
+            data['city']['id'] = data.get('city[id]', None)
+            data['city']['name'] = data.get('city[name]')
+            data['city']['state_name'] = data.get('city[state_name]')
+            data['city']['country_name'] = data.get('city[country_name]')
+            data['city']['approved'] = True if data['city']['id'] else False
+            data['city_data'] = data['city']
+
+            data.pop("city[id]", None)
+            data.pop("city[imported]", None)
+            data.pop("city[import_id]", None)
+            data.pop("city[name]", None)
+            data.pop("city[state_name]", None)
+            data.pop("city[updated]", None)
+            data.pop("city[created]", None)
+            data.pop("city[country_name]", None)
+            data.pop("city[approved]", None)
+            
+            if data.get('city').get('id', None):
+                print('====Have City****')
+                data['country'] = data.get('city').get('country_name')
+                data['state'] = data.get('city').get('state_name')
+                data['city'] = data.get('city').get('id')
+            else:
+                print('====Create City****')
+                ser = CitySerializer(data=data.get('city'))
+                ser.is_valid(raise_exception=True)
+                inst = ser.save()
+                data['country'] = inst.country_name
+                data['state'] = inst.state_name
+                data['city'] = inst.id
+            data['social_links'] = request.data.getlist('social_links[]', [])
+              
+            if type(data['logo']) == str:
+                data.pop('logo', None)
+            
+            print('==========')
+            print(data)
+            partial = kwargs.pop('partial', False)
+            instance = self.get_object()
+            
+            print('==========', partial)
+            serializer = self.get_serializer(instance, data=data, partial=partial)
+            serializer.is_valid(raise_exception=True)
+            instance = self.perform_update(serializer)
+
+            serializer = ManagerDirectoryListSerializer(instance)
+            headers = self.get_success_headers(serializer.data)
+
+            return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+        else:
+            return Response({"message": "This is not authorised!!!"}, status=status.HTTP_403_FORBIDDEN)
+        # if r.status_code == 200 and d.get("success") and float(d.get("score")) > 0.5:
+        #     serializer = self.get_serializer(data=request.data)
+        #     serializer.is_valid(raise_exception=True)
+        #     instance = self.perform_create(serializer)
+
+        #     headers = self.get_success_headers(serializer.data)
+
+        #     return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+        # else:
+        #     return Response({"message": "Recaptcha validation failed"}, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(methods=['get'], detail=False, url_path='me', url_name='me')
+    def me(self, request, *args, **kwargs):
+        p = request.user.user_profile
+        md = ManagerDirectory.objects.filter(Q(company__administrator=p) | Q(company__members=p), enabled=True).first()
+        # company = ManagerDirectory.objects.filter(Q(company__administrator=p) | Q(company__members=p), enabled=True).prefetch_related(
+        #     Prefetch('company_offices', queryset=Office.objects.filter(enabled=True).prefetch_related(
+        #         Prefetch('office_properties', queryset=Property.objects.filter(enabled=True)))), 
+        #     Prefetch('company_portfolios', queryset=Portfolio.objects.filter(enabled=True).prefetch_related(
+        #         Prefetch('portfolio_properties', queryset=Property.objects.filter(enabled=True)))),
+        #     Prefetch('members', queryset=Profile.objects.filter(enabled=True).prefetch_related(
+        #         Prefetch('portfolios', queryset=Portfolio.objects.filter(enabled=True)),
+        #         Prefetch('offices', queryset=Office.objects.filter(enabled=True))))
+        # ).first()
+        if md:
+            return Response(ManagerDirectorySerializer(md).data, status=status.HTTP_200_OK)
+        else:
+            return Response(None, status=status.HTTP_200_OK)
         
     @action(methods=['get'], detail=False, url_path='names', url_name='names')
     def names(self, request, *args, **kwargs):
         return Response(self.get_queryset().values_list('email', flat=True), status=status.HTTP_200_OK)
+
+    @action(methods=['post'], detail=False, url_path='search', url_name='search')
+    def search(self, request, *args, **kwargs):
+        print('-------')
+        print(request.data)
+        data = request.data
+        
+        qs = Company.objects.filter(enabled=True)
+        if len(data.get('state', '')) > 0:
+            print('1. ', data.get('state'))
+            qs = qs.filter(mdl__state=data.get('state'))
+        if len(data.get('city', '')) > 0:
+            print('2. ', data.get('state'))
+            qs = qs.filter(mdl__city_id=data.get('city').get('id', None))
+        if len(data.get('zip_code', '')) > 0:
+            print('3. ', data.get('state'))
+            qs = qs.filter(mdl__zip_code=data.get('zip_code'))
+            
+        qs = qs.prefetch_related(
+            Prefetch('company_offices', queryset=Office.objects.filter(enabled=True).prefetch_related(
+                Prefetch('office_properties', queryset=Property.objects.filter(enabled=True)))), 
+            Prefetch('company_portfolios', queryset=Portfolio.objects.filter(enabled=True).prefetch_related(
+                Prefetch('portfolio_properties', queryset=Property.objects.filter(enabled=True)))),
+            Prefetch('members', queryset=Profile.objects.filter(enabled=True).prefetch_related(
+                Prefetch('portfolios', queryset=Portfolio.objects.filter(enabled=True)),
+                Prefetch('offices', queryset=Office.objects.filter(enabled=True)))),
+            Prefetch('invitations', queryset=Invitation.objects.filter(enabled=True))
+    )
+        print(qs.query)
+        return Response(CompanyMDLDetailSerializer(qs, many=True).data)
 
 
 class OfficeViewSet(viewsets.ModelViewSet, AchieveModelMixin):
     permission_classes = (IsAuthenticated, )
     authentication_classes = (TokenAuthentication,)
     parser_classes = (MultiPartParser, FormParser, JSONParser, FileUploadParser)
-        
+    
     def get_serializer_class(self):
-        # if self.action in ['create', 'update']:
-        #     return CompanySerializer
+        if self.action in ['list', 'retrieve']:
+            return OfficeDetailSerializer
         return OfficeSerializer
 
     def get_queryset(self):
@@ -160,28 +293,121 @@ class OfficeViewSet(viewsets.ModelViewSet, AchieveModelMixin):
         return serializer.save(updated_by_id=self.request.user.id)
     
     def create(self, request, *args, **kwargs):
-        print(request.data)
-        verifyServer = f"https://www.google.com/recaptcha/api/siteverify?secret={settings.RECAPTCHA_SECRET_KEY}&response={request.data.get('token')}"
-        r = requests.get(verifyServer)
-        print(r.json())
-        d = r.json()
-        # print()
-        
-        if r.status_code == 200 and d.get("success") and float(d.get("score")) > 0.5:
-            serializer = self.get_serializer(data=request.data)
+        with transaction.atomic():
+            data = request.data
+            print(data)
+            if data and data.get('city', {}).get('id', None):
+                print('====Have City****')
+                data['country'] = data.get('city').get('country_name')
+                data['state'] = data.get('city').get('state_name')
+                data['city'] = data.get('city').get('id')
+            else:
+                print('====Create City****')
+                ser = CitySerializer(data=data.get('city'))
+                ser.is_valid(raise_exception=True)
+                inst = ser.save()
+                data['country'] = inst.country_name
+                data['state'] = inst.state_name
+                data['city'] = inst.id
+            
+            profile = request.user.user_profile
+            data['administrator'] = profile.id
+            data['company'] = profile.company.id
+            
+            print(data)
+            serializer = self.get_serializer(data=data)
             serializer.is_valid(raise_exception=True)
             instance = self.perform_create(serializer)
-
+            serializer = OfficeDetailSerializer(instance)
             headers = self.get_success_headers(serializer.data)
 
             return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
-        else:
-            return Response({"message": "Recaptcha validation failed"}, status=status.HTTP_400_BAD_REQUEST)
         
+        # print(request.data)
+        # verifyServer = f"https://www.google.com/recaptcha/api/siteverify?secret={settings.RECAPTCHA_SECRET_KEY}&response={request.data.get('token')}"
+        # r = requests.get(verifyServer)
+        # print(r.json())
+        # d = r.json()
+        # # print()
+        
+        # if r.status_code == 200 and d.get("success") and float(d.get("score")) > 0.5:
+        #     serializer = self.get_serializer(data=request.data)
+        #     serializer.is_valid(raise_exception=True)
+        #     instance = self.perform_create(serializer)
+
+        #     headers = self.get_success_headers(serializer.data)
+
+        #     return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+        # else:
+        #     return Response({"message": "Recaptcha validation failed"}, status=status.HTTP_400_BAD_REQUEST)
+      
+    def update(self, request, *args, **kwargs):
+        with transaction.atomic():
+            data = request.data
+            print(data)
+            if data.get('city').get('id', None):
+                print('====Have City****')
+                data['country'] = data.get('city').get('country_name')
+                data['state'] = data.get('city').get('state_name')
+                data['city'] = data.get('city').get('id')
+            else:
+                print('====Create City****')
+                ser = CitySerializer(data=data.get('city'))
+                ser.is_valid(raise_exception=True)
+                inst = ser.save()
+                data['country'] = inst.country_name
+                data['state'] = inst.state_name
+                data['city'] = inst.id
+                    
+            partial = kwargs.pop('partial', False)
+            instance = self.get_object()
+            
+            profile = request.user.user_profile
+            data['administrator'] = instance.administrator.id if instance.administrator else profile.id
+            data['company'] = instance.company.id if instance.company else profile.company.id
+            
+            serializer = self.get_serializer(instance, data=data, partial=partial)
+            
+            serializer.is_valid(raise_exception=True)
+            instance = serializer.save()
+            self.perform_update(serializer)
+            serializer = OfficeDetailSerializer(instance)
+
+        if getattr(instance, '_prefetched_objects_cache', None):
+            # If 'prefetch_related' has been applied to a queryset, we need to
+            # forcibly invalidate the prefetch cache on the instance.
+            instance._prefetched_objects_cache = {}
+
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+  
     @action(methods=['get'], detail=False, url_path='names', url_name='names')
     def names(self, request, *args, **kwargs):
         return Response(self.get_queryset().values_list('email', flat=True), status=status.HTTP_200_OK)
 
+    @action(methods=['post'], detail=True, url_path='delete/member/(?P<mid>[0-9A-Fa-f-]+)', url_name='delete-member')
+    def delete_member(self, request, *args, **kwargs):
+        instance = self.get_object()
+        p = request.user.user_profile
+        
+        if p.company is not None:
+            if  instance.company == p.company:
+                profile = Profile.objects.filter(id=kwargs['mid']).first()
+                if profile is not None and (profile.company == p.company or profile.company is None) and (instance in profile.offices.all() or instance.administrator == profile):
+                    if instance.administrator == profile:
+                        return Response({'message': 'You cannot evict the Administrator'}, status=status.HTTP_403_FORBIDDEN)
+                        
+                    removed = profile.offices.remove(instance)
+                    print('Removed..... ', removed)
+                    # profile.save()
+                    
+                    return Response({'message': 'Member is successfully Removed'}, status=status.HTTP_200_OK)
+                else:    
+                    return Response({'message': 'You are not authorised to perform this operation'}, status=status.HTTP_400_BAD_REQUEST)
+            else:    
+                return Response({'message': f'Only authorised members of the {instance.company} can perform this operation'}, status=status.HTTP_403_FORBIDDEN)
+        else:    
+            return Response({'message': 'You are not authorised to perform this operation.'}, status=status.HTTP_403_FORBIDDEN)
+   
 
 class PortfolioViewSet(viewsets.ModelViewSet, AchieveModelMixin):
     permission_classes = (IsAuthenticated, )
@@ -189,8 +415,8 @@ class PortfolioViewSet(viewsets.ModelViewSet, AchieveModelMixin):
     parser_classes = (MultiPartParser, FormParser, JSONParser, FileUploadParser)
         
     def get_serializer_class(self):
-        # if self.action in ['create', 'update']:
-        #     return CompanySerializer
+        if self.action in ['list', 'retrieve']:
+            return PortfolioDetailSerializer
         return PortfolioSerializer
 
     def get_queryset(self):
@@ -207,28 +433,83 @@ class PortfolioViewSet(viewsets.ModelViewSet, AchieveModelMixin):
         return serializer.save(updated_by_id=self.request.user.id)
     
     def create(self, request, *args, **kwargs):
-        print(request.data)
-        verifyServer = f"https://www.google.com/recaptcha/api/siteverify?secret={settings.RECAPTCHA_SECRET_KEY}&response={request.data.get('token')}"
-        r = requests.get(verifyServer)
-        print(r.json())
-        d = r.json()
-        # print()
+        # print(request.data)
+        # verifyServer = f"https://www.google.com/recaptcha/api/siteverify?secret={settings.RECAPTCHA_SECRET_KEY}&response={request.data.get('token')}"
+        # r = requests.get(verifyServer)
+        # print(r.json())
+        # d = r.json()
+        # # print()
         
-        if r.status_code == 200 and d.get("success") and float(d.get("score")) > 0.5:
-            serializer = self.get_serializer(data=request.data)
+        # if r.status_code == 200 and d.get("success") and float(d.get("score")) > 0.5:
+        data = request.data
+        
+        profile = request.user.user_profile
+        data['administrator'] = profile.id
+        data['company'] = profile.company.id
+        
+        print(data)
+        serializer = self.get_serializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        instance = self.perform_create(serializer)
+
+        serializer = PortfolioDetailSerializer(instance)
+        headers = self.get_success_headers(serializer.data)
+
+        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+        # else:
+        #     return Response({"message": "Recaptcha validation failed"}, status=status.HTTP_400_BAD_REQUEST)
+        
+    def update(self, request, *args, **kwargs):
+        with transaction.atomic():
+            data = request.data
+            partial = kwargs.pop('partial', False)
+            instance = self.get_object()
+            
+            profile = request.user.user_profile
+            data['administrator'] = instance.administrator.id if instance.administrator else profile.id
+            data['company'] = instance.company.id if instance.company else profile.company.id
+            
+            serializer = self.get_serializer(instance, data=data, partial=partial)
             serializer.is_valid(raise_exception=True)
-            instance = self.perform_create(serializer)
+            instance = serializer.save()
+            
+            serializer = PortfolioDetailSerializer(instance)
 
-            headers = self.get_success_headers(serializer.data)
+            if getattr(instance, '_prefetched_objects_cache', None):
+                # If 'prefetch_related' has been applied to a queryset, we need to
+                # forcibly invalidate the prefetch cache on the instance.
+                instance._prefetched_objects_cache = {}
 
-            return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
-        else:
-            return Response({"message": "Recaptcha validation failed"}, status=status.HTTP_400_BAD_REQUEST)
-        
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+  
     @action(methods=['get'], detail=False, url_path='names', url_name='names')
     def names(self, request, *args, **kwargs):
         return Response(self.get_queryset().values_list('email', flat=True), status=status.HTTP_200_OK)
 
+    @action(methods=['post'], detail=True, url_path='delete/member/(?P<mid>[0-9A-Fa-f-]+)', url_name='delete-member')
+    def delete_member(self, request, *args, **kwargs):
+        instance = self.get_object()
+        p = request.user.user_profile
+        
+        if p.company is not None:
+            if  instance.company == p.company:
+                profile = Profile.objects.filter(id=kwargs['mid']).first()
+                if profile is not None and (profile.company == p.company or profile.company is None) and (instance in profile.portfolios.all() or instance.administrator == profile):
+                    if instance.administrator == profile:
+                        return Response({'message': 'You cannot evict the Administrator'}, status=status.HTTP_403_FORBIDDEN)
+                        
+                    removed = profile.portfolios.remove(instance)
+                    print('Removed..... ', removed)
+                    # profile.save()
+                    
+                    return Response({'message': 'Member is successfully Removed'}, status=status.HTTP_200_OK)
+                else:    
+                    return Response({'message': 'You are not authorised to perform this operation'}, status=status.HTTP_400_BAD_REQUEST)
+            else:    
+                return Response({'message': f'Only authorised members of the {instance.company} can perform this operation'}, status=status.HTTP_403_FORBIDDEN)
+        else:    
+            return Response({'message': 'You are not authorised to perform this operation.'}, status=status.HTTP_403_FORBIDDEN)
+   
 
 class InquiryMessageViewSet(viewsets.ModelViewSet, AchieveModelMixin):
     permission_classes = (AllowAny, )
@@ -277,7 +558,8 @@ class InquiryMessageViewSet(viewsets.ModelViewSet, AchieveModelMixin):
         return Response(self.get_queryset().values_list('email', flat=True), status=status.HTTP_200_OK)
 
 
-class PropertyViewSet(viewsets.ModelViewSet):
+# https://github.com/andrewramsay/ical_to_gcal_sync/blob/master/config.py.example
+class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
     pagination_class = MyPagination
     # pagination_class = api_settings.DEFAULT_PAGINATION_CLASS
     permission_classes = (IsAuthenticated, )
@@ -300,7 +582,7 @@ class PropertyViewSet(viewsets.ModelViewSet):
     def get_serializer_class(self):
         if self.action in ['retrieve']:
             return PropertyDetailSerializer
-        elif self.action in ['list', 'search']:
+        elif self.action in ['list', 'search', 'publisher']:
             return PropertyListSerializer
         return PropertySerializer
 
@@ -340,6 +622,7 @@ class PropertyViewSet(viewsets.ModelViewSet):
             data['address']['geometry']['coordinates'] = [float(request.data.get('address[geometry][coordinates][0]', 0)), float(request.data.get('address[geometry][coordinates][1]', 0))]
             data['address']['properties'] = dict()
             data['address']['properties']['formatted'] = request.data.get('address[properties][formatted]')
+            data['address']['properties']['country_name'] = request.data.get('address[properties][country]')
             data['address']['properties']['street'] = request.data.get('address[properties][street]')
             data['address']['properties']['number'] = request.data.get('address[properties][number]')
             data['address']['properties']['zip_code'] = request.data.get('address[properties][zip_code]')
@@ -352,6 +635,7 @@ class PropertyViewSet(viewsets.ModelViewSet):
             # data['address']['properties']['city']['import_id'] = request.data.get('address[properties][city][import_id]', None)
             data['address']['properties']['city']['name'] = request.data.get('address[properties][city][name]')
             data['address']['properties']['city']['state_name'] = request.data.get('address[properties][city][state_name]')
+            data['address']['properties']['city']['country_name'] = request.data.get('address[properties][country]')
             data['address']['properties']['city']['approved'] = True if data['address']['properties']['city']['id'] else False
             data['address']['properties']['city_data'] = data['address']['properties']['city']
             # data['address']['properties']['city'] = data['address']['properties']['city'].get('id', None) if data['address']['properties']['city'].get('id', None) else None
@@ -535,6 +819,15 @@ class PropertyViewSet(viewsets.ModelViewSet):
             print('----------------')
             print(data.get('address'))
             print('============ 4 =============')
+
+            profile = request.user.user_profile
+            data['administrator'] = profile.id
+            if profile.company:
+                data['company'] = profile.company.id
+               
+            print(profile.id, ' P:::C ', profile.company.id,'  ============ *****= + =***** =============') 
+            print(data)
+            
             serializer = PropertySerializer(data=data, context={'city_data': data['address']['properties']['city_data']})
             print('============ 5 =============')
             serializer.is_valid(raise_exception=True)
@@ -555,12 +848,22 @@ class PropertyViewSet(viewsets.ModelViewSet):
                 ser.is_valid(raise_exception=True)
                 pic = self.perform_create(ser)
             print('============ 8 =============')
-            return Response(PropertySerializer(instance).data, status=status.HTTP_201_CREATED)
+            
+            cal = Calendar(name=instance.name, slug=instance.ref)
+            cal.save()
+            instance.calendar = cal
+            instance.save()
+            processPropertyEvents.apply_async(kwargs={'property_id': instance.id})
+            data = PropertySerializer(instance).data
+            if request.data.get('paying', None):
+                data['paying'] = instance.id
+            return Response(data, status=status.HTTP_201_CREATED)
 
     def update(self, request, *args, **kwargs):
         with transaction.atomic():
             partial = kwargs.pop('partial', False)
             instance = self.get_object()
+            ical_old = instance.ical_url
             print('============ 0 update =============')
             print(request.data)
             print('============ 1 update =============')
@@ -578,6 +881,7 @@ class PropertyViewSet(viewsets.ModelViewSet):
             data['address']['geometry']['coordinates'] = [float(request.data.get('address[geometry][coordinates][0]', 0)), float(request.data.get('address[geometry][coordinates][1]', 0))]
             data['address']['properties'] = dict()
             data['address']['properties']['formatted'] = request.data.get('address[properties][formatted]')
+            data['address']['properties']['country_name'] = request.data.get('address[properties][country_name]')
             data['address']['properties']['street'] = request.data.get('address[properties][street]')
             data['address']['properties']['number'] = request.data.get('address[properties][number]')
             data['address']['properties']['zip_code'] = request.data.get('address[properties][zip_code]')
@@ -590,6 +894,7 @@ class PropertyViewSet(viewsets.ModelViewSet):
             data['address']['properties']['city']['import_id'] = request.data.get('address[properties][city][import_id]', None)
             data['address']['properties']['city']['name'] = request.data.get('address[properties][city][name]')
             data['address']['properties']['city']['state_name'] = request.data.get('address[properties][city][state_name]')
+            data['address']['properties']['city']['country_name'] = request.data.get('address[properties][city][country_name]')
             data['address']['properties']['city']['approved'] = True if data['address']['properties']['city']['id'] else False
             data['address']['properties']['city_data'] = data['address']['properties']['city']
             # data['address']['properties']['city'] = data['address']['properties']['city'].get('id', None) if data['address']['properties']['city'].get('id', None) else None
@@ -601,6 +906,7 @@ class PropertyViewSet(viewsets.ModelViewSet):
             data.pop("address[geometry][coordinates][1]", None)
             data.pop("address[properties][formatted]", None)
             data.pop("address[properties][more_info]", None)
+            data.pop("address[properties][country_name]", None)
             data.pop("address[properties][street]", None)
             data.pop("address[properties][number]", None)
             data.pop("address[properties][zip_code]", None)
@@ -860,7 +1166,7 @@ class PropertyViewSet(viewsets.ModelViewSet):
             if inst:
                 ser = AddressSerializer(inst, data=data.get('address'), partial=partial) 
             else:
-                ser = AddressSerializer(data=d)
+                ser = AddressSerializer(data=data.get('address'))
             print(1)
             ser.is_valid(raise_exception=True)
             print(2)
@@ -894,25 +1200,33 @@ class PropertyViewSet(viewsets.ModelViewSet):
             #     p_ids.append(inst.id)
             # PropertyPhoto.objects.filter(~Q(id__in=p_ids), property=instance).delete()
             print('============ 8 =============')
+            if instance.ical_url != ical_old:    
+                processPropertyEvents.apply_async(kwargs={'property_id': instance.id})
             return Response(PropertySerializer(instance).data, status=status.HTTP_201_CREATED)
     
     def list(self, request, *args, **kwargs):
+        profile = request.user.user_profile
         page_number = request.query_params.get('page', None)
         size = request.query_params.get('size', 0)
         search = request.query_params.get('search', None)
-        sortby = request.query_params.get('sortby', 'created')
         direction = '' if request.query_params.get('direction', 'asc') == 'asc' else '-'
-        print('...: ',page_number)
-        print('...: ',request.query_params)
+        sortby = f"{direction}{request.query_params.get('sortby', 'created')}"
+        print('size: ', size)
+        print('sortby:...: ', sortby)
+        print('page_number...: ', page_number)
+        print('query_params...: ', request.query_params)
         print('...: ', type(request.query_params))
-        
+        print('Company: ', profile.company)
+        print('Profile: ', profile)
+
         # queryset = self.filter_queryset(self.get_queryset())
-        queryset = Property.objects.all().order_by('created')
+        queryset = Property.objects.filter(Q(Q(company__isnull=False, company=profile.company) | Q(administrator=profile)), enabled=True).order_by(sortby)
 
         if size == 0 and page_number:
+            # Remote Loader
             print(111)
             pagy = self.paginate_queryset(queryset)
-            total = Property.objects.all().count()
+            total = Property.objects.filter(Q(Q(company__isnull=False, company=profile.company) | Q(administrator=profile)), enabled=True).count()
             # print('Pagination: ', page)
             if pagy is not None:
                 size = request.query_params.get('size', None)
@@ -923,28 +1237,47 @@ class PropertyViewSet(viewsets.ModelViewSet):
         else:
             page_number = int(page_number) if page_number else 1
             size = int(size) if size and int(size) > 0 else 100
-            print(222)
+            print("A222")
             print(page_number, '   ', page_number*size, ' ---- ', size)
-            if request.user.is_manager:
-                print(2222)
-                total = Property.objects.all().count()
+            print(request.user.is_manager)
+            
+            if profile.company:
+                total = Property.objects.filter(Q(Q(company=profile.company) | Q(administrator=profile)), enabled=True).count()
                 if search:
-                    print("2222a")
-                    total = Property.objects.filter(Q(ref__icontains=search) | Q(name__icontains=search) | Q(type__icontains=search) | Q(space__icontains=search)).count()
-                    queryset = Property.objects.filter(Q(ref__icontains=search) | Q(name__icontains=search) | Q(type__icontains=search) | Q(space__icontains=search)).order_by(direction+sortby)[page_number*size:(page_number*size)+size]
+                    print("A333a")
+                    queryset = Property.objects.filter(Q(Q(company=profile.company) | Q(administrator=profile)), Q(Q(ref__icontains=search) | Q(name__icontains=search) | Q(type__icontains=search) | Q(space__icontains=search)), enabled=True).order_by(sortby)[page_number*size:(page_number*size)+size]
+                    total = len(queryset)
                 else:
-                    print("2222b")
-                    queryset = Property.objects.all().order_by(direction+sortby)[page_number*size:(page_number*size)+size]
+                    print("A333b")
+                    queryset = Property.objects.filter(Q(Q(company=profile.company) | Q(administrator=profile)), enabled=True).order_by(sortby)
+                    total = len(queryset)
+                    # queryset = Property.objects.filter(Q(Q(company__isnull=False, company=profile.company) | Q(administrator=profile)), enabled=True).order_by(sortby)[page_number*size:(page_number*size)+size]
+            elif request.user.is_manager:
+                if search:
+                    print("A444a")
+                    queryset = Property.objects.filter(Q(Q(ref__icontains=search) | Q(name__icontains=search) | Q(type__icontains=search) | Q(space__icontains=search)), company__isnull=True, enabled=True).order_by(sortby)[page_number*size:(page_number*size)+size]
+                    total = len(queryset)
+                else:
+                    print("A444b")
+                    queryset = Property.objects.filter(company__isnull=True, enabled=True).order_by(sortby)[page_number*size:(page_number*size)+size]
+                    total = len(queryset)
             else:
-                print("3333")
-                total = Property.objects.all().count()
+                if search:
+                    print("A555a")
+                    queryset = Property.objects.filter(Q(Q(ref__icontains=search) | Q(name__icontains=search) | Q(type__icontains=search) | Q(space__icontains=search)), company__isnull=True, enabled=True).order_by(sortby)[page_number*size:(page_number*size)+size]
+                    total = len(queryset)
+                else:
+                    print("A555b")
+                    queryset = Property.objects.filter(company__isnull=True, enabled=True).order_by(sortby)[page_number*size:(page_number*size)+size]
+                    total = len(queryset)
+                
                 # queryset = queryset[page_number*size:(page_number*size)+size]
             serializer = self.get_serializer(queryset, many=True)
             return Response({"data": serializer.data, "total_count": total})
         
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
-
+    
     @action(methods=['post', 'get'], detail=False, url_path='search', url_name='search')
     def search(self, request, *args, **kwargs):
         self.pagination_class.page_size = 20
@@ -1092,28 +1425,35 @@ class PropertyViewSet(viewsets.ModelViewSet):
             
     @action(methods=['get'], detail=False, url_path='form/items', url_name='form-items')
     def form_items(self, request, *args, **kwargs):
-        orderedDict = BookerSerializer(Booker.objects.filter(enabled=True), many=True).data
-        data = list(map(lambda d: dict(d), orderedDict))
-        sort_order = {x['name']: i for i, x in enumerate(data) if 'Additional' not in x['name'] or 'Direct Booking' not in x['name']}
-        data.sort(key=lambda x: sort_order.get(x["name"], 1000 if 'Additional' in x["name"] else -10))
-        bookers = data
-        services = ServiceSerializer(Service.objects.filter(enabled=True), many=True).data
-        sleepers = SleeperSerializer(Sleeper.objects.filter(enabled=True), many=True).data
-        spaces = SpaceSerializer(Space.objects.filter(enabled=True), many=True).data
-        bathrooms = BathroomSerializer(Bathroom.objects.filter(enabled=True), many=True).data
-        kitchens = KitchenSerializer(Kitchen.objects.filter(enabled=True), many=True).data
-        pool_spas = PoolSpaSerializer(PoolSpa.objects.filter(enabled=True), many=True).data
-        outsides = OutsideSerializer(Outside.objects.filter(enabled=True), many=True).data
-        essentials = EssentialSerializer(Essential.objects.filter(enabled=True), many=True).data
-        entertainments = EntertainmentSerializer(Entertainment.objects.filter(enabled=True), many=True).data
-        laundries = LaundrySerializer(Laundry.objects.filter(enabled=True), many=True).data
-        families = FamilySerializer(Family.objects.filter(enabled=True), many=True).data
-        parking = ParkingSerializer(Parking.objects.filter(enabled=True), many=True).data
-        accessibility = AccessibilitySerializer(Accessibility.objects.filter(enabled=True), many=True).data
+        selective = request.query_params.get('selective', '').split(',')
+        if len(selective) == 1 and selective[0] == '':
+            selective = []
+        print(selective)
+
+        bookers = []
+        if 'bookers' in selective or len(selective) == 0:
+            data = list(map(lambda d: dict(d), BookerSerializer(Booker.objects.filter(enabled=True), many=True).data))
+            sort_order = {x['name']: i for i, x in enumerate(data) if 'Additional' not in x['name'] or 'Direct Booking' not in x['name']}
+            data.sort(key=lambda x: sort_order.get(x["name"], 1000 if 'Additional' in x["name"] else -10))
+            bookers = data
         
-        safeties = SafetySerializer(Safety.objects.filter(enabled=True), many=True).data
-        features = FeatureSerializer(Feature.objects.filter(enabled=True), many=True).data
-        activities = ActivitySerializer(Activity.objects.filter(enabled=True), many=True).data
+        services = ServiceSerializer(Service.objects.filter(enabled=True), many=True).data if 'services' in selective or len(selective) == 0 else []
+        sleepers = SleeperSerializer(Sleeper.objects.filter(enabled=True), many=True).data if 'sleepers' in selective or len(selective) == 0 else []
+        spaces = SpaceSerializer(Space.objects.filter(enabled=True), many=True).data if 'spaces' in selective or len(selective) == 0 else []
+        bathrooms = BathroomSerializer(Bathroom.objects.filter(enabled=True), many=True).data if 'bathrooms' in selective or len(selective) == 0 else []
+        kitchens = KitchenSerializer(Kitchen.objects.filter(enabled=True), many=True).data if 'kitchens' in selective or len(selective) == 0 else []
+        pool_spas = PoolSpaSerializer(PoolSpa.objects.filter(enabled=True), many=True).data if 'pool_spas' in selective or len(selective) == 0 else []
+        outsides = OutsideSerializer(Outside.objects.filter(enabled=True), many=True).data if 'outsides' in selective or len(selective) == 0 else []
+        essentials = EssentialSerializer(Essential.objects.filter(enabled=True), many=True).data if 'essentials' in selective or len(selective) == 0 else []
+        entertainments = EntertainmentSerializer(Entertainment.objects.filter(enabled=True), many=True).data if 'entertainments' in selective or len(selective) == 0 else []
+        laundries = LaundrySerializer(Laundry.objects.filter(enabled=True), many=True).data if 'laundries' in selective or len(selective) == 0 else []
+        families = FamilySerializer(Family.objects.filter(enabled=True), many=True).data if 'families' in selective or len(selective) == 0 else []
+        parking = ParkingSerializer(Parking.objects.filter(enabled=True), many=True).data if 'parking' in selective or len(selective) == 0 else []
+        accessibility = AccessibilitySerializer(Accessibility.objects.filter(enabled=True), many=True).data if 'accessibility' in selective or len(selective) == 0 else []
+        
+        safeties = SafetySerializer(Safety.objects.filter(enabled=True), many=True).data if 'safeties' in selective or len(selective) == 0 else []
+        features = FeatureSerializer(Feature.objects.filter(enabled=True), many=True).data if 'features' in selective or len(selective) == 0 else []
+        activities = ActivitySerializer(Activity.objects.filter(enabled=True), many=True).data if 'activities' in selective or len(selective) == 0 else []
 
         return Response({
             'bookers': bookers, 
@@ -1133,8 +1473,8 @@ class PropertyViewSet(viewsets.ModelViewSet):
             'safeties': safeties,
             'features': features,
             'activities': activities
-            }, status=status.HTTP_201_CREATED)
-
+        }, status=status.HTTP_201_CREATED)
+     
     @action(methods=['get'], detail=False, url_path='fixed/items', url_name='fixed-items')
     def fixed_items(self, request, *args, **kwargs):
         
@@ -1144,3 +1484,93 @@ class PropertyViewSet(viewsets.ModelViewSet):
             # 'room_types': Property.ROOM_TYPES,
             'sleeper_types': Property.SLEEPER_TYPES
             }, status=status.HTTP_201_CREATED)
+
+    @action(methods=['patch', 'post'], detail=True, url_path='publisher', url_name='publish')
+    def publisher(self, request, *args, **kwargs):
+        instance = self.get_object()
+        profile = request.user.user_profile
+        if (instance.company is not None and instance.company != profile.company) or (instance.company is None and instance.administrator != profile and not profile.user.is_manager):
+            return Response({"message": "You are not authorised to perform this action", "required": []}, status=status.HTTP_403_FORBIDDEN)
+        
+        if not instance.is_published and len(instance.pictures.all()) == 0:
+            return Response({"message": "Atleast 1 picture is required for publication", "required": ["pictures"]}, status=status.HTTP_400_BAD_REQUEST)
+        instance.is_published = not instance.is_published
+        instance.save()
+        
+        return Response(self.get_serializer(instance=instance).data)
+    
+    @action(methods=['get'], detail=False, url_path='mine', url_name='mine')
+    def mine(self, request, *args, **kwargs):
+        p = request.user.user_profile
+        company = Property.objects.filter(Q(administrator=p) | Q(members=p), enabled=True).prefetch_related(
+            Prefetch('company_offices', queryset=Office.objects.filter(enabled=True).prefetch_related(
+                Prefetch('office_properties', queryset=Property.objects.filter(enabled=True)))), 
+            Prefetch('company_portfolios', queryset=Portfolio.objects.filter(enabled=True).prefetch_related(
+                Prefetch('portfolio_properties', queryset=Property.objects.filter(enabled=True)))),
+            Prefetch('members', queryset=Profile.objects.filter(enabled=True).prefetch_related(
+                Prefetch('portfolios', queryset=Portfolio.objects.filter(enabled=True)),
+                Prefetch('offices', queryset=Office.objects.filter(enabled=True)))),
+            Prefetch('invitations', queryset=Invitation.objects.filter(enabled=True))
+        ).first()
+        if company:
+            return Response(CompanyMDLDetailSerializer(company).data, status=status.HTTP_200_OK)
+        else:
+            return Response(None, status=status.HTTP_200_OK)
+
+    
+class SupportViewSet(viewsets.ModelViewSet):
+    permission_classes = (AllowAny, )
+    # authentication_classes = ()
+    authentication_classes = (TokenAuthentication, )
+    parser_classes = (JSONParser, MultiPartParser)
+        
+    def get_queryset(self):
+        """
+        This view should return a list of all the Company for
+        the user as determined by currently logged in user.
+        """
+        return Support.objects.filter(enabled=True)
+ 
+    def get_serializer_class(self):
+        # if self.action in ['retrieve',]:
+        #     return CitySerializer
+        return SupportSerializer
+
+    def perform_create(self, serializer):
+        return serializer.save()
+        
+    def create(self, request, *args, **kwargs):
+        print('****** 1');
+        data = request.data
+        print(data)
+        serializer = self.get_serializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        instance = self.perform_create(serializer)
+        
+        print(instance)
+        if instance.company is not None:
+            title = instance.company.name
+            # email = instance.company.email if instance.company.email else instance.company.administrator.user.email
+        else:
+            # email = request.user.email
+            title = settings.COMPANY_NAME
+        email = 'info@rentmyvr.com'
+        
+        domain = get_domain(request)
+        html_message = render_to_string('email/support_inquiry.html', {
+            'coy_name': settings.COMPANY_NAME,
+            'support': instance,
+            'profile': request.user.user_profile,
+            'domain': domain,
+            'project_title': title
+        })
+        
+        from core.tasks import sendMail
+        sendMail.apply_async(kwargs={'subject': f"Support Needed ({instance.ref})", "message": html_message,
+                                    "recipients": [email],
+                                    "fail_silently": settings.DEBUG, "connection": None})
+
+        headers = self.get_success_headers(serializer.data)
+
+        return Response({"message": "Ok", "result": 'Message sent Successfully'}, status=status.HTTP_201_CREATED, headers=headers)
+    

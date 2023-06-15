@@ -54,9 +54,14 @@ SYSTEM_USER_ID = '975381fd-d8a4-40be-81c2-27e172194bf8'
 CODE_BASED_ACTIVATION = True
 IS_MULTITENANT = False
 
+# Stripe
+STRIPE_PUBLISHABLE_KEY = config('STRIPE_PUBLISHABLE_KEY', default='')
+STRIPE_SECRET_KEY = config('STRIPE_SECRET_KEY', default='' )
+STRIPE_ENDPOINT_SECRET = config('STRIPE_ENDPOINT_SECRET', default='' )
+
 DOMAIN = config('DOMAIN', default='rentmyvr.com')
 DOMAIN_URL = config('DOMAIN_URL', default=f'https://{DOMAIN}')
-AUTH_TOKEN_LENGTH = 4
+AUTH_TOKEN_LENGTH = 6
 
 APPEND_SLASH = True
 ADMIN_URL = 'access/'
@@ -99,8 +104,8 @@ EMAIL_SENDER_ID = "admin@admin.com"
 EMAIL_CONNECTIONS = {
     'default': {
         'host': EMAIL_HOST,
-        'username': EMAIL_HOST_USER,
-        'password': EMAIL_HOST_PASSWORD,
+        # 'username': EMAIL_HOST_USER,
+        # 'password': EMAIL_HOST_PASSWORD,
         'port': EMAIL_PORT,
         'use_tls': EMAIL_USE_TLS,
     },
@@ -121,11 +126,13 @@ INSTALLED_APPS = [
     'core.apps.CoreConfig',
     'directory.apps.DirectoryConfig',
     'payment.apps.PaymentConfig',
+    'schedule.apps.ScheduleConfig',
 
     'auths_api.apps.AuthsApiConfig',
     'core_api.apps.CoreApiConfig',
     'directory_api.apps.DirectoryApiConfig',
     'payment_api.apps.PaymentApiConfig',
+    'schedule_api.apps.ScheduleApiConfig',
 
     'django.contrib.admin',
     'django.contrib.auth',
@@ -283,6 +290,8 @@ WSGI_APPLICATION = f'{PROJECT_NAME}.wsgi.application'
 
 IS_PORTABLE_DB = config('PORTABLE_DB', default=True, cast=bool)
 
+# django.db.utils.OperationalError: error in trigger ISO_metadata_reference_row_id_value_insert: no such column: rowid
+# python manage.py shell -c "import django;django.db.connection.cursor().execute('SELECT InitSpatialMetaData(1);')";
 if IS_PORTABLE_DB:
     DATABASES = {
         'default': {

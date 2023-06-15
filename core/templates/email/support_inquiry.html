@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<style type="text/css">
+	a, a:hover, a:active, a:focus {
+		color: rgba(62, 176, 247, 1);
+		cursor: pointer;
+	}
+
+	.boxed:hover, .boxed:focus, .boxed:active {
+		box-shadow: 0 2px 2px 2px rgba(0, 0, 0, .14), 0 3px 1px -2px rgba(0, 0, 0, .2), 0 1px 5px 0 rgba(0, 0, 0, .12);
+	}
+
+	.boxed {
+		box-shadow: 0 2px 2px 0 rgba(0, 0, 0, .14), 0 3px 1px -2px rgba(0, 0, 0, .2), 0 1px 5px 0 rgba(0, 0, 0, .12);
+	}
+</style>
+  <body style="background-color: #222533; padding: 20px; font-family: font-size: 14px; line-height: 1.43; font-family: &quot;Helvetica Neue&quot;, &quot;Segoe UI&quot;, Helvetica, Arial, sans-serif;">
+    <div style="max-width: 600px; margin: 0px auto; background-color: #fff; box-shadow: 0px 20px 50px rgba(0,0,0,0.05);">
+      <div style="padding: 60px 70px; border-top: 1px solid rgba(0,0,0,0.05);">
+        <h1 style="margin-top: 0px;">
+          Hello {{project_title}}'s Representative,
+        </h1>
+        <div style="color: #636363; font-size: 14px;">
+          <p>
+            You have got a suppory inquiry from a user with details below:
+          </p>
+          <li><em>Name: </em> {{profile.user.first_name}} {{profile.user.last_name}}</li>
+          <li><em>Phone: </em> {{support.phone | profile.user.phone}}</li>
+          <li><em>Email: </em> {{profile.user.email}}</li>
+          <li><em>Type: </em> {{support.type}}</li>
+          {% if support.company is not None %}<li><em>Company: </em> {{support.company.name}}</li>{% endif %}
+          <li><em>Message: </em> {{support.message}}</li>
+        </div>
+		
+        <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid rgba(0,0,0,0.05);">
+          {% comment %} <div style="color: #A5A5A5; font-size: 10px; margin-bottom: 5px;">
+            {{address_text}}
+          </div> {% endcomment %}
+          <div style="color: #A5A5A5; font-size: 10px;">
+            Copyright 2023 {{coy_name}}. All rights reserved.
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

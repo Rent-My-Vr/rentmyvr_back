@@ -1,6 +1,19 @@
 {% extends "auths/mail_templates/base.html" %} {% load static i18n %}
 <!-- test -->
 
+{% block logo %}
+    <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tbody>
+            <tr>
+                <td align="center" style="padding: 30px;">
+                    <img src="https://rentmyvr.com/assets/images/amenties-svg/barn.svg" alt="logo">
+                </td>
+            </tr>
+        </tbody>
+    </table>
+{% endblock %}
+
+
 {% block mail_body %}
 <table width="100%" cellpadding="0" cellspacing="0" border="0">
   <tbody>
@@ -14,7 +27,16 @@
                 valign="top"
                 style="font-family: Calibri , Trebuchet , Arial , sans serif;font-size: 36.0px;line-height: 44.0px;color: rgb(51,51,51);"
               >
-                Portal Access
+                <img src="{{domain}}/assets/images/rentmyvr-logo.svg" alt="logo" style="margin-bottom: 20px;" />
+              </td>
+            </tr>
+            <tr>
+              <td
+                align="center"
+                valign="top"
+                style="font-family: Calibri , Trebuchet , Arial , sans serif;font-size: 36.0px;line-height: 44.0px;color: rgb(51,51,51);"
+              >
+                {{coy_name}} Access
                 <br />
               </td>
             </tr>
@@ -37,8 +59,7 @@
                 style="vertical-align: top;padding: 0.0px 0.0px 0.0px 0.0px;font-family: Calibri , Trebuchet , Arial , sans serif;font-size: 19.0px;line-height: 24.0px;color: rgb(119,119,119);"
               >
                 <p style="padding: 15px; border-radius: 1px;">
-                  {{company}} has invited you to login for your online portal
-                  access. Please do so by logging in here:
+                  {{project_title}} has invited you to work with them at {{coy_name}}
 
                   <br />
                 </p>
@@ -67,8 +88,8 @@
                 <a
                   target="_blank"
                   style="color: #c0e1fb;text-decoration: none;"
-                  href="{{ url }}"
-                  >Login to Portal<br
+                  href="{{ action_link }}"
+                  >Click to Accept/Decline<br
                 /></a>
               </td>
             </tr>

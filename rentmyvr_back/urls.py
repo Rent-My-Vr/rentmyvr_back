@@ -71,6 +71,8 @@ urlpatterns = [
     path('payment/', include('payment.urls')),
     path('api/payment/', include('payment_api.urls')),
 
+    path('schedule/', include('schedule.urls')),
+    path('api/schedule/', include('schedule_api.urls')),
 ]
 
 if settings.DEBUG:
