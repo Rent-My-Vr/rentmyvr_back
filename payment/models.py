@@ -155,7 +155,7 @@ class Subscription(StampedModel):
         All Subscriptions must be associated to a Transaction and the 
         transaction status MUST be Successful  
     """
-     
+
     ACTIVE = 'active'
     CANCELLED = 'canceled'
     INCOMPLETE = 'incomplete'
@@ -164,6 +164,7 @@ class Subscription(StampedModel):
     PAUSED = 'paused'
     TRIALING = 'trialing'
     UNPAID = 'unpaid'
+
     STATUS_CHOICES = (
         (ACTIVE, 'Active'),
         (CANCELLED, 'Cancelled'),
