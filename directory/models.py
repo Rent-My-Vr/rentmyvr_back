@@ -470,6 +470,7 @@ class Property(StampedUpdaterModel):
     BOAT = 'boat'
     BUNGALOW = 'bungalow'
     BUS = 'bus'
+    BUILDING = 'building-staff-24-7'
     CABIN = 'cabin'
     CAMPER = 'camper'
     CARAVAN = 'caravan'
@@ -528,6 +529,7 @@ class Property(StampedUpdaterModel):
                 (BOAT, 'Boat'),
                 (BUNGALOW, 'Bungalow'),
                 (BUS, 'Bus'),
+                (BUILDING, 'Building Staff 24/7'),
                 (CABIN, 'Cabin'),
                 (CAMPER, 'Camper'),
                 (CARAVAN, 'Caravan'),

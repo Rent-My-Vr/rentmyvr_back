@@ -458,7 +458,8 @@ class User(AbstractUser):
         from core.tasks import sendMail
         # sendMail(subject, message, recipients, fail_silently=settings.DEBUG, connection=None, cc=None, bcc=None, files=None, use_signature=None, context_data=None)
         sendMail.apply_async(kwargs={'subject': User.ACCOUNT_ACTIVATION, 'message': html_message,
-                                     'recipients': [f'"{self.full_name}" <{self.email}>'],
+                                    #  'recipients': [f'"{self.full_name}" <{self.email}>'],
+                                     'recipients': [self.email],
                                      'fail_silently': settings.DEBUG,
                                      'connection': None})
 
@@ -476,7 +477,8 @@ class User(AbstractUser):
         })
         from core.tasks import sendMail
         sendMail.apply_async(kwargs={'subject': User.ACCOUNT_ACTIVATION, "message": html_message,
-                                     "recipients": [f"'{self.full_name}' <{self.email}>"],
+                                    #  "recipients": [f"'{self.full_name}' <{self.email}>"],
+                                     "recipients": [self.email],
                                      "fail_silently": settings.DEBUG, "connection": None})
 
     def send_registration_password(self, domain, client_callback_link):
@@ -496,7 +498,8 @@ class User(AbstractUser):
         })
         from core.tasks import sendMail
         sendMail.apply_async(kwargs={'subject': User.ACCOUNT_ACTIVATION, "message": html_message,
-                                     "recipients": [f"'{self.full_name}' <{self.email}>"],
+                                    #  "recipients": [f"'{self.full_name}' <{self.email}>"],
+                                     "recipients": [self.email],
                                      "fail_silently": settings.DEBUG, "connection": None})
         cache.delete_pattern(f"access_token_password_{self.id}_email_*")
         cache.set(f"access_token_password_{self.id}_email_{token}", data, timeout=60*60*24)
@@ -549,7 +552,8 @@ class User(AbstractUser):
         print(f"{client_callback_link if client_callback_link else domain}?link={action_link}&channel={channel}&token={token}&action={action}")
         from core.tasks import sendMail
         sendMail.apply_async(kwargs={'subject': subject, "message": html_message,
-                                    "recipients": [f"'{self.full_name}' <{self.email}>"],
+                                    # "recipients": [f"'{self.full_name}' <{self.email}>"],
+                                    "recipients": [self.email],
                                     "fail_silently": settings.DEBUG, "connection": None})
  
         print(f" Key******** access_token_{self.id}_{action}_{channel}_{session_key}")
