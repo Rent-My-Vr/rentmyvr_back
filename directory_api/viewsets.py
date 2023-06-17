@@ -597,6 +597,7 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
     def perform_update(self, serializer):
         return serializer.save(updated_by_id=self.request.user.id)
       
+    #   TODO: Fix COuntry_name
     def create(self, request, *args, **kwargs):
         with transaction.atomic():
             print('============ 0 =============')
@@ -1268,7 +1269,7 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
                     total = len(queryset)
                 else:
                     print("A555b")
-                    queryset = Property.objects.filter(company__isnull=True, enabled=True).order_by(sortby)[page_number*size:(page_number*size)+size]
+                    queryset = Property.objects.filter(company__isnull=True, administrator=profile, enabled=True).order_by(sortby)[page_number*size:(page_number*size)+size]
                     total = len(queryset)
                 
                 # queryset = queryset[page_number*size:(page_number*size)+size]
