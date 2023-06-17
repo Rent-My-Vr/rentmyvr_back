@@ -92,26 +92,65 @@ class CompanyResource(resources.ModelResource):
     
     def __init__(self):
         # print("\n 111 ****  __init__(self) ")
+        self.skip_counter = 0
         self.mdl = None
         self.id = None
         self.skip = False
         self.updated_by = None
 
+    def save_instance(self, instance, is_create, using_transactions=True, dry_run=False):
+        """
+        Takes care of saving the object to the database.
+        Objects can be created in bulk if ``use_bulk`` is enabled.
+
+        :param instance: The instance of the object to be persisted.
+        :param is_create: A boolean flag to indicate whether this is a new object to be created, or an existing object to be updated.
+        :param using_transactions: A flag to indicate whether db transactions are used.
+        :param dry_run: A flag to indicate dry-run mode.
+        """
+        
+        jump = False
+        self.before_save_instance(instance, using_transactions, dry_run)
+        if self._meta.use_bulk:
+            if is_create:
+                self.create_instances.append(instance)
+            else:
+                self.update_instances.append(instance)
+        else:
+            if not using_transactions and dry_run:
+                # we don't have transactions and we want to do a dry_run
+                pass
+            else:
+                try:
+                    print(' ===>> ', instance.id)
+                    instance.save()
+                    jump = True
+                except:
+                    jump = False
+        if jump:
+            self.after_save_instance(instance, using_transactions, dry_run)
+            
+
     def before_import_row(self, row, **kwargs):
         # print("\n   222  **** before_import_row(self)", kwargs)
         # print(row['Local'])
-        profile = Profile.objects.get(id=row['Local'])
+        # profile = Profile.objects.get(id=row['Local'])
         # print(' 22===> ', profile)
         user = kwargs['user']
         try:
-            print(f"22===> This profile {profile.id} already have and Administrative Company {profile.administrative_company} ({profile.administrative_company.id})")
-            self.skip = True
-        except Profile.administrative_company.RelatedObjectDoesNotExist:
-            user.position = UserModel.ADMIN
-            user.save()
+            # print(f"\n\n22===> Attempt to this profile {profile.id} to Company already have and Administrative Company {profile.administrative_company} ({profile.administrative_company.id})")
+            coy = Company.objects.get(name=row['Company Name'], state=City.objects.get(id=row['City ID']).state_name)
+            self.skip = False
+            self.skip_counter = self.skip_counter + 1
+            print(f"\n\n Company => {coy} ({coy.id}) already exists")
+        except Company.DoesNotExist:
             pass
+            # except Profile.administrative_company.RelatedObjectDoesNotExist:
+            # user.position = UserModel.ADMIN
+            # user.save()
+            # pass
         
-        print('+++++++++  ', row)
+        # print('+++++++++  ', row)
         self.mdl = ManagerDirectory()
         self.mdl.name = row['Company Name']
         self.mdl.status = ManagerDirectory.IMPORTED
@@ -135,11 +174,14 @@ class CompanyResource(resources.ModelResource):
         self.mdl.updated_by = user
         # print(' 22===> Done!')
         
-    def skip_row(self, instance, original, row, data):
+    def skip_row(self, instance, original, row, import_validation_errors=None):
+        # def skip_row(self, instance, original, row, data):
         # print(" 333 ***** skip_row()", self.skip)
         if self.skip:
-            print(' Skipped  ***************  ===> ', instance.id, ' => ', row)
-        
+            print(self.skip_counter, ': Skipped  ***************  ===> ', instance.id, ' =>    ', row['Local'])
+            return True
+
+        return False
         # print(self)
         # print(instance)
         # print(original)
@@ -149,7 +191,7 @@ class CompanyResource(resources.ModelResource):
         # d = dict(row)
         # print(type(instance), "   ", type(original), " ", type(row), " ", type(data))
         # print(count > 0, "  ", d['id'])
-        return self.skip
+        # return super().skip_row(instance, original, row, import_validation_errors=import_validation_errors)
     
     def before_save_instance(self, instance, using_transactions, dry_run):
         # print("\n 444 ***** before_save_instance()", self.id, "   ", instance.id)
@@ -170,6 +212,8 @@ class CompanyResource(resources.ModelResource):
 
     class Meta:
         model = Company
+        skip_unchanged = False
+        report_skipped = True
         fields = ('id', 'ref', 'name', 'administrator_id', 'website', 'contact_name', 'email', 'phone', 'ext', 'country','street', 'number', 'city_id', 'zip_code', 'updated_by')
         export_order = ('id', 'ref', 'name', 'administrator_id', 'website', 'contact_name', 'email', 'phone', 'ext', 'country','street', 'number', 'city_id', 'zip_code', 'updated_by')
 
