@@ -73,7 +73,8 @@ class PasswordResetForm(PRF):
             html_message = loader.render_to_string(html_email_template_name, context)
             # sendMail(subject, message, recipients, fail_silently=settings.DEBUG, html_message=None, channel="SMTP", connection_label=None):
             sendMail.apply_async(
-                kwargs={'subject': subject, 'message': "", 'recipients': [f"{context['user'].full_name if context['user'] else ''} <{to_email}>"],
+                # kwargs={'subject': subject, 'message': "", 'recipients': [f"{context['user'].full_name if context['user'] else ''} <{to_email}>"],
+                kwargs={'subject': subject, 'message': "", 'recipients': [to_email],
                         'fail_silently': False, 'html_message': html_message, 'connection': None})
 
     def clean_email(self):

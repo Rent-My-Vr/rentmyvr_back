@@ -35,12 +35,15 @@ def post_save_company(sender, instance, created, **kwargs):
     print(">>>>>>>>> post_save_company()")
     
     if created:
-        if instance.administrator is not None:
-            if instance.administrator.company is None:
-                instance.administrator.company = instance
-                instance.administrator.save()
-            elif instance.administrator.company.id != instance.id:
-                raise forms.ValidationError(f'User {instance} is already an existing memeber of a different Company')
+        try:
+            if instance.administrator is not None:
+                if instance.administrator.company is None:
+                    instance.administrator.company = instance
+                    instance.administrator.save()
+                elif instance.administrator.company.id != instance.id:
+                    raise forms.ValidationError(f'User {instance} is already an existing memeber of a different Company')
+        except Profile.DoesNotExist:
+            pass
 
 # @receiver(pre_save, sender=Profile)
 # def pre_save_profile(sender, instance: Profile, raw, **kwargs):
