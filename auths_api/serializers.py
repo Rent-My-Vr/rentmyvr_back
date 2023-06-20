@@ -247,7 +247,7 @@ class UserSerializer(serializers.ModelSerializer):
 
 
 class UserSessionSerializer(serializers.ModelSerializer):
-    # profile_id = serializers.SerializerMethodField(source='user_profile')
+    profile_id = serializers.SerializerMethodField(source='user_profile')
     company = serializers.SerializerMethodField(source='user_profile__company')
     image_url = serializers.SerializerMethodField(source='user_profile.image')
     
@@ -272,13 +272,19 @@ class UserSessionSerializer(serializers.ModelSerializer):
         except:
             return None
 
+    def get_profile_id(self, obj):
+        try:
+            return obj.user_profile.id
+        except:
+            return None
+
     class Meta:
         model = UserModel
         read_only_fields = ('id', 'last_login', 'is_superuser', 'is_staff',
         'is_active', 'email_verified', 'is_manager', 'failed_attempts', 
         'last_password_change', 'force_password_change', 'remember', 
-        'last_login_signature', 'user_permissions', 'groups', 'blacklist_permissions')
-        fields = ('id', 'first_name', 'last_name', 'phone', 'email', 'password', 'is_manager', 'position', 'image_url', 'company')
+        'last_login_signature', 'user_permissions', 'groups', 'blacklist_permissions', 'profile_id')
+        fields = ('id', 'first_name', 'last_name', 'phone', 'email', 'password', 'is_manager', 'position', 'image_url', 'company', 'profile_id')
         extra_kwargs = {'password': {'write_only': True}}
 
 

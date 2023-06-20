@@ -47,10 +47,11 @@ log.setLevel(settings.LOGGING_LEVEL)
 class ManagerDirectoryViewSet(viewsets.ModelViewSet, AchieveModelMixin):
     permission_classes = (IsAuthenticated, )
     authentication_classes = (TokenAuthentication,)
-    parser_classes = (MultiPartParser, FormParser)
+    parser_classes = (JSONParser, MultiPartParser, FormParser)
     # parser_classes = (MultiPartParser, FormParser, JSONParser, FileUploadParser)
         
     def get_permissions(self):
+        print('********', self.request.method, "   ", self.action)
         if self.action in ['search', 'retrieve']:
             return []  # This method should return iterable of permissions
         return super().get_permissions()
@@ -244,7 +245,7 @@ class ManagerDirectoryViewSet(viewsets.ModelViewSet, AchieveModelMixin):
         print(request.data)
         data = request.data
         
-        qs = Company.objects.filter(enabled=True)
+        qs = Company.objects.filter(enabled=True, mdl__is_active=True)
         if len(data.get('state', '')) > 0:
             print('1. ', data.get('state'))
             qs = qs.filter(mdl__state=data.get('state'))
@@ -1286,8 +1287,8 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
         geometry = data.get('geometry', None)
         address = data.get('address', None)
         
-        if not geometry and not address:
-            return Response({"message": "Address component is missing"}, status=status.HTTP_404_NOT_FOUND)
+        # if not geometry and not address:
+        #     return Response({"message": "Address component is missing"}, status=status.HTTP_404_NOT_FOUND)
         
         print(type(geometry))
         print(geometry)
@@ -1320,41 +1321,49 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
                 geometry = Polygon.from_bbox(bbox)
                 queryset = Property.objects.filter(address__location__within=geometry)
         else:
-            print(3)
-            print(address)
-            print(config('GOOGLE_GEOCODING_KEY'))
-            r = requests.get(requote_uri(config('GOOGLE_GEOCODING_LINK').format(config('GOOGLE_GEOCODING_KEY'), address)))
-            if r.status_code == 200:
-                js = r.json()
-                print(js)
-                if js['status'] == 'OK':
-                    # loc = js['results'][0]['geometry']['location']
-                    # geometry = json.dumps({"type": "Point", "coordinates": [loc['lat'], loc['lng']]})
-                    
-                    vp = js['results'][0]['geometry']['viewport']
-                    ne = vp.get('northeast', {})
-                    sw = vp.get('southwest', {})
+            if False:
+                print(3)
+                print(address)
+                print(config('GOOGLE_GEOCODING_KEY'))
+                r = requests.get(requote_uri(config('GOOGLE_GEOCODING_LINK').format(config('GOOGLE_GEOCODING_KEY'), address)))
+                if r.status_code == 200:
+                    js = r.json()
+                    print(js)
+                    if js['status'] == 'OK':
+                        # loc = js['results'][0]['geometry']['location']
+                        # geometry = json.dumps({"type": "Point", "coordinates": [loc['lat'], loc['lng']]})
+                        
+                        vp = js['results'][0]['geometry']['viewport']
+                        ne = vp.get('northeast', {})
+                        sw = vp.get('southwest', {})
 
-                    # xmin=sw[1]
-                    # ymin=sw[0]
-                    # xmax=ne[1]
-                    # ymax=ne[0]
-                    # bbox = (sw.lng, sw.lat, ne.lng, ne.lat)
-                    bbox = (sw.get('lng', 0), sw.get('lat', 0), ne.get('lng', 0), ne.get('lat', 0))
-                    print('===== ', bbox)
-                    geometry = Polygon.from_bbox(bbox)
-                    queryset = Property.objects.filter(address__location__contains=geometry)
+                        # xmin=sw[1]
+                        # ymin=sw[0]
+                        # xmax=ne[1]
+                        # ymax=ne[0]
+                        # bbox = (sw.lng, sw.lat, ne.lng, ne.lat)
+                        bbox = (sw.get('lng', 0), sw.get('lat', 0), ne.get('lng', 0), ne.get('lat', 0))
+                        print('===== ', bbox)
+                        geometry = Polygon.from_bbox(bbox)
+                        queryset = Property.objects.filter(address__location__contains=geometry)
+                    else:
+                        return Response({"message": "We are unable to Geolocate the address provided"}, status=status.HTTP_404_NOT_FOUND)
                 else:
                     return Response({"message": "We are unable to Geolocate the address provided"}, status=status.HTTP_404_NOT_FOUND)
-            else:
-                return Response({"message": "We are unable to Geolocate the address provided"}, status=status.HTTP_404_NOT_FOUND)
-                
+           
+        queryset = Property.objects.filter(enabled=True, is_published=True)     
         print(data.get('guest'))
         print(type(data.get('guest')))
         print(queryset.count())
         print(queryset)
 
-        if data.get('types', None):
+        if data.get('com_ref', None):
+            queryset = queryset.filter(company__ref=data.get('com_ref'))
+        elif data.get('off_ref', None):
+            queryset = queryset.filter(office__ref=data.get('off_ref'))
+        elif data.get('port_ref', None):
+            queryset = queryset.filter(portfolio__ref=data.get('port_ref'))
+        elif data.get('types', None):
             queryset = queryset.filter(type__in=data.get('types', []))
         elif data.get('bookedSpaces', None):
             queryset = queryset.filter(spaces__in=data.get('bookedSpaces', []))
