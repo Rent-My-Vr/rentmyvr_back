@@ -116,13 +116,19 @@ class ProcessingView(viewsets.ViewSet):
     @action(methods=['get'], detail=False, url_path='prices/(?P<type>[\w\-]+)', url_name='prices')
     def prices(self, request, *args, **kwargs):
         print('prices+++++++++', kwargs)
-        products = list(stripe.Product.search(query=f"active:'true' AND metadata['product-type']:'{kwargs['type']}'"))
-        print(products)
-        prices = []
-        if len(products) > 0:
-            prices = stripe.Price.list(active=True, currency='usd', product=products[0].id)
-        print(prices)
-        return Response(prices, status=status.HTTP_201_CREATED)
+        price = {Transaction.PDL: [], Transaction.MDL: [], Transaction.SETUP: []}
+        done = False
+        for product in list(stripe.Product.search(query=f"active:'true' AND metadata['product-type']:'{kwargs['type']}'")):
+            print('\n\n++++++ Product +++++++', product)
+            price[product.metadata['product-type']].extend(stripe.Price.list(active=True, currency='usd', product=product.id).to_dict_recursive()['data'])
+            if not done and product.metadata['product-type'] == Transaction.PDL:
+                done = True
+                for setup in list(stripe.Product.search(query=f"active:'true' AND metadata['product-type']: 'setup'")):
+                    print('\n++++++ Setup +++++++', setup, '\n')
+                    price[setup.metadata['product-type']].extend(stripe.Price.list(active=True, currency='usd', product=setup.id).to_dict_recursive()['data'])
+            
+        print('++++++ Price +++++++', price)
+        return Response(price, status=status.HTTP_201_CREATED)
           
     @action(methods=['get'], detail=False, url_path='products/(?P<type>[\w\-]+)', url_name='products')
     def products(self, request, *args, **kwargs):
@@ -148,25 +154,46 @@ class ProcessingView(viewsets.ViewSet):
             print(1)
             
             data = request.data
-            meta = data.get("metadata", list)
-            print(2)
+            meta = data.get("metadata", dict)
+            print('===========21===============')
+            print(meta)
+            print('===========22===============')
             print(data)
-            print("subscription" if data["price"]["type"] == "recurring" else "payment")
-            
+            print('===========23===============')
+            print("subscription" if data["prices"][0]["type"] == "recurring" else "payment")
+               
             profile = request.user.user_profile
             txn = Transaction()
+            
+            currency = None
+            is_subscription = False
+            for price in data['prices']:
+                currency = price["currency"]
+                if price['type'] == 'recurring':
+                    is_subscription = True
+                 
             txn.type = meta.get('item_type', None)
-            txn.currency = data["price"]["currency"]
+            txn.currency = currency
             txn.items = meta.get('item_ids', [])
-            # txn.pdl = Property.objects.filter(id=meta.get('item_ids', None)).first() if txn.type == Transaction.PDL else None
-            # txn.mdl = ManagerDirectory.objects.filter(id=meta.get('item_ids', None)).first() if txn.type == Transaction.MDL else None
-            # txn.other = meta.get('item_ids', None) if txn.type in [Transaction.SETUP, Transaction.OTHER] else None
             txn.quantity = int(data.get("quantity", 1))
-            txn.unit_price = float(data["price"]["unit_amount"] if data.get('billing_scheme') == 'per_unit' else 0.0)
+            price = data["prices"][0]
+            txn.unit_price = float(price["unit_amount"] if price['billing_scheme'] == 'per_unit' else 0.0)
             txn.payee = profile
             txn.updated_by = request.user
             txn.save()
             
+            if Transaction.PDL == txn.type and len(data["prices"]) > 1:
+                txn = Transaction()
+                txn.type = Transaction.SETUP
+                txn.currency = currency
+                txn.items = meta.get('item_ids', [])
+                txn.quantity = int(data.get("quantity", 1))
+                price = data["prices"][1]
+                txn.unit_price = float(price["unit_amount"] if price['billing_scheme'] == 'per_unit' else 0.0)
+                txn.payee = profile
+                txn.updated_by = request.user
+                txn.save()
+                
             print('==========')
             print(f"{data['success_url']}?txn_id={txn.id}&item_ids={meta.get('item_ids', [])}&type={txn.type}&next={meta.get('url', None)}")
             print(f"{data['cancel_url']}?txn_id={txn.id}&item_ids={meta.get('item_ids', [])}&type={txn.type}&next={meta.get('url', None)}")
@@ -180,6 +207,7 @@ class ProcessingView(viewsets.ViewSet):
             print({"enabled": txn.type != Transaction.MDL, "minimum": 1, "maximum": 100})
             print(data.get("metadata"))
             meta['item_ids'] = ','.join(meta.get('item_ids', None))
+            
             checkout_session = stripe.checkout.Session.create(
                 client_reference_id=txn.id,
                 customer_creation="always" if data["price"]["type"] == "one_time" else None,

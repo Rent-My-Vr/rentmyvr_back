@@ -825,8 +825,7 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             data['administrator'] = profile.id
             if profile.company:
                 data['company'] = profile.company.id
-               
-            print(profile.id, ' P:::C ', profile.company.id,'  ============ *****= + =***** =============') 
+                print(profile.id, ' P:::C ', profile.company.id,'  ============ *****= + =***** =============') 
             print(data)
             
             serializer = PropertySerializer(data=data, context={'city_data': data['address']['properties']['city_data']})
@@ -1498,7 +1497,7 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
         instance.is_published = not instance.is_published
         instance.save()
         
-        return Response(self.get_serializer(instance=instance).data)
+        return Response(PropertyDetailSerializer(instance=instance).data)
     
     @action(methods=['get'], detail=False, url_path='mine', url_name='mine')
     def mine(self, request, *args, **kwargs):

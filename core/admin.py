@@ -222,8 +222,8 @@ class CompanyResource(resources.ModelResource):
 class CompanyAdmin(ImportExportModelAdmin):
     resource_classes = [CompanyResource]
     search_fields = ('id', 'ref', 'name', 'email', 'website', 'contact_name', 'phone', 'mdl__name', 'mdl__ref', 'mdl__id')
-    list_filter = ('state', )
-    list_display = ('ref', 'name', 'mdl', 'administrator', 'website', 'contact_name', 'email', 'phone', 'ext', 'city', 'state', 'created', 'updated')
+    list_filter = ('enabled', 'state', )
+    list_display = ('ref', 'name', 'mdl', 'administrator', 'website', 'contact_name', 'email', 'phone', 'ext', 'city', 'state', 'created', 'updated', 'enabled')
 
     @admin.display(description='Phone')
     def phone(self, instance):
