@@ -754,6 +754,8 @@ class PropertyPhoto(StampedUpdaterModel):
     # type = models.CharField(max_length=254, verbose_name="type", choices=Property.TYPES)
     property = models.ForeignKey(Property, verbose_name="Property", related_name="pictures", on_delete=models.CASCADE)
     image = models.ImageField(upload_to="property_image_upload_path")
+    caption = models.CharField(max_length=256, verbose_name="caption", default='', blank=True, null=True) 
+    default = models.BooleanField(default=False, )
     
     def __str__(self):
         return f"{self.image}"
