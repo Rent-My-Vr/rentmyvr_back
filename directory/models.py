@@ -684,7 +684,7 @@ class Property(StampedUpdaterModel):
     spaces = models.ManyToManyField(Space, blank=True)
     services = models.ManyToManyField(Service, blank=True)
     
-    company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name='properties', blank=True, null=True, default=None)
+    company = models.ForeignKey(Company, on_delete=models.SET_NULL, related_name='properties', blank=True, null=True, default=None)
     administrator = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name='administrative_properties', blank=True, null=True, default=None)
     office = models.ForeignKey(Office, on_delete=models.CASCADE, related_name='office_properties', blank=True, null=True, default=None)
     portfolio = models.ForeignKey(Portfolio, on_delete=models.CASCADE, related_name='portfolio_properties', blank=True, null=True, default=None)
@@ -754,6 +754,8 @@ class PropertyPhoto(StampedUpdaterModel):
     # type = models.CharField(max_length=254, verbose_name="type", choices=Property.TYPES)
     property = models.ForeignKey(Property, verbose_name="Property", related_name="pictures", on_delete=models.CASCADE)
     image = models.ImageField(upload_to="property_image_upload_path")
+    caption = models.CharField(max_length=256, verbose_name="caption", default='', blank=True, null=True) 
+    default = models.BooleanField(default=False, )
     
     def __str__(self):
         return f"{self.image}"

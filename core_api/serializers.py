@@ -279,6 +279,14 @@ class CompanyMDLDetailSerializer(serializers.ModelSerializer):
         # fields = ('email',)
         exclude = ('enabled', )
 
+class ContactSerializer(serializers.ModelSerializer):
+    # company = CompanySerializer(many=False, read_only=True)
+
+    class Meta:
+        model = Contact
+        exclude = ('enabled', )
+        read_only_fields = ('id', 'ref', 'enabled',  'updated_by', )
+
 
 class ProfileDetailSerializer(serializers.ModelSerializer):
     from directory_api.serializers import OfficeSerializer, PortfolioSerializer, PropertySerializer

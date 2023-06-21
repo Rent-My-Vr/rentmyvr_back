@@ -234,6 +234,7 @@ class ContactViewSet(viewsets.ModelViewSet):
     def create(self, request, *args, **kwargs):
         print('****** 1');
         data = request.data
+        data['company'] = data.get('company_id')
         print(data)
         serializer = self.get_serializer(data=data)
         serializer.is_valid(raise_exception=True)
@@ -320,6 +321,8 @@ class CompanyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             headers = self.get_success_headers(serializer.data)
             profile.company = company
             profile.save()
+            c = profile.administrative_properties.all().update(company=company)
+            print(f'-----Upgraded {c} companies------')
             user = request.user
             user.position = UserModel.ADMIN
             user.save()
@@ -856,7 +859,7 @@ class ProfileViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             except Profile.administrative_company.RelatedObjectDoesNotExist:
                 pass
         else:
-            profiles = Profile.objects.filter(Q(Q(company=company) | Q(administrative_company=company), enabled=True)).distinct()
+            profiles = Profile.objects.filter(Q(Q(company=company) | Q(administrative__company=company), enabled=True)).distinct()
             data = ProfileSerializer(profiles, many=True).data
               
         return Response(data, status=status.HTTP_200_OK)

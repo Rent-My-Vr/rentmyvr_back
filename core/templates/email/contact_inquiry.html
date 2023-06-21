@@ -27,6 +27,9 @@
           <li><em>Name: </em> {{contact.name}}</li>
           <li><em>Phone: </em> {{contact.phone}}</li>
           <li><em>Email: </em> {{contact.email}}</li>
+          {% if contact.company is None %}
+            <li><em>Company Name: </em> {{contact.company_name}}</li>
+          {% endif %}
           <li><em>Message: </em> {{contact.message}}</li>
         </div>
 		

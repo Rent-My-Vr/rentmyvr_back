@@ -277,7 +277,7 @@ class Company(TrackedModel):
     formatted = models.CharField(max_length=512, verbose_name="Formatted Address", null=True, blank=True, default='')
     # location = gis_model.PointField(null=True, blank=True, spatial_index=True, geography=True, srid=4326, dim=3)
     
-    administrator = models.OneToOneField("Profile", on_delete=models.CASCADE, related_name='administrative_company', verbose_name="Administrator", blank=True, null=True, default=None)
+    administrator = models.OneToOneField("Profile", on_delete=models.CASCADE, related_name='profile', verbose_name="Administrator", blank=True, null=True, default=None)
     
     class Meta:
         ordering = ('name',)
