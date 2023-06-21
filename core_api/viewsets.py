@@ -401,7 +401,6 @@ class CompanyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
         
         print("Company: ", company)
         if company:
-            
             return Response(CompanyMDLDetailSerializer(company).data, status=status.HTTP_200_OK)
         else:
             return Response(None, status=status.HTTP_200_OK)

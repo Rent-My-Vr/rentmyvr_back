@@ -63,9 +63,9 @@ class LaundryAdmin(admin.ModelAdmin):
 
 @admin.register(ManagerDirectory)
 class ManagerDirectoryAdmin(admin.ModelAdmin):
-    search_fields = ('ref', 'name', 'email', 'website', 'contact_name', 'phone', 'company__name', 'company__ref')
-    list_filter = ('manage_for_others', 'state')
-    list_display = ('ref', 'name', 'company', 'administrator', 'website', 'contact_name', 'email', 'phone', 'phone_2', 'ext_2', 'state', 'city', 'zip_code', 'manage_for_others', 'description')
+    search_fields = ('id', 'ref', 'name', 'email', 'website', 'contact_name', 'phone', 'company__name', 'company__ref', 'company__id', 'subscription__id', 'subscription__external_ref')
+    list_filter = ('is_active', 'enabled', 'manage_for_others')
+    list_display = ('ref', 'name', 'company', 'is_active', 'subscription', 'administrator', 'website', 'contact_name', 'email', 'phone', 'phone_2', 'ext_2', 'state', 'city', 'zip_code', 'manage_for_others', 'id', 'created', 'updated', 'description')
 
     @admin.display(ordering='name', description='Name')
     def name(self, instance):
@@ -249,22 +249,23 @@ class PropertyResource(resources.ModelResource):
          
     class Meta:
         model = Property
-        fields = ('id', 'ref', 'is_draft', 'name', 'author', 'price', 'type', 'space', 'hosted_by', 'max_no_of_guest', 'no_of_bedrooms', 'no_of_bathrooms', 'is_pet_allowed', 'address', 'imported', 'import_id')
+        fields = ('id', 'ref', 'is_draft', 'name', 'author', 'price', 'type', 'space', 'hosted_by', 'max_no_of_guest', 'no_of_bedrooms', 'no_of_bathrooms', 'is_pet_allowed', 'address', 'imported', 'import_id', 'created', 'updated')
 
 
 @admin.register(InquiryMessage)
 class InquiryMessageAdmin(admin.ModelAdmin):
-    list_filter = ('enabled', 'property')
-    list_display = ('name', 'email', 'phone', 'property', 'enabled', 'subject', 'message', 'sent_time')
+    list_filter = ('enabled', )
+    search_fields = ['name', 'email', 'phone', 'property__name', 'property__id', 'property__ref', 'subject', 'message']
+    list_display = ('name', 'email', 'phone', 'property', 'enabled', 'subject', 'message', 'sent_time', 'created', 'updated')
 
         
 @admin.register(Property)
 class PropertyAdmin(ImportExportModelAdmin):
     resource_classes = [PropertyResource]
-    search_fields = ['id','ref', 'name', 'type', 'space', 'hosted_by', 'suitabilities', 'price_night', 'email', 'phone', ]
-    list_filter = ('imported', 'enabled', 'is_draft', 'type', 'space', 'is_pet_allowed', 'suitabilities')
-    list_display = ('ref', 'name', 'video', 'virtual_tour', 'is_draft', 'type', 'space', 'hosted_by', 'max_no_of_guest', 'no_of_bedrooms', 'no_of_bathrooms', 'is_pet_allowed', 'suitabilities', 'price_night', 'address', 'email', 'phone', 'logo', 'imported', 'enabled', 'created', 'updated', 'updated_by')
-
+    search_fields = ['id','ref', 'name', 'type', 'space', 'hosted_by', 'suitabilities', 'price_night', 'email', 'phone', 'subscription__external_ref', 'subscription__id', 'company__id', 'company__ref', 'company__name', 'administrator__id', 'administrator__ref', 'administrator__user__email', 'administrator__user__first_name', 'administrator__user__last_name',]
+    list_filter = ('imported', 'enabled', 'is_active', 'is_draft', 'type', 'space', 'is_pet_allowed', 'suitabilities')
+    list_display = ('ref', 'name', 'company', 'administrator', 'subscription', 'video', 'virtual_tour', 'is_active', 'is_draft', 'type', 'space', 'hosted_by', 'max_no_of_guest', 'no_of_bedrooms', 'no_of_bathrooms', 'is_pet_allowed', 'suitabilities', 'price_night', 'address', 'email', 'phone', 'id', 'logo', 'imported', 'enabled', 'created', 'updated', 'updated_by')
+    
 
 @admin.register(PropertyPhoto)
 class PropertyPhotoAdmin(admin.ModelAdmin):

@@ -155,7 +155,7 @@ class Subscription(StampedModel):
         All Subscriptions must be associated to a Transaction and the 
         transaction status MUST be Successful  
     """
-     
+
     ACTIVE = 'active'
     CANCELLED = 'canceled'
     INCOMPLETE = 'incomplete'
@@ -164,6 +164,7 @@ class Subscription(StampedModel):
     PAUSED = 'paused'
     TRIALING = 'trialing'
     UNPAID = 'unpaid'
+
     STATUS_CHOICES = (
         (ACTIVE, 'Active'),
         (CANCELLED, 'Cancelled'),
@@ -178,18 +179,19 @@ class Subscription(StampedModel):
     ref = models.CharField(max_length=16, verbose_name="Ref", unique=True, blank=False, null=False)
     external_ref = models.CharField(max_length=254, verbose_name="External Reference")
     external_obj = models.CharField(max_length=32, choices=Transaction.EXT_OBJECTS, verbose_name="External Object")
+    transaction = models.ForeignKey(Transaction, on_delete=models.CASCADE, related_name="subscriptions")
+    subscriber = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name="subscriptions")
     start_date = models.DateField(verbose_name="Start Date")
     end_date = models.DateField(verbose_name="End Date", null=True, blank=True, default=None)
-    transaction = models.ForeignKey(Transaction, on_delete=models.CASCADE, related_name="subscriptions")
     status = models.CharField(verbose_name="status", max_length=32,choices=STATUS_CHOICES, default=UNPAID)
     type = models.CharField(verbose_name="type", max_length=32, choices=Transaction.TYPES)
     item = models.CharField(verbose_name="item", max_length=128, default=None, null=True, blank=True)
     # pdl = models.ForeignKey(Property, on_delete=models.CASCADE, related_name="subscriptions", default=None, null=True, blank=True)
     # mdl = models.ForeignKey(ManagerDirectory, on_delete=models.CASCADE, related_name="subscriptions", default=None, null=True, blank=True)
     # other = models.CharField(max_length=128, verbose_name="other", default=None, null=True, blank=True)
-    subscriber = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name="subscriptions")
     
     class Meta:
+        unique_together = ('external_ref', 'subscriber', 'transaction')
         ordering = ('start_date',)
         verbose_name = _('Subscription')
         verbose_name_plural = _('Subscription')

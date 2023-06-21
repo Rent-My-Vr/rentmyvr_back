@@ -16,10 +16,10 @@ UserModel = get_user_model()
 
 @receiver(pre_save, sender=Company)
 def pre_save_company(sender, instance, raw, **kwargs):
-    print(">>>>>>>>> pre_save_company()")
+    pass # write your code here
+    # print(">>>>>>>>> pre_save_company()")
     # print(' ---- Start: ', instance.start_date)
     # if instance.created is None: # new object will be created
-    #     pass # write your code here
     # else:
     #     keys = cache.keys(f'project_{instance.id}_*')
     #     x = 1
@@ -29,18 +29,23 @@ def pre_save_company(sender, instance, raw, **kwargs):
     #     old = Company.objects.get(id=instance.id)
     #     cache.set(f"project_{instance.id}_{x}", {"status": old.status, "start_date": old.start_date, "end_date": old.end_date}, timeout=30)
 
-    
+
 @receiver(post_save, sender=Company)
 def post_save_company(sender, instance, created, **kwargs):
-    print(">>>>>>>>> post_save_company()")
+    # print(">>>>>>>>> post_save_company()")
     
     if created:
-        if instance.administrator is not None:
-            if instance.administrator.company is None:
-                instance.administrator.company = instance
-                instance.administrator.save()
-            elif instance.administrator.company.id != instance.id:
-                raise forms.ValidationError(f'User {instance} is already an existing memeber of a different Company')
+        try:
+            if instance.administrator is not None:
+                if instance.administrator.company is None:
+                    instance.administrator.company = instance
+                    instance.administrator.save()
+                    instance.administrator.user.position = UserModel.ADMIN
+                    instance.administrator.user.save()
+                elif instance.administrator.company.id != instance.id:
+                    raise forms.ValidationError(f'User {instance} is already an existing memeber of a different Company')
+        except Profile.DoesNotExist:
+            pass
 
 # @receiver(pre_save, sender=Profile)
 # def pre_save_profile(sender, instance: Profile, raw, **kwargs):

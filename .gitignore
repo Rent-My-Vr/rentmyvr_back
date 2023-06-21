@@ -9,6 +9,9 @@ directory/migrations/0*
 directory_api/migrations/0*
 payment/migrations/0*
 payment_api/migrations/0*
+schedule/migrations/0*
+schedule_api/migrations/0*
+*/migrations/0*
 rentmyvr_back.*
 credentials.json
 db.*

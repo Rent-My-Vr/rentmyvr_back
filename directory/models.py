@@ -19,7 +19,7 @@ from django.template.defaultfilters import filesizeformat
 
 from core.models import *
 from payment.models import Subscription
-
+from schedule.models.calendars import Calendar
 
 # Create your models here.
 
@@ -268,12 +268,12 @@ class ManagerDirectory(TrackedModel):
     ext_2 = models.CharField(max_length=8, verbose_name="Ext #", null=True, blank=True, default='')
     social_links = models.JSONField(null=False, blank=True, default=list)
     logo = models.ImageField(upload_to=manager_image_upload_path, blank=True, null=True, default=None)
-    facebook = models.URLField(max_length=254, verbose_name="Facebook", default='', blank=True, null=True)
-    instagram = models.URLField(max_length=254, verbose_name="Instagram", default='', blank=True, null=True)
-    tiktok = models.URLField(max_length=254, verbose_name="TikTok", default='', blank=True, null=True)
-    twitter = models.URLField(max_length=254, verbose_name="Twitter", default='', blank=True, null=True)
-    google_business = models.URLField(max_length=254, verbose_name="GoogleBusiness", default='', blank=True, null=True)
-    yelp = models.URLField(max_length=254, verbose_name="Yelp", default='', blank=True, null=True)
+    # facebook = models.URLField(max_length=254, verbose_name="Facebook", default='', blank=True, null=True)
+    # instagram = models.URLField(max_length=254, verbose_name="Instagram", default='', blank=True, null=True)
+    # tiktok = models.URLField(max_length=254, verbose_name="TikTok", default='', blank=True, null=True)
+    # twitter = models.URLField(max_length=254, verbose_name="Twitter", default='', blank=True, null=True)
+    # google_business = models.URLField(max_length=254, verbose_name="GoogleBusiness", default='', blank=True, null=True)
+    # yelp = models.URLField(max_length=254, verbose_name="Yelp", default='', blank=True, null=True)
 
     company = models.OneToOneField(Company, on_delete=models.CASCADE, related_name='mdl')
     subscription = models.OneToOneField(Subscription, on_delete=models.CASCADE, related_name='mdl', default=None, blank=True, null=True)
@@ -307,7 +307,7 @@ class Office(TrackedModel):
     street = models.CharField(max_length=254, verbose_name="Street", null=True, blank=True, default='')
     number = models.CharField(max_length=32, verbose_name="Number", null=True, blank=True, default='')
     city = models.ForeignKey(City, on_delete=models.CASCADE, verbose_name="City")
-    zip_code = models.CharField(max_length=10, verbose_name="Zip Code")
+    zip_code = models.CharField(max_length=10, verbose_name="Zip Code", null=True, blank=True, default='')
     more_info = models.CharField(max_length=512, verbose_name="Additional Info", null=True, blank=True, default='')
     formatted = models.CharField(max_length=512, verbose_name="Formatted Address", null=True, blank=True, default='')
     # location = gis_model.PointField(null=True, blank=True, geography=True, spatial_index=True, srid=4326, dim=3)
@@ -470,6 +470,7 @@ class Property(StampedUpdaterModel):
     BOAT = 'boat'
     BUNGALOW = 'bungalow'
     BUS = 'bus'
+    BUILDING = 'building-staff-24-7'
     CABIN = 'cabin'
     CAMPER = 'camper'
     CARAVAN = 'caravan'
@@ -528,6 +529,7 @@ class Property(StampedUpdaterModel):
                 (BOAT, 'Boat'),
                 (BUNGALOW, 'Bungalow'),
                 (BUS, 'Bus'),
+                (BUILDING, 'Building Staff 24/7'),
                 (CABIN, 'Cabin'),
                 (CAMPER, 'Camper'),
                 (CARAVAN, 'Caravan'),
@@ -633,18 +635,13 @@ class Property(StampedUpdaterModel):
         
     )
     
-    STANDARD = "standard"
-    PREMIUM = "premium"
-    SUBSCRIPTIONS = ((STANDARD, "Standard"), (PREMIUM, "Premium"))
-    
     ref = models.CharField(max_length=16, verbose_name="Ref", unique=True)
     name = models.CharField(max_length=254, verbose_name="Name") # db_index=False
     video = models.FileField(upload_to="property_video_upload_path", blank=True, null=True, default=None)
     virtual_tour = models.FileField(upload_to="property_video_upload_path", blank=True, null=True, default=None)
+    is_active = models.BooleanField(verbose_name="Is Active", default=False)
     is_draft = models.BooleanField(verbose_name="is draft", default=False)
     is_published = models.BooleanField(verbose_name="is published", default=False)
-    # subscription = models.CharField(max_length=254, verbose_name="Subscription", choices=SUBSCRIPTIONS, default=STANDARD)
-    # subscription = models.CharField(max_length=254, verbose_name="Subscription", choices=SUBSCRIPTIONS, default=STANDARD)
     type = models.CharField(max_length=254, verbose_name="Type", choices=TYPES)
     space = models.CharField(max_length=254, verbose_name="Booked Space", choices=BOOKED_SPACE)
     hosted_by = models.CharField(max_length=254, verbose_name="Hosted By", blank=True, null=True, default=None)
@@ -656,6 +653,8 @@ class Property(StampedUpdaterModel):
     description = models.TextField(verbose_name="Description")
     host_note = models.TextField(verbose_name="Host Notes", default='', blank=True, null=True)
     cancellation_policy = models.TextField(verbose_name="Cancellation Policy", default='', blank=True, null=True)
+    ical_url = models.URLField(verbose_name="iCal URL", default=None, blank=True, null=True)
+    calendar = models.OneToOneField(Calendar, on_delete=models.SET_NULL, related_name="property", default=None, blank=True, null=True)
     # room_type = models.CharField(max_length=32, verbose_name="Room Type", choices=ROOM_TYPES)
     # sleeper_type = models.CharField(max_length=32, verbose_name="Sleeper Type", choices=SLEEPER_TYPES)
     

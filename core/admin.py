@@ -1,4 +1,5 @@
 # from django.contrib import admin
+from django.contrib.auth import get_user_model
 from django.contrib import admin
 from directory.models import ManagerDirectory
 from .models import *
@@ -9,6 +10,7 @@ from import_export.admin import ImportExportModelAdmin
 from import_export.widgets import ForeignKeyWidget
 
 
+UserModel = get_user_model()
 
 class CityResource(resources.ModelResource):
     name = Field(attribute='name', column_name='City')
@@ -89,59 +91,129 @@ class CompanyResource(resources.ModelResource):
     administrator_id = Field(attribute='administrator_id', column_name='Local')
     
     def __init__(self):
-        print("\n 111 ****  __init__(self) ")
+        # print("\n 111 ****  __init__(self) ")
+        self.skip_counter = 0
         self.mdl = None
         self.id = None
         self.skip = False
         self.updated_by = None
 
+    def save_instance(self, instance, is_create, using_transactions=True, dry_run=False):
+        """
+        Takes care of saving the object to the database.
+        Objects can be created in bulk if ``use_bulk`` is enabled.
+
+        :param instance: The instance of the object to be persisted.
+        :param is_create: A boolean flag to indicate whether this is a new object to be created, or an existing object to be updated.
+        :param using_transactions: A flag to indicate whether db transactions are used.
+        :param dry_run: A flag to indicate dry-run mode.
+        """
+        
+        jump = False
+        self.before_save_instance(instance, using_transactions, dry_run)
+        if self._meta.use_bulk:
+            if is_create:
+                self.create_instances.append(instance)
+            else:
+                self.update_instances.append(instance)
+        else:
+            if not using_transactions and dry_run:
+                # we don't have transactions and we want to do a dry_run
+                pass
+            else:
+                try:
+                    print(' ===>> ', instance.id)
+                    instance.save()
+                    jump = True
+                except:
+                    jump = False
+        if jump:
+            self.after_save_instance(instance, using_transactions, dry_run)
+            
+
+    def before_import_row(self, row, **kwargs):
+        # print("\n   222  **** before_import_row(self)", kwargs)
+        # print(row['Local'])
+        # profile = Profile.objects.get(id=row['Local'])
+        # print(' 22===> ', profile)
+        user = kwargs['user']
+        try:
+            # print(f"\n\n22===> Attempt to this profile {profile.id} to Company already have and Administrative Company {profile.administrative_company} ({profile.administrative_company.id})")
+            coy = Company.objects.get(name=row['Company Name'], state=City.objects.get(id=row['City ID']).state_name)
+            self.skip = False
+            self.skip_counter = self.skip_counter + 1
+            print(f"\n\n Company => {coy} ({coy.id}) already exists")
+        except Company.DoesNotExist:
+            pass
+            # except Profile.administrative_company.RelatedObjectDoesNotExist:
+            # user.position = UserModel.ADMIN
+            # user.save()
+            # pass
+        
+        # print('+++++++++  ', row)
+        self.mdl = ManagerDirectory()
+        self.mdl.name = row['Company Name']
+        self.mdl.status = ManagerDirectory.IMPORTED
+        self.mdl.website = row['URL']
+        self.mdl.contact_name = row['Contact Name']
+        self.mdl.email = row['Email']
+        self.mdl.phone = row['Phone']
+        self.mdl.ext = row['Ext.#']
+        self.mdl.street = row['Street Name and Unit']
+        self.mdl.number = row['House Number']
+        self.mdl.zip_code = row['Zip']
+        self.mdl.phone_2 = row['Phone 2']
+        self.mdl.social_links = []
+ 
+        if row.get('FB') and len(row.get('FB')) > 8:
+            self.mdl.social_links.append(row['FB'])
+        if row.get('IG') and len(row.get('IG')) > 8:
+            self.mdl.social_links.append(row['IG'])
+        if row.get('TT') and len(row.get('TT')) > 8:
+            self.mdl.social_links.append(row['TT'])
+        self.mdl.updated_by = user
+        # print(' 22===> Done!')
+        
+    def skip_row(self, instance, original, row, import_validation_errors=None):
+        # def skip_row(self, instance, original, row, data):
+        # print(" 333 ***** skip_row()", self.skip)
+        if self.skip:
+            print(self.skip_counter, ': Skipped  ***************  ===> ', instance.id, ' =>    ', row['Local'])
+            return True
+
+        return False
+        # print(self)
+        # print(instance)
+        # print(original)
+        # print(row)
+        # print(data)
+        # print("=======")
+        # d = dict(row)
+        # print(type(instance), "   ", type(original), " ", type(row), " ", type(data))
+        # print(count > 0, "  ", d['id'])
+        # return super().skip_row(instance, original, row, import_validation_errors=import_validation_errors)
+    
     def before_save_instance(self, instance, using_transactions, dry_run):
-        print("\n 333 ***** before_save_instance()", self.id, "   ", instance.id)
+        # print("\n 444 ***** before_save_instance()", self.id, "   ", instance.id)
         # instance.id = self.id
-        print(instance.name)
-        instance.updated_by = self.updated_by
+        # print(instance.name)
+        instance.updated_by = self.mdl.updated_by
+        instance.state = instance.city.state_name
         self.mdl.company = instance
-        self.mdl.updated_by = self.updated_by
+        self.mdl.city = instance.city
+        self.mdl.state = instance.city.state_name
 
     def after_save_instance(self, instance, using_transactions, dry_run):
-        print(f"\n 4444 **** {instance.id} after_save_instance()(self): {self.id}")
+        # print(f"\n 555 **** {instance.id} after_save_instance()(self): {self.id}")
         self.mdl.save()
         # print("1. ", self.address)
         # print(instance.id, "  ===== ", instance)
         # print("+++++++++\n")
 
-    def before_import_row(self, row, **kwargs):
-        # print("\n   555  **** before_import_row(self)", kwargs)
-        profile = Profile.objects.get(id=row['Local'])
-        try:
-            print(f"This profile {profile.id} already have and Administrative Company {profile.administrative_company} ({profile.administrative_company.id})")
-            self.skip = True
-        except Profile.administrative_company.RelatedObjectDoesNotExist:
-            pass
-        mdl = ManagerDirectory()
-        mdl.phone_2 = row['Phone 2']
-        mdl.instagram = row['IG']
-        mdl.facebook = row['FB']
-        mdl.tiktok = row['TT']
-        self.mdl = mdl
-        self.updated_by = kwargs.get('user')
-        
-    def skip_row(self, instance, original, row, data):
-        print(" 666 ***** skip_row()")
-        return self.skip
-    #     # print(self)
-    #     # print(instance)
-    #     # print(original)
-    #     # print(row)
-    #     # print(data)
-    #     # print("=======")
-    #     d = dict(row)
-    #     # print(type(instance), "   ", type(original), " ", type(row), " ", type(data))
-    #     # print(count > 0, "  ", d['id'])
-    #     return False;
-    
     class Meta:
         model = Company
+        skip_unchanged = False
+        report_skipped = True
         fields = ('id', 'ref', 'name', 'administrator_id', 'website', 'contact_name', 'email', 'phone', 'ext', 'country','street', 'number', 'city_id', 'zip_code', 'updated_by')
         export_order = ('id', 'ref', 'name', 'administrator_id', 'website', 'contact_name', 'email', 'phone', 'ext', 'country','street', 'number', 'city_id', 'zip_code', 'updated_by')
 
@@ -149,9 +221,9 @@ class CompanyResource(resources.ModelResource):
 @admin.register(Company)
 class CompanyAdmin(ImportExportModelAdmin):
     resource_classes = [CompanyResource]
-    search_fields = ('ref', 'name', 'email', 'website', 'contact_name', 'phone', 'mdl__name', 'mdl__ref')
-    list_filter = ('city', 'state')
-    list_display = ('ref', 'name', 'mdl', 'administrator', 'website', 'contact_name', 'email', 'phone', 'ext', 'city', 'state')
+    search_fields = ('id', 'ref', 'name', 'email', 'website', 'contact_name', 'phone', 'mdl__name', 'mdl__ref', 'mdl__id')
+    list_filter = ('enabled', 'state', )
+    list_display = ('ref', 'name', 'mdl', 'administrator', 'website', 'contact_name', 'email', 'phone', 'ext', 'city', 'state', 'created', 'updated', 'enabled')
 
     @admin.display(description='Phone')
     def phone(self, instance):
@@ -167,7 +239,7 @@ class CountryAdmin(admin.ModelAdmin):
 @admin.register(Invitation)
 class InvitationAdmin(admin.ModelAdmin):
     list_filter = ('enabled', 'company')
-    list_display = ('email', 'sent', 'token', 'status', 'company', 'sender')
+    list_display = ('email', 'sent', 'token', 'status', 'company', 'sender', 'created', 'updated')
 
 
 @admin.register(State)
@@ -179,11 +251,10 @@ class StateAdmin(admin.ModelAdmin):
 @admin.register(Profile)
 class ProfileAdmin(admin.ModelAdmin):
     list_display_links = ('first_name', 'last_name', 'email',)
-    list_filter = ('company', )
+    list_filter = ('user__is_active', 'user__is_staff', 'user__is_superuser', 'company', )
     search_fields = ('user__first_name', 'user__last_name', 'user__email', 'user__phone', 'company__name')
-    list_display = ('first_name', 'last_name', 'email', 'phone', 'company', 'is_active', 'is_staff', 'is_superuser', 'image')
-    # list_display = ("ref", "employment_type", "position", "status", "first_name", "last_name", "email", "phone", "is_active", "is_staff", "is_superuser", 'enabled', "address")
-
+    list_display = ('first_name', 'last_name', 'email', 'phone', 'company', 'is_active', 'is_staff', 'is_superuser', 'image', 'created', 'updated')
+    
     @admin.display(ordering='user__first_name', description='First Name')
     def first_name(self, instance):
         return instance.user.first_name 

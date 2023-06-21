@@ -35,6 +35,7 @@ from core.utils import send_gmail
 from core_api.pagination import MyPagination
 from core_api.serializers import *
 from core_api.models import *
+from core.tasks import processPropertyEvents
 from directory.models import *
 from directory_api.serializers import *
 
@@ -557,6 +558,7 @@ class InquiryMessageViewSet(viewsets.ModelViewSet, AchieveModelMixin):
         return Response(self.get_queryset().values_list('email', flat=True), status=status.HTTP_200_OK)
 
 
+# https://github.com/andrewramsay/ical_to_gcal_sync/blob/master/config.py.example
 class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
     pagination_class = MyPagination
     # pagination_class = api_settings.DEFAULT_PAGINATION_CLASS
@@ -595,6 +597,7 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
     def perform_update(self, serializer):
         return serializer.save(updated_by_id=self.request.user.id)
       
+    #   TODO: Fix COuntry_name
     def create(self, request, *args, **kwargs):
         with transaction.atomic():
             print('============ 0 =============')
@@ -818,12 +821,13 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             print(data.get('address'))
             print('============ 4 =============')
 
-
             profile = request.user.user_profile
             data['administrator'] = profile.id
             if profile.company:
                 data['company'] = profile.company.id
-                
+                print(profile.id, ' P:::C ', profile.company.id,'  ============ *****= + =***** =============') 
+            print(data)
+            
             serializer = PropertySerializer(data=data, context={'city_data': data['address']['properties']['city_data']})
             print('============ 5 =============')
             serializer.is_valid(raise_exception=True)
@@ -844,12 +848,22 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
                 ser.is_valid(raise_exception=True)
                 pic = self.perform_create(ser)
             print('============ 8 =============')
-            return Response(PropertySerializer(instance).data, status=status.HTTP_201_CREATED)
+            
+            cal = Calendar(name=instance.name, slug=instance.ref)
+            cal.save()
+            instance.calendar = cal
+            instance.save()
+            processPropertyEvents.apply_async(kwargs={'property_id': instance.id})
+            data = PropertySerializer(instance).data
+            if request.data.get('paying', None):
+                data['paying'] = instance.id
+            return Response(data, status=status.HTTP_201_CREATED)
 
     def update(self, request, *args, **kwargs):
         with transaction.atomic():
             partial = kwargs.pop('partial', False)
             instance = self.get_object()
+            ical_old = instance.ical_url
             print('============ 0 update =============')
             print(request.data)
             print('============ 1 update =============')
@@ -1186,6 +1200,8 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             #     p_ids.append(inst.id)
             # PropertyPhoto.objects.filter(~Q(id__in=p_ids), property=instance).delete()
             print('============ 8 =============')
+            if instance.ical_url != ical_old:    
+                processPropertyEvents.apply_async(kwargs={'property_id': instance.id})
             return Response(PropertySerializer(instance).data, status=status.HTTP_201_CREATED)
     
     def list(self, request, *args, **kwargs):
@@ -1195,6 +1211,7 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
         search = request.query_params.get('search', None)
         direction = '' if request.query_params.get('direction', 'asc') == 'asc' else '-'
         sortby = f"{direction}{request.query_params.get('sortby', 'created')}"
+        print('size: ', size)
         print('sortby:...: ', sortby)
         print('page_number...: ', page_number)
         print('query_params...: ', request.query_params)
@@ -1206,6 +1223,7 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
         queryset = Property.objects.filter(Q(Q(company__isnull=False, company=profile.company) | Q(administrator=profile)), enabled=True).order_by(sortby)
 
         if size == 0 and page_number:
+            # Remote Loader
             print(111)
             pagy = self.paginate_queryset(queryset)
             total = Property.objects.filter(Q(Q(company__isnull=False, company=profile.company) | Q(administrator=profile)), enabled=True).count()
@@ -1219,39 +1237,47 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
         else:
             page_number = int(page_number) if page_number else 1
             size = int(size) if size and int(size) > 0 else 100
-            print(222)
+            print("A222")
             print(page_number, '   ', page_number*size, ' ---- ', size)
             print(request.user.is_manager)
             
-            if request.user.is_manager:
-                print(2222)
-                total = Property.objects.filter(enabled=True).count()
+            if profile.company:
+                total = Property.objects.filter(Q(Q(company=profile.company) | Q(administrator=profile)), enabled=True).count()
                 if search:
-                    print("2222a")
-                    total = Property.objects.filter(Q(ref__icontains=search) | Q(name__icontains=search) | Q(type__icontains=search) | Q(space__icontains=search)).count()
-                    queryset = Property.objects.filter(Q(ref__icontains=search) | Q(name__icontains=search) | Q(type__icontains=search) | Q(space__icontains=search)).order_by(sortby)[page_number*size:(page_number*size)+size]
+                    print("A333a")
+                    queryset = Property.objects.filter(Q(Q(company=profile.company) | Q(administrator=profile)), Q(Q(ref__icontains=search) | Q(name__icontains=search) | Q(type__icontains=search) | Q(space__icontains=search)), enabled=True).order_by(sortby)[page_number*size:(page_number*size)+size]
+                    total = len(queryset)
                 else:
-                    print("2222b")
-                    queryset = Property.objects.filter(enabled=True).order_by(sortby)[page_number*size:(page_number*size)+size]
-            else:
-                print("3333")
-                total = Property.objects.filter(Q(Q(company__isnull=False, company=profile.company) | Q(administrator=profile)), enabled=True).count()
-                if search:
-                    print("3333a")
-                    total = Property.objects.filter(Q(Q(company__isnull=False, company=profile.company) | Q(administrator=profile)), Q(Q(ref__icontains=search) | Q(name__icontains=search) | Q(type__icontains=search) | Q(space__icontains=search)), enabled=True).count()
-                    queryset = Property.objects.filter(Q(Q(company__isnull=False, company=profile.company) | Q(administrator=profile)), Q(Q(ref__icontains=search) | Q(name__icontains=search) | Q(type__icontains=search) | Q(space__icontains=search)), enabled=True).order_by(sortby)[page_number*size:(page_number*size)+size]
-                else:
-                    print("3333b")
-                    total = Property.objects.filter(Q(Q(company__isnull=False, company=profile.company) | Q(administrator=profile)), enabled=True).order_by(sortby).count()
-                    queryset = Property.objects.filter(Q(Q(company__isnull=False, company=profile.company) | Q(administrator=profile)), enabled=True).order_by(sortby)
+                    print("A333b")
+                    queryset = Property.objects.filter(Q(Q(company=profile.company) | Q(administrator=profile)), enabled=True).order_by(sortby)
+                    total = len(queryset)
                     # queryset = Property.objects.filter(Q(Q(company__isnull=False, company=profile.company) | Q(administrator=profile)), enabled=True).order_by(sortby)[page_number*size:(page_number*size)+size]
+            elif request.user.is_manager:
+                if search:
+                    print("A444a")
+                    queryset = Property.objects.filter(Q(Q(ref__icontains=search) | Q(name__icontains=search) | Q(type__icontains=search) | Q(space__icontains=search)), company__isnull=True, enabled=True).order_by(sortby)[page_number*size:(page_number*size)+size]
+                    total = len(queryset)
+                else:
+                    print("A444b")
+                    queryset = Property.objects.filter(company__isnull=True, enabled=True).order_by(sortby)[page_number*size:(page_number*size)+size]
+                    total = len(queryset)
+            else:
+                if search:
+                    print("A555a")
+                    queryset = Property.objects.filter(Q(Q(ref__icontains=search) | Q(name__icontains=search) | Q(type__icontains=search) | Q(space__icontains=search)), company__isnull=True, enabled=True).order_by(sortby)[page_number*size:(page_number*size)+size]
+                    total = len(queryset)
+                else:
+                    print("A555b")
+                    queryset = Property.objects.filter(company__isnull=True, administrator=profile, enabled=True).order_by(sortby)[page_number*size:(page_number*size)+size]
+                    total = len(queryset)
+                
                 # queryset = queryset[page_number*size:(page_number*size)+size]
             serializer = self.get_serializer(queryset, many=True)
             return Response({"data": serializer.data, "total_count": total})
         
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
-
+    
     @action(methods=['post', 'get'], detail=False, url_path='search', url_name='search')
     def search(self, request, *args, **kwargs):
         self.pagination_class.page_size = 20
@@ -1448,8 +1474,7 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             'features': features,
             'activities': activities
         }, status=status.HTTP_201_CREATED)
-    
-            
+     
     @action(methods=['get'], detail=False, url_path='fixed/items', url_name='fixed-items')
     def fixed_items(self, request, *args, **kwargs):
         
@@ -1472,7 +1497,7 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
         instance.is_published = not instance.is_published
         instance.save()
         
-        return Response(self.get_serializer(instance=instance).data)
+        return Response(PropertyDetailSerializer(instance=instance).data)
     
     @action(methods=['get'], detail=False, url_path='mine', url_name='mine')
     def mine(self, request, *args, **kwargs):

@@ -126,11 +126,13 @@ INSTALLED_APPS = [
     'core.apps.CoreConfig',
     'directory.apps.DirectoryConfig',
     'payment.apps.PaymentConfig',
+    'schedule.apps.ScheduleConfig',
 
     'auths_api.apps.AuthsApiConfig',
     'core_api.apps.CoreApiConfig',
     'directory_api.apps.DirectoryApiConfig',
     'payment_api.apps.PaymentApiConfig',
+    'schedule_api.apps.ScheduleApiConfig',
 
     'django.contrib.admin',
     'django.contrib.auth',
@@ -288,6 +290,8 @@ WSGI_APPLICATION = f'{PROJECT_NAME}.wsgi.application'
 
 IS_PORTABLE_DB = config('PORTABLE_DB', default=True, cast=bool)
 
+# django.db.utils.OperationalError: error in trigger ISO_metadata_reference_row_id_value_insert: no such column: rowid
+# python manage.py shell -c "import django;django.db.connection.cursor().execute('SELECT InitSpatialMetaData(1);')";
 if IS_PORTABLE_DB:
     DATABASES = {
         'default': {
@@ -304,6 +308,7 @@ else:
             'PASSWORD': config('DB_PASSWORD', default="password"),
             'HOST': config('DB_HOST', default="localhost"), 
             'PORT': config('DB_PORT', default=5432),
+            'DISABLE_SERVER_SIDE_CURSORS': True,   # <------ Only for PostgreSQL
         },
         'default-1': {
             'ENGINE': 'django.contrib.gis.db.backends.mysql'  if 'django.contrib.gis' in INSTALLED_APPS else 'django.db.backends.mysql',
