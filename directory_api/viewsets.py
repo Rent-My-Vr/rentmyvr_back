@@ -854,6 +854,7 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             cal.save()
             instance.calendar = cal
             instance.save()
+
             processPropertyEvents.apply_async(kwargs={'property_id': instance.id})
             data = PropertySerializer(instance).data
             if request.data.get('paying', None):
@@ -1186,7 +1187,12 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             instance = self.perform_update(serializer)
             print('============ 7 =============')
             # print(instance__)
-            
+            if instance.calendar is None:
+                cal = Calendar(name=instance.name, slug=instance.ref)
+                cal.save()
+                instance.calendar = cal
+                instance.save()
+
             # print('***************pictures***************')
             # p_ids = []
             # for p in request.data.getlist('pictures'):
@@ -1202,7 +1208,7 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             # PropertyPhoto.objects.filter(~Q(id__in=p_ids), property=instance).delete()
             print('============ 8 =============')
             if instance.ical_url != ical_old:    
-                processPropertyEvents.apply_async(kwargs={'property_id': instance.id})
+                processPropertyEvents.apply_async(kwargs={'calendar_id': instance.calendar.id, 'calendar_url': instance.ical_url})
             return Response(PropertySerializer(instance).data, status=status.HTTP_201_CREATED)
     
     def list(self, request, *args, **kwargs):
@@ -1293,6 +1299,7 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
         print(type(geometry))
         print(geometry)
         print(1)
+        queryset = Property.objects.filter(enabled=True, is_published=True) 
         if geometry:
             print(2)
             if geometry.get('type') == 'Point':
@@ -1319,96 +1326,76 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
                 bbox = (sw['lng'], sw['lat'], ne['lng'], ne['lat'])
                 print('****bbox  ', bbox)
                 geometry = Polygon.from_bbox(bbox)
-                queryset = Property.objects.filter(address__location__within=geometry)
-        else:
-            if False:
-                print(3)
-                print(address)
-                print(config('GOOGLE_GEOCODING_KEY'))
-                r = requests.get(requote_uri(config('GOOGLE_GEOCODING_LINK').format(config('GOOGLE_GEOCODING_KEY'), address)))
-                if r.status_code == 200:
-                    js = r.json()
-                    print(js)
-                    if js['status'] == 'OK':
-                        # loc = js['results'][0]['geometry']['location']
-                        # geometry = json.dumps({"type": "Point", "coordinates": [loc['lat'], loc['lng']]})
-                        
-                        vp = js['results'][0]['geometry']['viewport']
-                        ne = vp.get('northeast', {})
-                        sw = vp.get('southwest', {})
-
-                        # xmin=sw[1]
-                        # ymin=sw[0]
-                        # xmax=ne[1]
-                        # ymax=ne[0]
-                        # bbox = (sw.lng, sw.lat, ne.lng, ne.lat)
-                        bbox = (sw.get('lng', 0), sw.get('lat', 0), ne.get('lng', 0), ne.get('lat', 0))
-                        print('===== ', bbox)
-                        geometry = Polygon.from_bbox(bbox)
-                        queryset = Property.objects.filter(address__location__contains=geometry)
-                    else:
-                        return Response({"message": "We are unable to Geolocate the address provided"}, status=status.HTTP_404_NOT_FOUND)
-                else:
-                    return Response({"message": "We are unable to Geolocate the address provided"}, status=status.HTTP_404_NOT_FOUND)
+                queryset = queryset.filter(address__location__within=geometry)
            
-        queryset = Property.objects.filter(enabled=True, is_published=True)     
         print(data.get('guest'))
         print(type(data.get('guest')))
         print(queryset.count())
         print(queryset)
+        print(data.get('state', None))
 
         if data.get('com_ref', None):
             queryset = queryset.filter(company__ref=data.get('com_ref'))
-        elif data.get('off_ref', None):
+        if data.get('off_ref', None):
             queryset = queryset.filter(office__ref=data.get('off_ref'))
-        elif data.get('port_ref', None):
+        if data.get('port_ref', None):
             queryset = queryset.filter(portfolio__ref=data.get('port_ref'))
-        elif data.get('types', None):
+        if data.get('city', None):
+            print('city: ', data.get('city', None))
+            queryset = queryset.filter(address__city__name__icontains=data.get('city'))
+        if data.get('zip_code', None):
+            print('zip_code: ', data.get('zip_code', None))
+            queryset = queryset.filter(address__zip_code__icontains=data.get('zip_code'))
+        if data.get('state', None):
+            print('state: ', data.get('state', None))
+            queryset = queryset.filter(address__city__state_name__icontains=data.get('state'))
+        if data.get('types', None):
             queryset = queryset.filter(type__in=data.get('types', []))
-        elif data.get('bookedSpaces', None):
+        if data.get('bookedSpaces', None):
             queryset = queryset.filter(spaces__in=data.get('bookedSpaces', []))
-        elif data.get('guest', None):
+        if data.get('guest', None):
             if type(data.get('guest')) == int:
                 queryset = queryset.filter(max_no_of_guest__gte=data.get('guest'))
             else:
                 queryset = queryset.filter(max_no_of_guest__in=data.get('guest', []))
-        elif data.get('bedrooms', None):
+        if data.get('bedrooms', None):
             queryset = queryset.filter(no_of_bedrooms__in=data.get('bedrooms', []))
-        elif data.get('bathrooms', None):
+        if data.get('bathrooms', None):
             queryset = queryset.filter(no_of_bathrooms__in=data.get('bathrooms', []))
-        elif data.get('price', None):
+        if data.get('price', None):
             queryset = queryset.filter(price_night__in=data.get('price', []))
-        elif data.get('accessibility', None):
+        if data.get('accessibility', None):
             queryset = queryset.filter(accessibility__in=data.get('accessibility', []))
-        elif data.get('activities', None):
+        if data.get('activities', None):
             queryset = queryset.filter(activities__in=data.get('activities', []))
-        elif data.get('bathrooms', None):
+        if data.get('bathrooms', None):
             queryset = queryset.filter(bathrooms__in=data.get('bathrooms', []))
-        elif data.get('entertainments', None):
+        if data.get('entertainments', None):
             queryset = queryset.filter(entertainments__in=data.get('entertainments', []))
-        elif data.get('essentials', None):
+        if data.get('essentials', None):
             queryset = queryset.filter(essentials__in=data.get('essentials', []))
-        elif data.get('families', None):
+        if data.get('families', None):
             queryset = queryset.filter(families__in=data.get('families', []))
-        elif data.get('features', None):
+        if data.get('features', None):
             queryset = queryset.filter(features__in=data.get('features', []))
-        elif data.get('kitchens', None):
+        if data.get('kitchens', None):
             queryset = queryset.filter(kitchens__in=data.get('kitchens', []))
-        elif data.get('laundries', None):
+        if data.get('laundries', None):
             queryset = queryset.filter(laundries__in=data.get('laundries', []))
-        elif data.get('outsides', None):
+        if data.get('outsides', None):
             queryset = queryset.filter(outsides__in=data.get('outsides', []))
-        elif data.get('parking', None):
+        if data.get('parking', None):
             queryset = queryset.filter(parking__in=data.get('parking', []))
-        elif data.get('pool_spas', None):
+        if data.get('pool_spas', None):
             queryset = queryset.filter(pool_spas__in=data.get('pool_spas', []))
-        elif data.get('safeties', None):
+        if data.get('safeties', None):
             queryset = queryset.filter(safeties__in=data.get('safeties', []))
-        elif data.get('spaces', None):
+        if data.get('spaces', None):
             queryset = queryset.filter(spaces__in=data.get('spaces', []))
-        elif data.get('services', None):
+        if data.get('services', None):
             queryset = queryset.filter(services__in=data.get('services', []))
         
+        print(queryset.query)
         page = self.paginate_queryset(queryset)
         # print('Pagination: ', page)
         if page is not None:

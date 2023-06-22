@@ -34,9 +34,7 @@ class EventListManager:
 
         if after is None:
             after = timezone.now()
-        occ_replacer = OccurrenceReplacer(
-            Occurrence.objects.filter(event__in=self.events)
-        )
+        occ_replacer = OccurrenceReplacer(Occurrence.objects.filter(event__in=self.events))
         generators = [
             event._occurrences_after_generator(after) for event in self.events
         ]
