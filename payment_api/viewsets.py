@@ -101,6 +101,7 @@ class ProcessingView(viewsets.ViewSet):
     parser_classes = (JSONParser,)
 
     def get_permissions(self):
+        print('===> ', self.action)
         if self.action in ['callback', 'prices']:
             return []  # This method should return iterable of permissions
         return super().get_permissions()
