@@ -1289,6 +1289,8 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
     def search(self, request, *args, **kwargs):
         self.pagination_class.page_size = 20
         data = request.data
+        query_params = request.query_params
+        print('......query_params.....: ', query_params)
         print('...........: ', data)
         geometry = data.get('geometry', None)
         address = data.get('address', None)
@@ -1333,13 +1335,14 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
         print(queryset.count())
         print(queryset)
         print(data.get('state', None))
+        print('-------- ', query_params.get('com_ref', None))
 
-        if data.get('com_ref', None):
-            queryset = queryset.filter(company__ref=data.get('com_ref'))
-        if data.get('off_ref', None):
-            queryset = queryset.filter(office__ref=data.get('off_ref'))
-        if data.get('port_ref', None):
-            queryset = queryset.filter(portfolio__ref=data.get('port_ref'))
+        if query_params.get('com_ref', None):
+            queryset = queryset.filter(company__ref=query_params.get('com_ref'))
+        if query_params.get('off_ref', None):
+            queryset = queryset.filter(office__ref=query_params.get('off_ref'))
+        if query_params.get('port_ref', None):
+            queryset = queryset.filter(portfolio__ref=query_params.get('port_ref'))
         if data.get('city', None):
             print('city: ', data.get('city', None))
             queryset = queryset.filter(address__city__name__icontains=data.get('city'))
@@ -1362,14 +1365,13 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             queryset = queryset.filter(no_of_bedrooms__in=data.get('bedrooms', []))
         if data.get('bathrooms', None):
             queryset = queryset.filter(no_of_bathrooms__in=data.get('bathrooms', []))
-        if data.get('price', None):
-            queryset = queryset.filter(price_night__in=data.get('price', []))
+        if data.get('bookers', None):
+            queryset = queryset.filter(booking_sites__booker__in=data.get('bookers', []))
+
         if data.get('accessibility', None):
             queryset = queryset.filter(accessibility__in=data.get('accessibility', []))
         if data.get('activities', None):
             queryset = queryset.filter(activities__in=data.get('activities', []))
-        if data.get('bathrooms', None):
-            queryset = queryset.filter(bathrooms__in=data.get('bathrooms', []))
         if data.get('entertainments', None):
             queryset = queryset.filter(entertainments__in=data.get('entertainments', []))
         if data.get('essentials', None):
@@ -1388,14 +1390,17 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             queryset = queryset.filter(parking__in=data.get('parking', []))
         if data.get('pool_spas', None):
             queryset = queryset.filter(pool_spas__in=data.get('pool_spas', []))
+        if data.get('price', None):
+            queryset = queryset.filter(price_night__in=data.get('price', []))
         if data.get('safeties', None):
             queryset = queryset.filter(safeties__in=data.get('safeties', []))
-        if data.get('spaces', None):
-            queryset = queryset.filter(spaces__in=data.get('spaces', []))
         if data.get('services', None):
             queryset = queryset.filter(services__in=data.get('services', []))
+        if data.get('spaces', None):
+            queryset = queryset.filter(spaces__in=data.get('spaces', []))
         
-        print(queryset.query)
+        print(' +++ ', queryset.query)
+        print(' <<+++>> ', queryset)
         page = self.paginate_queryset(queryset)
         # print('Pagination: ', page)
         if page is not None:
