@@ -101,7 +101,8 @@ class ProcessingView(viewsets.ViewSet):
     parser_classes = (JSONParser,)
 
     def get_permissions(self):
-        print('++++====> ')
+        print('++++::====> ', self.request.method)
+        print('++++====> ', self.action)
         if self.request.method in ['GET', 'get']:
             return []
         if self.action in ['callback', 'prices']:
