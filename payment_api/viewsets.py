@@ -102,6 +102,8 @@ class ProcessingView(viewsets.ViewSet):
 
     def get_permissions(self):
         print('++++====> ', self.action)
+        if self.request.method == 'GET':
+            return []
         if self.action in ['callback', 'prices']:
             return []  # This method should return iterable of permissions
         return super().get_permissions()
