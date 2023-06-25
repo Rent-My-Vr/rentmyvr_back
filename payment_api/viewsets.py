@@ -117,7 +117,7 @@ class ProcessingView(viewsets.ViewSet):
         print(products)
         return Response(products, status=status.HTTP_201_CREATED)
         
-    @action(methods=['get'], detail=False, url_path='prices/(?P<type>[\w\-]+)', url_name='prices', permission_classes=[AllowAny])
+    @action(methods=['post', 'get'], detail=False, url_path='prices/(?P<type>[\w\-]+)', url_name='prices')
     def prices(self, request, *args, **kwargs):
         print('prices+++++++++', kwargs)
         price = {Transaction.PDL: [], Transaction.MDL: [], Transaction.SETUP: []}
