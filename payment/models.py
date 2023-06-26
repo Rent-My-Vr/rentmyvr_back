@@ -98,7 +98,8 @@ class Transaction(TrackedModel):
     CHARGE = 'charge'
     PAYMENT = 'payment'
     SUBSCRIPTION = 'subscription'
-    EXT_OBJECTS = ((CHECKOUT, 'Checkout'), (CHARGE, 'Charge'), (PAYMENT, 'Payment'), (SUBSCRIPTION, 'Subscription'))
+    MANUAL = 'manual'
+    EXT_OBJECTS = ((CHECKOUT, 'Checkout'), (CHARGE, 'Charge'), (MANUAL, 'Manual'), (PAYMENT, 'Payment'), (SUBSCRIPTION, 'Subscription'))
     
     # draft, open, paid, uncollectible, or void
     DRAFT = 'draft'

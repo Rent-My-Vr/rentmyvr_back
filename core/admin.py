@@ -251,9 +251,9 @@ class StateAdmin(admin.ModelAdmin):
 @admin.register(Profile)
 class ProfileAdmin(admin.ModelAdmin):
     list_display_links = ('first_name', 'last_name', 'email',)
-    list_filter = ('user__is_active', 'user__is_staff', 'user__is_superuser', 'company', )
+    list_filter = ('user__is_active', 'user__position', 'user__is_staff', 'user__is_superuser', 'company', )
     search_fields = ('user__first_name', 'user__last_name', 'user__email', 'user__phone', 'company__name')
-    list_display = ('first_name', 'last_name', 'email', 'phone', 'company', 'is_active', 'is_staff', 'is_superuser', 'image', 'created', 'updated')
+    list_display = ('first_name', 'last_name', 'email', 'phone', 'company', 'is_active', 'position', 'is_staff', 'is_superuser', 'image', 'created', 'updated')
     
     @admin.display(ordering='user__first_name', description='First Name')
     def first_name(self, instance):
@@ -274,6 +274,10 @@ class ProfileAdmin(admin.ModelAdmin):
     @admin.display(ordering='user__is_active', description='is_active')
     def is_active(self, instance):
         return instance.user.is_active 
+
+    @admin.display(ordering='user__position', description='position')
+    def position(self, instance):
+        return instance.user.position 
 
     @admin.display(ordering='user__is_staff', description='Staff')
     def is_staff(self, instance):
