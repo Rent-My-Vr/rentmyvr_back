@@ -49,18 +49,32 @@ class Event(models.Model):
     This model stores meta data for a date.  You can relate this data to many
     other models.
     """
-
+ 
     start = models.DateTimeField(_("start"), db_index=True)
     end = models.DateTimeField(_("end"), db_index=True, help_text=_("The end time must be later than the start time."))
     title = models.CharField(_("title"), max_length=255)
     description = models.TextField(_("description"), blank=True)
     creator = models.ForeignKey(django_settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, verbose_name=_("creator"), related_name="creator")
-    created_on = models.DateTimeField(_("created on"), auto_now_add=True)
-    updated_on = models.DateTimeField(_("updated on"), auto_now=True)
+    created = models.DateTimeField(_("created"), auto_now_add=True)
+    updated = models.DateTimeField(_("updated"), auto_now=True)
+    remote_created = models.DateTimeField(_("remote created"), null=True, blank=True, default=None)
+    last_modified = models.DateTimeField(_("last modified"), null=True, blank=True, default=None)
     rule = models.ForeignKey(Rule, on_delete=models.SET_NULL, null=True, blank=True, verbose_name=_("rule"), help_text=_("Select '----' for a one time only event."))
     end_recurring_period = models.DateTimeField(_("end recurring period"), null=True, blank=True, db_index=True, help_text=_("This date is ignored for one time only events."))
     calendar = models.ForeignKey(Calendar, on_delete=models.CASCADE, verbose_name=_("calendar"))
-    color_event = models.CharField(_("Color event"), blank=True, max_length=10)
+    color_event = models.CharField(_("Color event"), null=True, blank=True, default=None, max_length=10)
+    
+    all_day = models.BooleanField(_("all day"), default=False)
+    attendee = models.CharField(_("attendee"), max_length=255, null=True, blank=True, default=None)
+    categories = models.CharField(_("categories"), max_length=255, null=True, blank=True, default=None)
+    floating = models.BooleanField(_("floating"), default=False)
+    location = models.CharField(_("location"), max_length=255, null=True, blank=True, default=None)
+    organizer = models.CharField(_("organizer"), max_length=255, null=True, blank=True, default=None)
+    private = models.BooleanField(_("private"), default=False)
+    status = models.CharField(_("status"), max_length=255, null=True, blank=True, default=None)
+    transparent = models.BooleanField(_("transparent"), default=False)
+    url = models.URLField(_("url"), max_length=255, null=True, blank=True, default=None)
+    ext_uid = models.CharField(_("external uid"), max_length=255, null=True, blank=True, default=None)
     objects = EventManager()
 
     class Meta:
@@ -74,6 +88,34 @@ class Event(models.Model):
             "start": date(self.start, django_settings.DATE_FORMAT),
             "end": date(self.end, django_settings.DATE_FORMAT),
         }
+# e.all_day        e.copy_to(       e.floating       e.private        e.start          e.transparent
+# e.astimezone(    e.created        e.last_modified  e.recurrence_id  e.status         e.uid
+# e.attendee       e.description    e.location       e.recurring      e.summary        e.url
+# e.categories     e.end            e.organizer      e.sequence       e.time_left(
+   
+    def toSchedule(self, ice):
+        self.start = ice.start
+        self.end = ice.end
+        self.title = ice.summary
+        self.description = ice.description if ice.description else ice.summary
+        self.remote_created = ice.created
+        self.last_modified = ice.last_modified
+        # TODO: Create the Rule
+        # self.rule = ice.start
+        # self.end_recurring_period = ice.start
+        # self.calendat = ice.start
+        # self.color_event = ice.start
+        self.all_day = ice.all_day
+        self.categories = ice.categories
+        self.floating = ice.floating
+        self.location = ice.location
+        self.organizer = ice.organizer
+        self.private = ice.private
+        self.status = ice.status
+        self.transparent = ice.transparent
+        self.url = ice.url
+        self.ext_uid = ice.uid
+        
 
     @property
     def seconds(self):
@@ -562,8 +604,8 @@ class Occurrence(models.Model):
     cancelled = models.BooleanField(_("cancelled"), default=False)
     original_start = models.DateTimeField(_("original start"))
     original_end = models.DateTimeField(_("original end"))
-    created_on = models.DateTimeField(_("created on"), auto_now_add=True)
-    updated_on = models.DateTimeField(_("updated on"), auto_now=True)
+    created = models.DateTimeField(_("created"), auto_now_add=True)
+    updated = models.DateTimeField(_("updated"), auto_now=True)
 
     class Meta:
         verbose_name = _("occurrence")

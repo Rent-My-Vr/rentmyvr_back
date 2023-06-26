@@ -27,9 +27,6 @@ from auths_api.serializers import UserSerializer, UserUpdateSerializer
 from notifications.signals import notify
 
 from payment.models import *
-from core.utils import send_gmail
-
-from core.custom_permission import IsAuthenticatedOrCreate
 from payment_api.serializers import *
 from core_api.models import *
 from directory.models import * 
@@ -101,7 +98,7 @@ class ProcessingView(viewsets.ViewSet):
     parser_classes = (JSONParser,)
 
     def get_permissions(self):
-        if self.action in ['callback']:
+        if self.action in ['callback', 'prices']:
             return []  # This method should return iterable of permissions
         return super().get_permissions()
 
@@ -114,7 +111,7 @@ class ProcessingView(viewsets.ViewSet):
         print(products)
         return Response(products, status=status.HTTP_201_CREATED)
         
-    @action(methods=['get'], detail=False, url_path='prices/(?P<type>[\w\-]+)', url_name='prices')
+    @action(methods=['post', 'get'], detail=False, url_path='prices/(?P<type>[\w\-]+)', url_name='prices')
     def prices(self, request, *args, **kwargs):
         print('prices+++++++++', kwargs)
         price = {Transaction.PDL: [], Transaction.MDL: [], Transaction.SETUP: []}
