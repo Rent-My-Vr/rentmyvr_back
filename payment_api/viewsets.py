@@ -27,9 +27,6 @@ from auths_api.serializers import UserSerializer, UserUpdateSerializer
 from notifications.signals import notify
 
 from payment.models import *
-from core.utils import send_gmail
-
-from core.custom_permission import IsAuthenticatedOrCreate
 from payment_api.serializers import *
 from core_api.models import *
 from directory.models import * 

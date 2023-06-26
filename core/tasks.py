@@ -49,6 +49,7 @@ def processPropertyEvents(calendar_id = None, calendar_url = None):
             event.toSchedule(e)
             calendar.events.add(event)
 
+@shared_task(name='core.sendMail')
 def sendMail(subject, message, recipients, fail_silently=settings.DEBUG,
              connection=None, cc=None, bcc=None, files=None, use_signature=None, context_data=None):
     # send_gmail(user.cert, "Maintenance TS Account Activation", "body", to=user.email, cc=None, bcc=None, user=user)
