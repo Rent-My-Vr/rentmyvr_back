@@ -251,9 +251,9 @@ class StateAdmin(admin.ModelAdmin):
 @admin.register(Profile)
 class ProfileAdmin(admin.ModelAdmin):
     list_display_links = ('first_name', 'last_name', 'email',)
-    list_filter = ('user__is_active', 'user__position', 'user__is_staff', 'user__is_superuser', 'company', )
+    list_filter = ('user__is_manager', 'user__position', 'user__is_staff', 'user__is_superuser', 'user__is_active', 'company', )
     search_fields = ('user__first_name', 'user__last_name', 'user__email', 'user__phone', 'company__name')
-    list_display = ('first_name', 'last_name', 'email', 'phone', 'company', 'is_active', 'position', 'is_staff', 'is_superuser', 'image', 'created', 'updated')
+    list_display = ('first_name', 'last_name', 'email', 'phone', 'company', 'is_manager', 'position', 'is_staff', 'is_superuser', 'is_active', 'image', 'created', 'updated')
     
     @admin.display(ordering='user__first_name', description='First Name')
     def first_name(self, instance):
@@ -271,9 +271,9 @@ class ProfileAdmin(admin.ModelAdmin):
     def phone(self, instance):
         return instance.user.phone 
 
-    @admin.display(ordering='user__is_active', description='is_active')
-    def is_active(self, instance):
-        return instance.user.is_active 
+    @admin.display(ordering='user__is_manager', description='is_manager')
+    def is_manager(self, instance):
+        return instance.user.is_manager 
 
     @admin.display(ordering='user__position', description='position')
     def position(self, instance):
@@ -286,4 +286,8 @@ class ProfileAdmin(admin.ModelAdmin):
     @admin.display(ordering='user__is_superuser', description='Super Admin')
     def is_superuser(self, instance):
         return instance.user.is_superuser 
+
+    @admin.display(ordering='user__is_active', description='is_active')
+    def is_active(self, instance):
+        return instance.user.is_active 
 
