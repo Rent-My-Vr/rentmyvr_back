@@ -855,7 +855,8 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             instance.calendar = cal
             instance.save()
 
-            processPropertyEvents.apply_async(kwargs={'property_id': instance.id})
+            if instance.ical_url:
+                processPropertyEvents.apply_async(kwargs={'calendar_id': cal.id, 'calendar_url': instance.ical_url})
             data = PropertySerializer(instance).data
             if request.data.get('paying', None):
                 data['paying'] = instance.id
@@ -1358,7 +1359,7 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             queryset = queryset.filter(spaces__in=data.get('bookedSpaces', []))
         if data.get('guest', None):
             if type(data.get('guest')) == int:
-                queryset = queryset.filter(max_no_of_guest__gte=data.get('guest'))
+                queryset = queryset.filter(max_no_of_guest__lte=data.get('guest'))
             else:
                 queryset = queryset.filter(max_no_of_guest__in=data.get('guest', []))
         if data.get('bedrooms', None):
