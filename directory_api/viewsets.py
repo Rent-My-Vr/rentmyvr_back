@@ -1359,7 +1359,7 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             queryset = queryset.filter(spaces__in=data.get('bookedSpaces', []))
         if data.get('guest', None):
             if type(data.get('guest')) == int:
-                queryset = queryset.filter(max_no_of_guest__lte=data.get('guest'))
+                queryset = queryset.filter(max_no_of_guest__gte=data.get('guest'))
             else:
                 queryset = queryset.filter(max_no_of_guest__in=data.get('guest', []))
         if data.get('bedrooms', None):
