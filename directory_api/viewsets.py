@@ -1288,10 +1288,12 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
     
     @action(methods=['post', 'get'], detail=False, url_path='search', url_name='search')
     def search(self, request, *args, **kwargs):
-        self.pagination_class.page_size = 20
+        # page_number = int(query_params.get("page", 1))
+        size = int(request.query_params.get("size", 25))
+        self.pagination_class.page_size = size
         data = request.data
         query_params = request.query_params
-        print('......query_params.....: ', query_params)
+        print(size, '......query_params.....: ', query_params)
         print('...........: ', data)
         geometry = data.get('geometry', None)
         address = data.get('address', None)
