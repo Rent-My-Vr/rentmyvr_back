@@ -262,7 +262,7 @@ class InquiryMessageAdmin(admin.ModelAdmin):
 @admin.register(Property)
 class PropertyAdmin(ImportExportModelAdmin):
     resource_classes = [PropertyResource]
-    search_fields = ['id','ref', 'name', 'type', 'space', 'hosted_by', 'suitabilities', 'price_night', 'email', 'phone', 'subscription__external_ref', 'subscription__id', 'company__id', 'company__ref', 'company__name', 'administrator__id', 'administrator__ref', 'administrator__user__email', 'administrator__user__first_name', 'administrator__user__last_name',]
+    search_fields = ['id','ref', 'name', 'type', 'space', 'hosted_by', 'suitabilities', 'price_night', 'email', 'phone', 'subscription__external_ref', 'subscription__id', 'company__id', 'company__ref', 'company__name', 'administrator__id', 'administrator__ref', 'administrator__user__email', 'administrator__user__first_name', 'administrator__user__last_name', 'address__city__state_name', 'address__city__name', 'address__zip_code']
     list_filter = ('imported', 'enabled', 'is_active', 'is_published', 'is_draft', 'calendar', 'ical_url', 'type', 'space', 'is_pet_allowed', 'suitabilities')
     list_display = ('ref', 'name', 'company', 'administrator', 'subscription', 'video', 'virtual_tour', 'is_active', 'is_published', 'is_draft', 'calendar', 'ical_url', 'type', 'space', 'hosted_by', 'max_no_of_guest', 'no_of_bedrooms', 'no_of_bathrooms', 'is_pet_allowed', 'suitabilities', 'price_night', 'address', 'email', 'phone', 'id', 'logo', 'imported', 'enabled', 'created', 'updated', 'updated_by')
     

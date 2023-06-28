@@ -273,7 +273,7 @@ class PropertyPhotoSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = PropertyPhoto
-        fields = ('id', 'property', 'image', 'default', 'caption')
+        fields = ('id', 'property', 'image', 'is_default', 'caption')
 
 
 class PropertySerializer(serializers.ModelSerializer):

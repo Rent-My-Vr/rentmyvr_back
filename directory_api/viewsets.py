@@ -1332,7 +1332,7 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
                 queryset = queryset.filter(address__location__within=geometry)
            
         print(data.get('guest'))
-        print(type(data.get('guest')))
+        print('-------Type: ', type(data.get('guest')))
         print(queryset.count())
         print(queryset)
         print(data.get('state', None))
