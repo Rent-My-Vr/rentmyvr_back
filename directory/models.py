@@ -660,7 +660,7 @@ class Property(StampedUpdaterModel):
     
     price_night = models.DecimalField(verbose_name="Ave $ Per Night", max_digits=9, decimal_places=2, default=0.0)
     address = models.ForeignKey(Address, related_name='property_address', on_delete=models.CASCADE)
-    hide_address = models.BooleanField(default=False, )
+    # hide_address = models.BooleanField(default=False, )
     hide_phone = models.BooleanField(default=False, )
     hide_email = models.BooleanField(default=False, )
     email = models.CharField(max_length=128, verbose_name="email", default='', blank=True, null=True)
