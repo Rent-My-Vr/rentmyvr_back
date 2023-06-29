@@ -382,23 +382,14 @@ class CompanyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
     @action(methods=['get'], detail=False, url_path='mine', url_name='mine')
     def mine(self, request, *args, **kwargs):
         p = request.user.user_profile
-        # company = Company.objects.filter(Q(administrator=p) | Q(members=p), enabled=True).prefetch_related(
-        #     Prefetch('company_offices', queryset=Office.objects.filter(enabled=True).prefetch_related(
-        #         Prefetch('office_properties', queryset=Property.objects.filter(enabled=True)))), 
-        #     Prefetch('company_portfolios', queryset=Portfolio.objects.filter(enabled=True).prefetch_related(
-        #         Prefetch('portfolio_properties', queryset=Property.objects.filter(enabled=True)))),
-        #     Prefetch('members', queryset=Profile.objects.filter(enabled=True).prefetch_related(
-        #         Prefetch('portfolios', queryset=Portfolio.objects.filter(enabled=True)),
-        #         Prefetch('offices', queryset=Office.objects.filter(enabled=True))))
-        # ).first()
         company = Company.objects.filter(Q(administrator=p) | Q(members=p), enabled=True).prefetch_related(
-            Prefetch('company_offices', queryset=Office.objects.filter(enabled=True).prefetch_related(
-                Prefetch('office_properties', queryset=Property.objects.filter(enabled=True)))), 
-            Prefetch('company_portfolios', queryset=Portfolio.objects.filter(enabled=True).prefetch_related(
-                Prefetch('portfolio_properties', queryset=Property.objects.filter(enabled=True)))),
+            Prefetch('offices', queryset=Office.objects.filter(enabled=True).prefetch_related(
+                Prefetch('properties', queryset=Property.objects.filter(enabled=True)))), 
+            Prefetch('portfolios', queryset=Portfolio.objects.filter(enabled=True).prefetch_related(
+                Prefetch('properties', queryset=Property.objects.filter(enabled=True)))),
             Prefetch('members', queryset=Profile.objects.filter(enabled=True).prefetch_related(
-                Prefetch('portfolios', queryset=Portfolio.objects.filter(enabled=True)),
-                Prefetch('offices', queryset=Office.objects.filter(enabled=True)))),
+                Prefetch('member_portfolios', queryset=Portfolio.objects.filter(enabled=True)),
+                Prefetch('member_offices', queryset=Office.objects.filter(enabled=True)))),
             Prefetch('invitations', queryset=Invitation.objects.filter(enabled=True))
         ).first()
         
@@ -832,16 +823,15 @@ class ProfileViewSet(viewsets.ModelViewSet, AchieveModelMixin):
     def me(self, request, *args, **kwargs):
         p = request.user.user_profile
         profile = self.get_queryset().filter(id=p.id).prefetch_related(
+            Prefetch('member_offices', queryset=Office.objects.filter(enabled=True).prefetch_related(
+                Prefetch('properties', queryset=Property.objects.filter(enabled=True)))), 
             Prefetch('offices', queryset=Office.objects.filter(enabled=True).prefetch_related(
-                Prefetch('office_properties', queryset=Property.objects.filter(enabled=True)))), 
-            Prefetch('administrative_offices', queryset=Office.objects.filter(enabled=True).prefetch_related(
-                Prefetch('office_properties', queryset=Property.objects.filter(enabled=True)))), 
+                Prefetch('properties', queryset=Property.objects.filter(enabled=True)))), 
             Prefetch('portfolios', queryset=Portfolio.objects.filter(enabled=True).prefetch_related(
-                Prefetch('portfolio_properties', queryset=Property.objects.filter(enabled=True)))),
-            Prefetch('administrative_portfolios', queryset=Portfolio.objects.filter(enabled=True).prefetch_related(
-                Prefetch('portfolio_properties', queryset=Property.objects.filter(enabled=True)))),
-            # Prefetch('properties', queryset=Property.objects.filter(enabled=True).prefetch_related),
-            Prefetch('administrative_properties', queryset=Property.objects.filter(enabled=True))
+                Prefetch('properties', queryset=Property.objects.filter(enabled=True)))),
+            Prefetch('member_portfolios', queryset=Portfolio.objects.filter(enabled=True).prefetch_related(
+                Prefetch('properties', queryset=Property.objects.filter(enabled=True)))),
+            Prefetch('properties', queryset=Property.objects.filter(enabled=True))
         ).first()
         return Response(ProfileDetailSerializer(profile).data, status=status.HTTP_200_OK)
 
@@ -854,12 +844,12 @@ class ProfileViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             try:
                 company = Company.objects.filter(Q(Q(administrator=profile) | Q(members=profile)), enabled=True).first()
                 if company:
-                    profiles = Profile.objects.filter(Q(Q(company=company) | Q(administrative_company=company), enabled=True)).distinct()
+                    profiles = Profile.objects.filter(Q(Q(company=company) | Q(administrator__company=company), enabled=True)).distinct()
                     data = ProfileSerializer(profiles).data
-            except Profile.administrative_company.RelatedObjectDoesNotExist:
+            except Profile.administrator.RelatedObjectDoesNotExist:
                 pass
         else:
-            profiles = Profile.objects.filter(Q(Q(company=company) | Q(administrative__company=company), enabled=True)).distinct()
+            profiles = Profile.objects.filter(Q(Q(company=company) | Q(properties__company=company), enabled=True)).distinct()
             data = ProfileSerializer(profiles, many=True).data
               
         return Response(data, status=status.HTTP_200_OK)

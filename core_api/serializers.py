@@ -265,8 +265,8 @@ class CompanyMDLDetailSerializer(serializers.ModelSerializer):
     city = CitySerializer(many=False, read_only=True)
     mdl = ManagerDirectoryListSerializer(many=False, read_only=True)
     invitations = InvitationListSerializer(many=True, read_only=True)
-    company_offices = OfficeDetailSerializer(many=True, read_only=True)
-    company_portfolios = PortfolioDetailSerializer(many=True, read_only=True)
+    offices = OfficeDetailSerializer(many=True, read_only=True)
+    portfolios = PortfolioDetailSerializer(many=True, read_only=True)
     
     # administrator = ProfileSerializer(many=False, read_only=True)
     # members = ProfileSerializer(many=True, read_only=True)

@@ -407,7 +407,7 @@ class Profile(TrackedModel):
     ref = models.CharField(max_length=16, verbose_name="Ref", unique=True, blank=False, null=False)
     user = models.OneToOneField(UserModel, on_delete=models.CASCADE, related_name='user_profile')
     company = models.ForeignKey(Company, on_delete=models.SET_NULL, related_name='members', blank=True, null=True, default=None)
-    address = models.ForeignKey(Address, on_delete=models.CASCADE, related_name='address_profiles', blank=True, null=True, default=None)
+    address = models.ForeignKey(Address, on_delete=models.CASCADE, related_name='profiles', blank=True, null=True, default=None)
     image = models.ImageField(upload_to=profile_upload_path, blank=True, null=True, default=None)
     # position = models.CharField(max_length=32, verbose_name="Position", choices=POSITIONS, default="Worker")
     # status = models.CharField(max_length=32, verbose_name="Status", choices=STATUS, default=UNAVAILABLE)

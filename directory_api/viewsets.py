@@ -222,9 +222,9 @@ class ManagerDirectoryViewSet(viewsets.ModelViewSet, AchieveModelMixin):
         p = request.user.user_profile
         md = ManagerDirectory.objects.filter(Q(company__administrator=p) | Q(company__members=p), enabled=True).first()
         # company = ManagerDirectory.objects.filter(Q(company__administrator=p) | Q(company__members=p), enabled=True).prefetch_related(
-        #     Prefetch('company_offices', queryset=Office.objects.filter(enabled=True).prefetch_related(
-        #         Prefetch('office_properties', queryset=Property.objects.filter(enabled=True)))), 
-        #     Prefetch('company_portfolios', queryset=Portfolio.objects.filter(enabled=True).prefetch_related(
+        #     Prefetch('offices', queryset=Office.objects.filter(enabled=True).prefetch_related(
+        #         Prefetch('properties', queryset=Property.objects.filter(enabled=True)))), 
+        #     Prefetch('portfolios', queryset=Portfolio.objects.filter(enabled=True).prefetch_related(
         #         Prefetch('portfolio_properties', queryset=Property.objects.filter(enabled=True)))),
         #     Prefetch('members', queryset=Profile.objects.filter(enabled=True).prefetch_related(
         #         Prefetch('portfolios', queryset=Portfolio.objects.filter(enabled=True)),
@@ -257,15 +257,15 @@ class ManagerDirectoryViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             qs = qs.filter(mdl__zip_code=data.get('zip_code'))
             
         qs = qs.prefetch_related(
-            Prefetch('company_offices', queryset=Office.objects.filter(enabled=True).prefetch_related(
-                Prefetch('office_properties', queryset=Property.objects.filter(enabled=True)))), 
-            Prefetch('company_portfolios', queryset=Portfolio.objects.filter(enabled=True).prefetch_related(
-                Prefetch('portfolio_properties', queryset=Property.objects.filter(enabled=True)))),
+            Prefetch('offices', queryset=Office.objects.filter(enabled=True).prefetch_related(
+                Prefetch('properties', queryset=Property.objects.filter(enabled=True)))), 
+            Prefetch('portfolios', queryset=Portfolio.objects.filter(enabled=True).prefetch_related(
+                Prefetch('properties', queryset=Property.objects.filter(enabled=True)))),
             Prefetch('members', queryset=Profile.objects.filter(enabled=True).prefetch_related(
-                Prefetch('portfolios', queryset=Portfolio.objects.filter(enabled=True)),
-                Prefetch('offices', queryset=Office.objects.filter(enabled=True)))),
+                Prefetch('member_portfolios', queryset=Portfolio.objects.filter(enabled=True)),
+                Prefetch('member_offices', queryset=Office.objects.filter(enabled=True)))),
             Prefetch('invitations', queryset=Invitation.objects.filter(enabled=True))
-    )
+        )
         print(qs.query)
         return Response(CompanyMDLDetailSerializer(qs, many=True).data)
 
@@ -848,7 +848,7 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
                 print(RoomTypeSerializer(instance=rt).data)
             isFirst = True
             for p in request.data.getlist('pictures[]'):
-                ser = PropertyPhotoSerializer(data={'image': p, "property": instance.id, 'is_default': isFirst})
+                ser = PropertyPhotoSerializer(data={'image': p, "property": instance.id, 'is_default': isFirst })
                 ser.is_valid(raise_exception=True)
                 pic = self.perform_create(ser)
                 isFirst = False
@@ -1355,7 +1355,7 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
         if data.get('propertyId', None):
             queryset = queryset.filter(Q(id__icontains=data.get('propertyId')) | Q(ref__icontains=data.get('propertyId')))
         if data.get('city', None):
-            print('city: ', data.get('city', None))
+            print('city: ', data.get('city'))
             queryset = queryset.filter(address__city__name__icontains=data.get('city'))
         if data.get('zip_code', None):
             print('zip_code: ', data.get('zip_code', None))
@@ -1529,21 +1529,88 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
     @action(methods=['get'], detail=False, url_path='mine', url_name='mine')
     def mine(self, request, *args, **kwargs):
         p = request.user.user_profile
-        company = Property.objects.filter(Q(administrator=p) | Q(members=p), enabled=True).prefetch_related(
-            Prefetch('company_offices', queryset=Office.objects.filter(enabled=True).prefetch_related(
+        properties = Property.objects.filter(Q(administrator=p) | Q(members=p), enabled=True).prefetch_related(
+            Prefetch('offices', queryset=Office.objects.filter(enabled=True).prefetch_related(
                 Prefetch('office_properties', queryset=Property.objects.filter(enabled=True)))), 
-            Prefetch('company_portfolios', queryset=Portfolio.objects.filter(enabled=True).prefetch_related(
+            Prefetch('portfolios', queryset=Portfolio.objects.filter(enabled=True).prefetch_related(
                 Prefetch('portfolio_properties', queryset=Property.objects.filter(enabled=True)))),
             Prefetch('members', queryset=Profile.objects.filter(enabled=True).prefetch_related(
                 Prefetch('portfolios', queryset=Portfolio.objects.filter(enabled=True)),
                 Prefetch('offices', queryset=Office.objects.filter(enabled=True)))),
             Prefetch('invitations', queryset=Invitation.objects.filter(enabled=True))
         ).first()
-        if company:
-            return Response(CompanyMDLDetailSerializer(company).data, status=status.HTTP_200_OK)
+
+        if properties:
+            return Response(PropertyListSerializer(properties, many=True).data, status=status.HTTP_200_OK)
         else:
             return Response(None, status=status.HTTP_200_OK)
-
+       
+    @action(methods=['post'], detail=True, url_path='pictures/upload', url_name='picture-upload')
+    def pictures_upload(self, request, *args, **kwargs):
+        with transaction.atomic():
+            print('============ 0 =============')
+            data = request.data
+            print(data)
+            instance = self.get_object()
+            
+            print('============ pictures =============')
+            print(request.data.getlist('pictures'))
+            
+            pictures_set = set()
+            for k in data.keys():
+                if f'pictures[' in k:
+                        pictures_set.add(re.findall(r"^pictures\[(\d+)\]\[(\w+)\]", k)[0][0])
+            
+            pictures = []
+            foundDefault = False
+            defaultIndex = -1
+            for i in range(len(pictures_set)):
+                d = dict()
+                d['index'] = i
+                d['id'] = data.get(f'pictures[{i}][id]', None)
+                d['caption'] = data.get(f'pictures[{i}][caption]', None)
+                d['is_default'] = data.get(f'pictures[{i}][is_default]', None)
+                d['image'] = data.get(f'pictures[{i}][image]', None)
+                d['property'] = data.get(f'pictures[{i}][property]', None)
+                
+                if data.get(f'pictures[{i}][path]', None):
+                    d['path'] = data.get(f'pictures[{i}][path]', None)
+                if data.get(f'pictures[{i}][preview]', None):
+                    d['preview'] = data.get(f'pictures[{i}][preview]', None)
+                
+                pictures.append(d)
+                if d['is_default']:
+                    if foundDefault:
+                        d['is_default'] = False
+                    else:
+                        foundDefault = True
+                        defaultIndex = i
+            
+            if len(pictures) > 0 and not foundDefault and defaultIndex == -1:
+                pictures[0]['is_default'] = True
+            elif len(pictures) > 1 and defaultIndex > 0:
+                indexPic = pictures[defaultIndex]
+                del pictures[defaultIndex]
+                pictures.insert(0, indexPic)
+                for i in range(len(pictures)):
+                    pictures[i]['index'] = i
+            
+            print('\n')
+            x = 0
+            for p in pictures:
+                print(p)
+                print(f'======{x}\n')
+                x += 1
+                if p['id']:
+                    inst = PropertyPhoto.objects.filter(id=p['id']).first()
+                    ser = PropertyPhotoSerializer(inst, data=p, partial=True)
+                else:
+                    ser = PropertyPhotoSerializer(data=p)
+                ser.is_valid(raise_exception=True)
+                pic = self.perform_create(ser)
+                
+        return Response({'status': 'Ok'}, status=status.HTTP_200_OK)
+    
     
 class SupportViewSet(viewsets.ModelViewSet):
     permission_classes = (AllowAny, )
