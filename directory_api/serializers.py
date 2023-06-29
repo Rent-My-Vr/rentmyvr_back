@@ -144,8 +144,8 @@ class ManagerDirectoryListSerializer(serializers.ModelSerializer):
     subscription = SubscriptionSerializer(many=False, read_only=True)
     # mdl = ManagerDirectorySerializer(many=False, read_only=True)
     # invitations = InvitationListSerializer(many=True, read_only=True)
-    # company_offices = OfficeDetailSerializer(many=True, read_only=True)
-    # company_portfolios = PortfolioDetailSerializer(many=True, read_only=True)
+    # offices = OfficeDetailSerializer(many=True, read_only=True)
+    # portfolios = PortfolioDetailSerializer(many=True, read_only=True)
     
     class Meta:
         model = ManagerDirectory
@@ -273,7 +273,7 @@ class PropertyPhotoSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = PropertyPhoto
-        fields = ('id', 'property', 'image', 'default', 'caption')
+        fields = ('id', 'property', 'index', 'image', 'is_default', 'caption')
 
 
 class PropertySerializer(serializers.ModelSerializer):
@@ -574,16 +574,11 @@ class PropertyListSerializer(serializers.ModelSerializer):
 
 
 class PropertySearchResultSerializer(serializers.ModelSerializer):
-    address = AddressDetailGeoSerializer(many=False, read_only=False)
-    booking_sites = BookingSiteSerializer(many=True, read_only=False)
-    social_media = SocialMediaLinkSerializer(many=True, read_only=False)
     pictures = PropertyPhotoSerializer(many=True, read_only=True)
-    room_types = RoomTypeSerializer(many=True, read_only=False)
-    
+
     class Meta:
         model = Property
-        exclude = ('updated', 'updated_by', )
-        read_only_fields = ('id', 'ref', 'enabled', 'updated', 'updated_by')
+        fields = ('id', 'is_active', 'ref', 'name', 'type', 'space', 'max_no_of_guest', 'no_of_bedrooms', 'no_of_bathrooms', 'pictures')
 
 
 class PropertyDetailSerializer(serializers.ModelSerializer):

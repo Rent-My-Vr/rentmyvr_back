@@ -312,9 +312,9 @@ class Office(TrackedModel):
     formatted = models.CharField(max_length=512, verbose_name="Formatted Address", null=True, blank=True, default='')
     # location = gis_model.PointField(null=True, blank=True, geography=True, spatial_index=True, srid=4326, dim=3)
     # location = gis_model.PointField(null=True, blank=True, geography=True, spatial_index=True, srid=4326)
-    company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name='company_offices')
-    administrator = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name='administrative_offices', verbose_name="Admin")
-    members = models.ManyToManyField(Profile, blank=True, related_name='offices')
+    company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name='offices')
+    administrator = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name='offices', verbose_name="Admin")
+    members = models.ManyToManyField(Profile, blank=True, related_name='member_offices')
     # pdls = models.ManyToManyField('Property', blank=False)
     
     class Meta:
@@ -380,9 +380,9 @@ class PoolSpa(StampedModel):
 class Portfolio(TrackedModel):
     ref = models.CharField(max_length=16, verbose_name="Ref", unique=True)
     name = models.CharField(max_length=128, verbose_name="name")
-    company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name='company_portfolios')
-    administrator = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name='administrative_portfolios')
-    members = models.ManyToManyField(Profile, blank=False, related_name='portfolios')
+    company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name='portfolios')
+    administrator = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name='portfolios')
+    members = models.ManyToManyField(Profile, blank=False, related_name='member_portfolios')
     # pdls = models.ManyToManyField('Property', blank=False)
     
     class Meta:
@@ -660,6 +660,7 @@ class Property(StampedUpdaterModel):
     
     price_night = models.DecimalField(verbose_name="Ave $ Per Night", max_digits=9, decimal_places=2, default=0.0)
     address = models.ForeignKey(Address, related_name='property_address', on_delete=models.CASCADE)
+    # hide_address = models.BooleanField(default=False, )
     hide_phone = models.BooleanField(default=False, )
     hide_email = models.BooleanField(default=False, )
     email = models.CharField(max_length=128, verbose_name="email", default='', blank=True, null=True)
@@ -686,9 +687,9 @@ class Property(StampedUpdaterModel):
     
     calendar = models.ForeignKey(Calendar, on_delete=models.SET_NULL, related_name='properties', blank=True, null=True, default=None)
     company = models.ForeignKey(Company, on_delete=models.SET_NULL, related_name='properties', blank=True, null=True, default=None)
-    administrator = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name='administrative_properties', blank=True, null=True, default=None)
-    office = models.ForeignKey(Office, on_delete=models.CASCADE, related_name='office_properties', blank=True, null=True, default=None)
-    portfolio = models.ForeignKey(Portfolio, on_delete=models.CASCADE, related_name='portfolio_properties', blank=True, null=True, default=None)
+    administrator = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name='properties', blank=True, null=True, default=None)
+    office = models.ForeignKey(Office, on_delete=models.CASCADE, related_name='properties', blank=True, null=True, default=None)
+    portfolio = models.ForeignKey(Portfolio, on_delete=models.CASCADE, related_name='properties', blank=True, null=True, default=None)
     subscription = models.OneToOneField(Subscription, on_delete=models.CASCADE, related_name='pdl', default=None, blank=True, null=True)
     
     imported = models.BooleanField(default=False, )
@@ -756,7 +757,8 @@ class PropertyPhoto(StampedUpdaterModel):
     property = models.ForeignKey(Property, verbose_name="Property", related_name="pictures", on_delete=models.CASCADE)
     image = models.ImageField(upload_to="property_image_upload_path")
     caption = models.CharField(max_length=256, verbose_name="caption", default='', blank=True, null=True) 
-    default = models.BooleanField(default=False, )
+    is_default = models.BooleanField(default=False)
+    index = models.IntegerField(verbose_name="Picture Index")
     
     def __str__(self):
         return f"{self.image}"
