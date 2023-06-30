@@ -551,8 +551,8 @@ class PortfolioDetailSerializer(serializers.ModelSerializer):
     members = ProfileSerializer(many=True, read_only=True)
     company = CompanySerializer(many=False, read_only=True)
     
-    office_properties = PropertySerializer(many=True, read_only=True)
-    portfolio_properties = PropertySerializer(many=True, read_only=True)
+    # office_properties = PropertySerializer(many=True, read_only=True)
+    properties = PropertySerializer(many=True, read_only=True)
 
     class Meta:
         model = Portfolio

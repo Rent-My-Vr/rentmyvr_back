@@ -248,12 +248,11 @@ class ManagerDirectoryViewSet(viewsets.ModelViewSet, AchieveModelMixin):
         qs = Company.objects.filter(enabled=True, mdl__is_active=True)
         if len(data.get('state', '')) > 0:
             print('1. ', data.get('state'))
-            qs = qs.filter(mdl__state=data.get('state'))
+            qs = qs.filter(mdl__state__icontains=data.get('state'))
         if len(data.get('city', '')) > 0:
             print('2. ', data.get('state'))
-            qs = qs.filter(mdl__city_id=data.get('city').get('id', None))
+            qs = qs.filter(mdl__city__name__icontains=data.get('city'))
         if len(data.get('zip_code', '')) > 0:
-            print('3. ', data.get('state'))
             qs = qs.filter(mdl__zip_code=data.get('zip_code'))
             
         qs = qs.prefetch_related(
@@ -1354,12 +1353,11 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             
         if data.get('propertyId', None):
             queryset = queryset.filter(Q(id__icontains=data.get('propertyId')) | Q(ref__icontains=data.get('propertyId')))
-        if data.get('city', None):
-            print('city: ', data.get('city'))
-            queryset = queryset.filter(address__city__name__icontains=data.get('city'))
         if data.get('zip_code', None):
             print('zip_code: ', data.get('zip_code', None))
             queryset = queryset.filter(address__zip_code__icontains=data.get('zip_code'))
+        if data.get('city', None):
+            queryset = queryset.filter(address__city__name__icontains=data.get('city'))
         if data.get('state', None):
             print('state: ', data.get('state'))
             queryset = queryset.filter(address__city__state_name__icontains=data.get('state'))
