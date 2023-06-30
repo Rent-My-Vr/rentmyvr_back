@@ -269,7 +269,9 @@ class PropertyAdmin(ImportExportModelAdmin):
 
 @admin.register(PropertyPhoto)
 class PropertyPhotoAdmin(admin.ModelAdmin):
-    list_display = ('property', 'image', 'enabled', 'created', 'updated')
+    list_filter = ('enabled', )
+    search_fields = ['id','property__ref', 'property__name', 'image', ]
+    list_display = ('property', 'enabled', 'index', 'image', 'created', 'updated')
 
 
 

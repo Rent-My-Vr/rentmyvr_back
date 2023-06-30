@@ -1546,18 +1546,19 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
     @action(methods=['post'], detail=True, url_path='pictures/upload', url_name='picture-upload')
     def pictures_upload(self, request, *args, **kwargs):
         with transaction.atomic():
-            print('============ 0 =============')
+            print('\n============ 0 =============\n')
             data = request.data
             print(data)
             instance = self.get_object()
             
-            print('============ pictures =============')
+            print('\n============ pictures =============\n')
             print(request.data.getlist('pictures'))
             
             pictures_set = set()
             for k in data.keys():
                 if f'pictures[' in k:
-                        pictures_set.add(re.findall(r"^pictures\[(\d+)\]\[(\w+)\]", k)[0][0])
+                    pictures_set.add(re.findall(r"^pictures\[(\d+)\]\[(\w+)\]", k)[0][0])
+                    print(k, ' ==> ', data[k])
             
             pictures = []
             foundDefault = False
@@ -1569,12 +1570,12 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
                 d['caption'] = data.get(f'pictures[{i}][caption]', None)
                 d['is_default'] = data.get(f'pictures[{i}][is_default]', None)
                 d['image'] = data.get(f'pictures[{i}][image]', None)
-                d['property'] = data.get(f'pictures[{i}][property]', None)
+                d['property'] = instance.id
                 
-                if data.get(f'pictures[{i}][path]', None):
-                    d['path'] = data.get(f'pictures[{i}][path]', None)
-                if data.get(f'pictures[{i}][preview]', None):
-                    d['preview'] = data.get(f'pictures[{i}][preview]', None)
+                # if data.get(f'pictures[{i}][path]', None):
+                #     d['path'] = data.get(f'pictures[{i}][path]', None)
+                # if data.get(f'pictures[{i}][preview]', None):
+                #     d['preview'] = data.get(f'pictures[{i}][preview]', None)
                 
                 pictures.append(d)
                 if d['is_default']:
@@ -1584,6 +1585,8 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
                         foundDefault = True
                         defaultIndex = i
             
+            print(defaultIndex, ' =====>>> ', foundDefault)
+
             if len(pictures) > 0 and not foundDefault and defaultIndex == -1:
                 pictures[0]['is_default'] = True
             elif len(pictures) > 1 and defaultIndex > 0:
@@ -1601,13 +1604,25 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
                 x += 1
                 if p['id']:
                     inst = PropertyPhoto.objects.filter(id=p['id']).first()
+                    if type(p['image']) == str:
+                        print('String>>>>>>>>>>> 1')
+                        p.pop("image", None)
+                    else:
+                        print(type(p['image']), ' String>>>>>>>>>>> 2')
                     ser = PropertyPhotoSerializer(inst, data=p, partial=True)
+                    ser.is_valid(raise_exception=True)
+                    self.perform_update(ser)
                 else:
                     ser = PropertyPhotoSerializer(data=p)
+                    ser.is_valid(raise_exception=True)
+                    self.perform_create(ser)
+            if data.get('video[]', None):
+                print(' ===>> ', data['video[]'])
+                ser = PropertyVideoSerializer(instance, data={"id": instance, "video": data['video[]']}, partial=True)
                 ser.is_valid(raise_exception=True)
-                pic = self.perform_create(ser)
+                self.perform_update(ser)
                 
-        return Response({'status': 'Ok'}, status=status.HTTP_200_OK)
+        return Response(PropertyDetailSerializer(instance).data, status=status.HTTP_200_OK)
     
     
 class SupportViewSet(viewsets.ModelViewSet):

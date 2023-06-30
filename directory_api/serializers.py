@@ -275,6 +275,12 @@ class PropertyPhotoSerializer(serializers.ModelSerializer):
         model = PropertyPhoto
         fields = ('id', 'property', 'index', 'image', 'is_default', 'caption')
 
+class PropertyVideoSerializer(serializers.ModelSerializer):
+    
+    class Meta:
+        model = Property
+        fields = ('id', 'video')
+
 
 class PropertySerializer(serializers.ModelSerializer):
     address = AddressCreateGeoSerializer(many=False, read_only=False)
