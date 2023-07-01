@@ -321,7 +321,7 @@ class CompanyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             headers = self.get_success_headers(serializer.data)
             profile.company = company
             profile.save()
-            c = profile.administrative_properties.all().update(company=company)
+            c = profile.properties.all().update(company=company)
             print(f'-----Upgraded {c} companies------')
             user = request.user
             user.position = UserModel.ADMIN

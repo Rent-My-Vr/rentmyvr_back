@@ -241,7 +241,7 @@ class ManagerDirectoryViewSet(viewsets.ModelViewSet, AchieveModelMixin):
 
     @action(methods=['post'], detail=False, url_path='search', url_name='search')
     def search(self, request, *args, **kwargs):
-        print('-------')
+        print('----00000---')
         print(request.data)
         data = request.data
         
@@ -266,6 +266,8 @@ class ManagerDirectoryViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             Prefetch('invitations', queryset=Invitation.objects.filter(enabled=True))
         )
         print(qs.query)
+        if request.query_params.get("limit", None):
+            qs = qs[:request.query_params.get("limit")]
         return Response(CompanyMDLDetailSerializer(qs, many=True).data)
 
 

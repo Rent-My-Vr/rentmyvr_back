@@ -763,7 +763,13 @@ class PropertyPhoto(StampedUpdaterModel):
     
     def __str__(self):
         return f"{self.image}"
-        
+    
+    class Meta:
+        ordering = ('index', 'created')
+        managed = AUTO_MANAGE
+        verbose_name = _('Property Photo')
+        verbose_name_plural = _('Property Photos')
+
 
 class Booker(StampedModel):
     name = models.CharField(max_length=128, verbose_name="name", unique=True)
