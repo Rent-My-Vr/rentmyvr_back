@@ -267,7 +267,7 @@ class ManagerDirectoryViewSet(viewsets.ModelViewSet, AchieveModelMixin):
         )
         print(qs.query)
         if request.query_params.get("limit", None):
-            qs = qs[:request.query_params.get("limit")]
+            qs = qs[:int(request.query_params.get("limit"))]
         return Response(CompanyMDLDetailSerializer(qs, many=True).data)
 
 
