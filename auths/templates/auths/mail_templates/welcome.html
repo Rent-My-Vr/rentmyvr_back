@@ -1,3 +1,4 @@
+{% load static %}
 <!DOCTYPE html>
 <html>
 <style type="text/css">
@@ -45,16 +46,16 @@
       <div style="background-color: #F5F5F5; padding: 40px; text-align: center;">
         <div style="margin-bottom: 20px;">
           <a href="#" style="display: inline-block; margin: 0px 10px;">
-            <img alt="" src="img/social-icons/twitter.png" style="width: 28px;">
+            <img alt="" src="{{domain}}{% static 'img/social-icons/twitter.png' %}" style="width: 28px;">
           </a>
           <a href="#" style="display: inline-block; margin: 0px 10px;">
-            <img alt="" src="img/social-icons/facebook.png" style="width: 28px;">
+            <img alt="" src="{{domain}}{% static 'img/social-icons/facebook.png' %}" style="width: 28px;">
           </a>
           <a href="#" style="display: inline-block; margin: 0px 10px;">
-            <img alt="" src="img/social-icons/linkedin.png" style="width: 28px;">
+            <img alt="" src="{{domain}}{% static 'img/social-icons/linkedin.png' %}" style="width: 28px;">
           </a>
           <a href="#" style="display: inline-block; margin: 0px 10px;">
-            <img alt="" src="img/social-icons/instagram.png" style="width: 28px;">
+            <img alt="" src="{{domain}}{% static 'img/social-icons/instagram.png' %}" style="width: 28px;">
           </a>
         </div>
         <div style="margin-bottom: 20px;">
@@ -66,10 +67,10 @@
         </div>
         <div style="margin-bottom: 20px;">
           <a href="#" style="display: inline-block; margin: 0px 10px;">
-            <img alt="" src="img/market-google-play.png" style="height: 33px;">
+            <img alt="" src="{{domain}}{% static 'img/market-google-play.png' %}" style="height: 33px;">
           </a>
           <a href="#" style="display: inline-block; margin: 0px 10px;">
-            <img alt="" src="img/market-ios.png" style="height: 33px;">
+            <img alt="" src="{{domain}}{% static 'img/market-ios.png' %}" style="height: 33px;">
           </a>
         </div>
         <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid rgba(0,0,0,0.05);">

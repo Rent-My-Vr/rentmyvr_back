@@ -1233,8 +1233,17 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
         print('Company: ', profile.company)
         print('Profile: ', profile)
 
-        # queryset = self.filter_queryset(self.get_queryset())
-        queryset = Property.objects.filter(Q(Q(company__isnull=False, company=profile.company) | Q(administrator=profile)), enabled=True).order_by(sortby)
+        # queryset = Property.objects.filter(Q(Q(company__isnull=False, company=profile.company) | Q(administrator=profile)), enabled=True).prefetch_related(
+        #     Prefetch('offices', queryset=Office.objects.filter(enabled=True).prefetch_related(
+        #         Prefetch('properties', queryset=Property.objects.filter(enabled=True)))), 
+        #     Prefetch('portfolios', queryset=Portfolio.objects.filter(enabled=True).prefetch_related(
+        #         Prefetch('properties', queryset=Property.objects.filter(enabled=True)))),
+        #     Prefetch('pictures', queryset=PropertyPhoto.objects.filter(enabled=True)
+        # ).order_by(sortby)
+            
+        queryset = Property.objects.filter(Q(Q(company__isnull=False, company=profile.company) | Q(administrator=profile)), enabled=True).prefetch_related(
+            Prefetch('pictures', queryset=PropertyPhoto.objects.filter(enabled=True).order_by('index'))
+        ).order_by(sortby)
 
         if size == 0 and page_number:
             # Remote Loader
@@ -1249,7 +1258,7 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
                 serializer = self.get_serializer(pagy, many=True)
                 return self.get_paginated_response(serializer.data)
         else:
-            page_number = int(page_number) if page_number else 1
+            page_number = int(page_number)-1 if page_number else 0
             size = int(size) if size and int(size) > 0 else 100
             print("A222")
             print(page_number, '   ', page_number*size, ' ---- ', size)
@@ -1281,7 +1290,7 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
                     queryset = Property.objects.filter(Q(Q(ref__icontains=search) | Q(name__icontains=search) | Q(type__icontains=search) | Q(space__icontains=search)), company__isnull=True, enabled=True).order_by(sortby)[page_number*size:(page_number*size)+size]
                     total = len(queryset)
                 else:
-                    print("A555b")
+                    print(size, ' --  ', page_number, " A555b ", [page_number*size, (page_number*size)+size])
                     queryset = Property.objects.filter(company__isnull=True, administrator=profile, enabled=True).order_by(sortby)[page_number*size:(page_number*size)+size]
                     total = len(queryset)
                 
@@ -1310,7 +1319,9 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
         print(type(geometry))
         print(geometry)
         print(1)
-        queryset = Property.objects.filter(enabled=True, is_published=True) 
+        queryset = Property.objects.filter(enabled=True, is_published=True).prefetch_related(
+            Prefetch('pictures', queryset=PropertyPhoto.objects.filter(enabled=True, is_default=True))
+        )
         if geometry:
             print(2)
             if geometry.get('type') == 'Point':
@@ -1352,7 +1363,7 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             queryset = queryset.filter(office__ref=query_params.get('off_ref'))
         if query_params.get('port_ref', None):
             queryset = queryset.filter(portfolio__ref=query_params.get('port_ref'))
-            
+        print('1 ++++ ', len(queryset))
         if data.get('propertyId', None):
             queryset = queryset.filter(Q(id__icontains=data.get('propertyId')) | Q(ref__icontains=data.get('propertyId')))
         if data.get('zip_code', None):
@@ -1367,6 +1378,7 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             queryset = queryset.filter(type__in=data.get('types'))
         if data.get('bookedSpaces', None):
             queryset = queryset.filter(space__in=data.get('bookedSpaces'))
+        print('2 ++++ ', len(queryset))
         if data.get('guest', None):
             try:
                 queryset = queryset.filter(max_no_of_guest__gte=int(data.get('guest')))
@@ -1381,6 +1393,7 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
         if data.get('priceRange', None):
             pri = data.get('priceRange', [])
             queryset = queryset.filter(Q(price_night__gte=pri[0], price_night__lte=pri[1]))
+        print('3 ++++ ', len(queryset))
         if data.get('suitabilities', None):
             s = data.get('suitabilities')
             if len(s) == 4:

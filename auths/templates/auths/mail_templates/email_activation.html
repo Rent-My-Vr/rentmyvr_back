@@ -1,3 +1,4 @@
+{% load static %}
 <!DOCTYPE html>
 <html>
 <style type="text/css">
@@ -17,7 +18,7 @@
   <body style="background-color: #222533; padding: 20px; font-family: font-size: 14px; line-height: 1.43; font-family: &quot;Helvetica Neue&quot;, &quot;Segoe UI&quot;, Helvetica, Arial, sans-serif;">
     <div style="max-width: 600px; margin: 0px auto; background-color: #fff; box-shadow: 0px 20px 50px rgba(0,0,0,0.05);">
       <div style="padding: 60px 70px; border-top: 1px solid rgba(0,0,0,0.05); display: flex; flex-direction: column; align-items: center;">
-        <img src="{{domain}}/assets/images/rentmyvr-logo.svg" alt="logo" style="margin-bottom: 20px; width: 100px;" />
+        <img src="{{domain}}{% static 'images/rentmyvr-logo.svg' %}" alt="logo" style="margin-bottom: 20px; width: 100px;" />
         <h1 style="margin-top: 0px;">
           Hi {{user.first_name}},
         </h1>
@@ -45,7 +46,18 @@
         </div>
       </div><div style="background-color: #F5F5F5; padding: 40px; text-align: center;">
         <div style="margin-bottom: 20px;">
-          <a href="#" style="display: inline-block; margin: 0px 10px;"><img alt="" src="img/social-icons/twitter.png" style="width: 28px;"></a><a href="#" style="display: inline-block; margin: 0px 10px;"><img alt="" src="img/social-icons/facebook.png" style="width: 28px;"></a><a href="#" style="display: inline-block; margin: 0px 10px;"><img alt="" src="img/social-icons/linkedin.png" style="width: 28px;"></a><a href="#" style="display: inline-block; margin: 0px 10px;"><img alt="" src="img/social-icons/instagram.png" style="width: 28px;"></a>
+          <a href="#" style="display: inline-block; margin: 0px 10px;">
+            <img alt="" src="{{domain}}{% static 'images/social-icons/twitter.png' %}" style="width: 28px;">
+          </a>
+          <a href="#" style="display: inline-block; margin: 0px 10px;">
+            <img alt="" src="{{domain}}{% static 'images/social-icons/facebook.png' %}" style="width: 28px;">
+          </a>
+          <a href="#" style="display: inline-block; margin: 0px 10px;">
+            <img alt="" src="{{domain}}{% static 'images/social-icons/linkedin.png' %}" style="width: 28px;">
+          </a>
+          <a href="#" style="display: inline-block; margin: 0px 10px;">
+            <img alt="" src="{{domain}}{% static 'images/social-icons/instagram.png' %}" style="width: 28px;">
+          </a>
         </div>
         <div style="margin-bottom: 20px;">
           <a href="#" style="text-decoration: underline; font-size: 14px; letter-spacing: 1px; margin: 0px 15px; color: #261D1D;">Contact Us</a>
@@ -55,7 +67,12 @@
           You are receiving this email because you signed up for {{coy_name}}. 
         </div>
         <div style="margin-bottom: 20px;">
-          <a href="#" style="display: inline-block; margin: 0px 10px;"><img alt="" src="img/market-google-play.png" style="height: 33px;"></a><a href="#" style="display: inline-block; margin: 0px 10px;"><img alt="" src="img/market-ios.png" style="height: 33px;"></a>
+          <a href="#" style="display: inline-block; margin: 0px 10px;">
+            <img alt="" src="{{domain}}{% static 'images/market-google-play.png' %}" style="height: 33px;">
+          </a>
+          <a href="#" style="display: inline-block; margin: 0px 10px;">
+            <img alt="" src="{{domain}}{% static 'images/market-ios.png' %}" style="height: 33px;">
+          </a>
         </div>
         <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid rgba(0,0,0,0.05);">
           <div style="color: #A5A5A5; font-size: 10px; margin-bottom: 5px;">

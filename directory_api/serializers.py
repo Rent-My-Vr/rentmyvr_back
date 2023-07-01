@@ -167,7 +167,6 @@ class OfficeSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Office
-        exclude = ('enabled', )
         exclude = ('enabled', 'updated_by')
         read_only_fields = ('enabled', 'ref', 'updated_by')
 
@@ -525,8 +524,8 @@ class OfficeDetailSerializer(serializers.ModelSerializer):
     company = CompanySerializer(many=False, read_only=True)
     city = CitySerializer(many=False, read_only=True)
     
-    office_properties = PropertySerializer(many=True, read_only=True)
-    portfolio_properties = PropertySerializer(many=True, read_only=True)
+    properties = PropertySerializer(many=True, read_only=True)
+    properties = PropertySerializer(many=True, read_only=True)
 
     class Meta:
         model = Office
