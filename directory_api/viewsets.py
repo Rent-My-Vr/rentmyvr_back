@@ -1550,15 +1550,15 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             data = request.data
             print(data)
             instance = self.get_object()
+            originalPIDs = list(map(lambda x: x.id, instance.pictures.all()))
             
             print('\n============ pictures =============\n')
-            print(request.data.getlist('pictures'))
             
             pictures_set = set()
             for k in data.keys():
                 if f'pictures[' in k:
                     pictures_set.add(re.findall(r"^pictures\[(\d+)\]\[(\w+)\]", k)[0][0])
-                    print(k, ' ==> ', data[k])
+                    print(k, ' ==> ', data[k], '  =>> ', type(data[k]))
             
             pictures = []
             foundDefault = False
@@ -1568,28 +1568,26 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
                 d['index'] = i
                 d['id'] = data.get(f'pictures[{i}][id]', None)
                 d['caption'] = data.get(f'pictures[{i}][caption]', None)
-                d['is_default'] = data.get(f'pictures[{i}][is_default]', None)
+                d['is_default'] = data.get(f'pictures[{i}][is_default]', False)
                 d['image'] = data.get(f'pictures[{i}][image]', None)
                 d['property'] = instance.id
                 
-                # if data.get(f'pictures[{i}][path]', None):
-                #     d['path'] = data.get(f'pictures[{i}][path]', None)
-                # if data.get(f'pictures[{i}][preview]', None):
-                #     d['preview'] = data.get(f'pictures[{i}][preview]', None)
-                
                 pictures.append(d)
-                if d['is_default']:
+                if d['is_default'] == 'true':
+                    print(i, ': ......', foundDefault)
                     if foundDefault:
                         d['is_default'] = False
                     else:
                         foundDefault = True
                         defaultIndex = i
             
-            print(defaultIndex, ' =====>>> ', foundDefault)
+            print(defaultIndex, '::: =====>>> ', foundDefault)
 
             if len(pictures) > 0 and not foundDefault and defaultIndex == -1:
                 pictures[0]['is_default'] = True
+                print('.... ', 111)
             elif len(pictures) > 1 and defaultIndex > 0:
+                print('.... ', 222)
                 indexPic = pictures[defaultIndex]
                 del pictures[defaultIndex]
                 pictures.insert(0, indexPic)
@@ -1598,6 +1596,7 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             
             print('\n')
             x = 0
+            pids = []
             for p in pictures:
                 print(p)
                 print(f'======{x}\n')
@@ -1611,16 +1610,28 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
                         print(type(p['image']), ' String>>>>>>>>>>> 2')
                     ser = PropertyPhotoSerializer(inst, data=p, partial=True)
                     ser.is_valid(raise_exception=True)
-                    self.perform_update(ser)
+                    inst = self.perform_update(ser)
+                    pids.append(inst.id)
                 else:
                     ser = PropertyPhotoSerializer(data=p)
                     ser.is_valid(raise_exception=True)
-                    self.perform_create(ser)
+                    inst = self.perform_create(ser)
+                    pids.append(inst.id)
+                
             if data.get('video[]', None):
                 print(' ===>> ', data['video[]'])
                 ser = PropertyVideoSerializer(instance, data={"id": instance, "video": data['video[]']}, partial=True)
                 ser.is_valid(raise_exception=True)
                 self.perform_update(ser)
+                instance.videoLink = None
+            else:
+                instance.videoLink = data.get('videoLink', None)
+                instance.video = None
+            instance.save()
+                
+            deletedIds = list((set(originalPIDs).difference(pids)))
+            if len(deletedIds) > 0:
+                PropertyPhoto.objects.filter(id__in=deletedIds).delete()
                 
         return Response(PropertyDetailSerializer(instance).data, status=status.HTTP_200_OK)
     
