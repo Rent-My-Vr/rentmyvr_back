@@ -315,11 +315,17 @@ class OfficeViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             profile = request.user.user_profile
             data['administrator'] = profile.id
             data['company'] = profile.company.id
+            pids = data.get('properties', [])
             
             print(data)
             serializer = self.get_serializer(data=data)
             serializer.is_valid(raise_exception=True)
             instance = self.perform_create(serializer)
+            
+            for property in Property.objects.filter(id__in=pids, company=instance.company):
+                property.office = instance
+                property.save()
+
             serializer = OfficeDetailSerializer(instance)
             headers = self.get_success_headers(serializer.data)
 
@@ -367,12 +373,16 @@ class OfficeViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             profile = request.user.user_profile
             data['administrator'] = instance.administrator.id if instance.administrator else profile.id
             data['company'] = instance.company.id if instance.company else profile.company.id
+            pids = data.get('properties', [])
             
             serializer = self.get_serializer(instance, data=data, partial=partial)
             
             serializer.is_valid(raise_exception=True)
-            instance = serializer.save()
-            self.perform_update(serializer)
+            instance = self.perform_update(serializer)
+
+            for property in Property.objects.filter(id__in=pids, company=instance.company):
+                property.office = instance
+                property.save()
             serializer = OfficeDetailSerializer(instance)
 
         if getattr(instance, '_prefetched_objects_cache', None):
@@ -445,17 +455,23 @@ class PortfolioViewSet(viewsets.ModelViewSet, AchieveModelMixin):
         # if r.status_code == 200 and d.get("success") and float(d.get("score")) > 0.5:
         data = request.data
         
-        profile = request.user.user_profile
-        data['administrator'] = profile.id
-        data['company'] = profile.company.id
-        
-        print(data)
-        serializer = self.get_serializer(data=data)
-        serializer.is_valid(raise_exception=True)
-        instance = self.perform_create(serializer)
-
-        serializer = PortfolioDetailSerializer(instance)
-        headers = self.get_success_headers(serializer.data)
+        with transaction.atomic():
+            profile = request.user.user_profile
+            data['administrator'] = profile.id
+            data['company'] = profile.company.id
+            pids = data.get('properties', [])
+            
+            print(data)
+            serializer = self.get_serializer(data=data)
+            serializer.is_valid(raise_exception=True)
+            instance = self.perform_create(serializer)
+            
+            for property in Property.objects.filter(id__in=pids, company=instance.company):
+                property.portfolio = instance
+                property.save()
+            
+            serializer = PortfolioDetailSerializer(instance)
+            headers = self.get_success_headers(serializer.data)
 
         return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
         # else:
@@ -470,11 +486,16 @@ class PortfolioViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             profile = request.user.user_profile
             data['administrator'] = instance.administrator.id if instance.administrator else profile.id
             data['company'] = instance.company.id if instance.company else profile.company.id
+            pids = data.get('properties', [])
             
             serializer = self.get_serializer(instance, data=data, partial=partial)
             serializer.is_valid(raise_exception=True)
             instance = serializer.save()
             
+            for property in Property.objects.filter(id__in=pids, company=instance.company):
+                property.portfolio = instance
+                property.save()
+
             serializer = PortfolioDetailSerializer(instance)
 
             if getattr(instance, '_prefetched_objects_cache', None):
@@ -586,7 +607,7 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             return PropertyDetailSerializer
         elif self.action in ['list', 'publisher']:
             return PropertyListSerializer
-        elif self.action in ['search']:
+        elif self.action in ['search', 'our_list']:
             return PropertySearchResultSerializer
         return PropertySerializer
 
@@ -1363,7 +1384,9 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             queryset = queryset.filter(office__ref=query_params.get('off_ref'))
         if query_params.get('port_ref', None):
             queryset = queryset.filter(portfolio__ref=query_params.get('port_ref'))
+        print('\n\n')
         print('1 ++++ ', len(queryset))
+        print('1 ++++ ', queryset.query)
         if data.get('propertyId', None):
             queryset = queryset.filter(Q(id__icontains=data.get('propertyId')) | Q(ref__icontains=data.get('propertyId')))
         if data.get('zip_code', None):
@@ -1451,18 +1474,22 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
 
-    @action(methods=['get'], detail=False, url_path='table/data', url_name='table-data')
-    def table_data(self, request, *args, **kwargs):
-        pass
-        # {
-        # data: tradesCollection,
-        # paging: {
-        #     total: tradesCollectionCount,
-        #     page: currentPage,
-        #     pages: totalPages,
-        # },
-        # }
-            
+    @action(methods=['get'], detail=False, url_path='our/list', url_name='our-list')
+    def our_list(self, request, *args, **kwargs):
+        profile = request.user.user_profile
+        print(' ====>> ', request.query_params)
+        if len(request.query_params.get("office", "")) > 3:
+            para = request.query_params.get("office", "")
+            queryset = Property.objects.filter(Q(Q(company__isnull=False, company=profile.company) | Q(administrator=profile)), Q(Q(office__isnull=True) | Q(office__id=para) | Q(office__ref=para)), enabled=True)
+        elif len(request.query_params.get("portfolio", "")) > 3:
+            para = request.query_params.get("portfolio", "")
+            queryset = Property.objects.filter(Q(Q(company__isnull=False, company=profile.company) | Q(administrator=profile)), Q(Q(portfolio__isnull=True) | Q(portfolio__id=para) | Q(portfolio__ref=para)), enabled=True)
+        else:
+            queryset = Property.objects.filter(Q(Q(company__isnull=False, company=profile.company) | Q(administrator=profile)), enabled=True)
+        print(queryset.query)
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+           
     @action(methods=['get'], detail=False, url_path='form/items', url_name='form-items')
     def form_items(self, request, *args, **kwargs):
         selective = request.query_params.get('selective', '').split(',')
@@ -1477,6 +1504,13 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             data.sort(key=lambda x: sort_order.get(x["name"], 1000 if 'Additional' in x["name"] else -10))
             bookers = data
         
+        offices = []
+        portfolios = []
+        if request.user.is_authenticated:
+            profile = request.user.user_profile
+            if profile.company:
+                offices = OfficeSerializer(profile.company.offices.filter(enabled=True), many=True).data
+                portfolios = PortfolioSerializer(profile.company.portfolios.filter(enabled=True), many=True).data
         services = ServiceSerializer(Service.objects.filter(enabled=True), many=True).data if 'services' in selective or len(selective) == 0 else []
         sleepers = SleeperSerializer(Sleeper.objects.filter(enabled=True), many=True).data if 'sleepers' in selective or len(selective) == 0 else []
         spaces = SpaceSerializer(Space.objects.filter(enabled=True), many=True).data if 'spaces' in selective or len(selective) == 0 else []
@@ -1512,7 +1546,9 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             'accessibility': accessibility,
             'safeties': safeties,
             'features': features,
-            'activities': activities
+            'activities': activities,
+            'portfolios': portfolios,
+            'offices': offices
         }, status=status.HTTP_201_CREATED)
      
     @action(methods=['get'], detail=False, url_path='fixed/items', url_name='fixed-items')
