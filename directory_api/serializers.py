@@ -167,7 +167,6 @@ class OfficeSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Office
-        exclude = ('enabled', )
         exclude = ('enabled', 'updated_by')
         read_only_fields = ('enabled', 'ref', 'updated_by')
 
@@ -274,6 +273,12 @@ class PropertyPhotoSerializer(serializers.ModelSerializer):
     class Meta:
         model = PropertyPhoto
         fields = ('id', 'property', 'index', 'image', 'is_default', 'caption')
+
+class PropertyVideoSerializer(serializers.ModelSerializer):
+    
+    class Meta:
+        model = Property
+        fields = ('id', 'video')
 
 
 class PropertySerializer(serializers.ModelSerializer):
@@ -519,8 +524,8 @@ class OfficeDetailSerializer(serializers.ModelSerializer):
     company = CompanySerializer(many=False, read_only=True)
     city = CitySerializer(many=False, read_only=True)
     
-    office_properties = PropertySerializer(many=True, read_only=True)
-    portfolio_properties = PropertySerializer(many=True, read_only=True)
+    properties = PropertySerializer(many=True, read_only=True)
+    properties = PropertySerializer(many=True, read_only=True)
 
     class Meta:
         model = Office
@@ -551,8 +556,8 @@ class PortfolioDetailSerializer(serializers.ModelSerializer):
     members = ProfileSerializer(many=True, read_only=True)
     company = CompanySerializer(many=False, read_only=True)
     
-    office_properties = PropertySerializer(many=True, read_only=True)
-    portfolio_properties = PropertySerializer(many=True, read_only=True)
+    # office_properties = PropertySerializer(many=True, read_only=True)
+    properties = PropertySerializer(many=True, read_only=True)
 
     class Meta:
         model = Portfolio
@@ -578,7 +583,7 @@ class PropertySearchResultSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Property
-        fields = ('id', 'is_active', 'ref', 'name', 'type', 'space', 'max_no_of_guest', 'no_of_bedrooms', 'no_of_bathrooms', 'pictures')
+        fields = ('id', 'is_active', 'ref', 'name', 'type', 'space', 'price_night', 'max_no_of_guest', 'no_of_bedrooms', 'no_of_bathrooms', 'pictures')
 
 
 class PropertyDetailSerializer(serializers.ModelSerializer):
@@ -588,6 +593,8 @@ class PropertyDetailSerializer(serializers.ModelSerializer):
     social_media = SocialMediaLinkSerializer(many=True, read_only=True)
     pictures = PropertyPhotoSerializer(many=True, read_only=True)
     room_types = RoomTypeFullSerializer(many=True, read_only=True)
+    office = OfficeSerializer(many=False, read_only=True)
+    portfolio = PortfolioSerializer(many=False, read_only=True)
     
     accessibility = AccessibilitySerializer(many=True, read_only=True)
     activities = ActivitySerializer(many=True, read_only=True)

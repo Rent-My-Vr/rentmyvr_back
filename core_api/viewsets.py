@@ -321,7 +321,7 @@ class CompanyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             headers = self.get_success_headers(serializer.data)
             profile.company = company
             profile.save()
-            c = profile.administrative_properties.all().update(company=company)
+            c = profile.properties.all().update(company=company)
             print(f'-----Upgraded {c} companies------')
             user = request.user
             user.position = UserModel.ADMIN
@@ -576,7 +576,19 @@ class InvitationViewSet(viewsets.ModelViewSet):
                 return Response({'message': 'Sorry, Invalid'}, status=status.HTTP_400_BAD_REQUEST)
         else:
             return Response({'message': 'Invalid Link'}, status=status.HTTP_400_BAD_REQUEST)
-   
+er=[]
+for a in Address.objects.all():
+    if a.zip_code:
+        try:
+            a.zip_code = int(a.zip_code)
+            a.save()
+        except ValueError as e:
+            try: 
+                a.zip_code = int(float(a.zip_code))
+                a.save()
+            except ValueError as e:
+                print(a.id, '   ', a.zip_code)
+                er.append(a)
     @action(methods=['post'], detail=True, permission_classes=[], url_path='resend', url_name='resend')
     def resend(self, request, *args, **kwargs):
         print(kwargs)

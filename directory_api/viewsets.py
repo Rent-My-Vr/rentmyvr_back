@@ -25,6 +25,9 @@ from django.db.models import Q, Prefetch
 from django.contrib.auth import get_user_model
 from django.contrib.gis.geos import Point, Polygon, GEOSGeometry
 from django.contrib.gis.measure import Distance
+from django.views import generic
+from django.contrib.gis.geos import fromstr
+from django.contrib.gis.db.models.functions import Distance as KMDistance
 from django.template.loader import render_to_string
 
 from auths.utils import get_domain
@@ -241,19 +244,18 @@ class ManagerDirectoryViewSet(viewsets.ModelViewSet, AchieveModelMixin):
 
     @action(methods=['post'], detail=False, url_path='search', url_name='search')
     def search(self, request, *args, **kwargs):
-        print('-------')
+        print('----00000---')
         print(request.data)
         data = request.data
         
         qs = Company.objects.filter(enabled=True, mdl__is_active=True)
         if len(data.get('state', '')) > 0:
             print('1. ', data.get('state'))
-            qs = qs.filter(mdl__state=data.get('state'))
+            qs = qs.filter(mdl__state__icontains=data.get('state'))
         if len(data.get('city', '')) > 0:
             print('2. ', data.get('state'))
-            qs = qs.filter(mdl__city_id=data.get('city').get('id', None))
+            qs = qs.filter(mdl__city__name__icontains=data.get('city'))
         if len(data.get('zip_code', '')) > 0:
-            print('3. ', data.get('state'))
             qs = qs.filter(mdl__zip_code=data.get('zip_code'))
             
         qs = qs.prefetch_related(
@@ -267,6 +269,8 @@ class ManagerDirectoryViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             Prefetch('invitations', queryset=Invitation.objects.filter(enabled=True))
         )
         print(qs.query)
+        if request.query_params.get("limit", None):
+            qs = qs[:int(request.query_params.get("limit"))]
         return Response(CompanyMDLDetailSerializer(qs, many=True).data)
 
 
@@ -314,11 +318,17 @@ class OfficeViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             profile = request.user.user_profile
             data['administrator'] = profile.id
             data['company'] = profile.company.id
+            pids = data.get('properties', [])
             
             print(data)
             serializer = self.get_serializer(data=data)
             serializer.is_valid(raise_exception=True)
             instance = self.perform_create(serializer)
+            
+            for property in Property.objects.filter(id__in=pids, company=instance.company):
+                property.office = instance
+                property.save()
+
             serializer = OfficeDetailSerializer(instance)
             headers = self.get_success_headers(serializer.data)
 
@@ -366,12 +376,16 @@ class OfficeViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             profile = request.user.user_profile
             data['administrator'] = instance.administrator.id if instance.administrator else profile.id
             data['company'] = instance.company.id if instance.company else profile.company.id
+            pids = data.get('properties', [])
             
             serializer = self.get_serializer(instance, data=data, partial=partial)
             
             serializer.is_valid(raise_exception=True)
-            instance = serializer.save()
-            self.perform_update(serializer)
+            instance = self.perform_update(serializer)
+
+            for property in Property.objects.filter(id__in=pids, company=instance.company):
+                property.office = instance
+                property.save()
             serializer = OfficeDetailSerializer(instance)
 
         if getattr(instance, '_prefetched_objects_cache', None):
@@ -444,17 +458,23 @@ class PortfolioViewSet(viewsets.ModelViewSet, AchieveModelMixin):
         # if r.status_code == 200 and d.get("success") and float(d.get("score")) > 0.5:
         data = request.data
         
-        profile = request.user.user_profile
-        data['administrator'] = profile.id
-        data['company'] = profile.company.id
-        
-        print(data)
-        serializer = self.get_serializer(data=data)
-        serializer.is_valid(raise_exception=True)
-        instance = self.perform_create(serializer)
-
-        serializer = PortfolioDetailSerializer(instance)
-        headers = self.get_success_headers(serializer.data)
+        with transaction.atomic():
+            profile = request.user.user_profile
+            data['administrator'] = profile.id
+            data['company'] = profile.company.id
+            pids = data.get('properties', [])
+            
+            print(data)
+            serializer = self.get_serializer(data=data)
+            serializer.is_valid(raise_exception=True)
+            instance = self.perform_create(serializer)
+            
+            for property in Property.objects.filter(id__in=pids, company=instance.company):
+                property.portfolio = instance
+                property.save()
+            
+            serializer = PortfolioDetailSerializer(instance)
+            headers = self.get_success_headers(serializer.data)
 
         return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
         # else:
@@ -469,11 +489,16 @@ class PortfolioViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             profile = request.user.user_profile
             data['administrator'] = instance.administrator.id if instance.administrator else profile.id
             data['company'] = instance.company.id if instance.company else profile.company.id
+            pids = data.get('properties', [])
             
             serializer = self.get_serializer(instance, data=data, partial=partial)
             serializer.is_valid(raise_exception=True)
             instance = serializer.save()
             
+            for property in Property.objects.filter(id__in=pids, company=instance.company):
+                property.portfolio = instance
+                property.save()
+
             serializer = PortfolioDetailSerializer(instance)
 
             if getattr(instance, '_prefetched_objects_cache', None):
@@ -585,7 +610,7 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             return PropertyDetailSerializer
         elif self.action in ['list', 'publisher']:
             return PropertyListSerializer
-        elif self.action in ['search']:
+        elif self.action in ['search', 'our_list']:
             return PropertySearchResultSerializer
         return PropertySerializer
 
@@ -1232,8 +1257,17 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
         print('Company: ', profile.company)
         print('Profile: ', profile)
 
-        # queryset = self.filter_queryset(self.get_queryset())
-        queryset = Property.objects.filter(Q(Q(company__isnull=False, company=profile.company) | Q(administrator=profile)), enabled=True).order_by(sortby)
+        # queryset = Property.objects.filter(Q(Q(company__isnull=False, company=profile.company) | Q(administrator=profile)), enabled=True).prefetch_related(
+        #     Prefetch('offices', queryset=Office.objects.filter(enabled=True).prefetch_related(
+        #         Prefetch('properties', queryset=Property.objects.filter(enabled=True)))), 
+        #     Prefetch('portfolios', queryset=Portfolio.objects.filter(enabled=True).prefetch_related(
+        #         Prefetch('properties', queryset=Property.objects.filter(enabled=True)))),
+        #     Prefetch('pictures', queryset=PropertyPhoto.objects.filter(enabled=True)
+        # ).order_by(sortby)
+            
+        queryset = Property.objects.filter(Q(Q(company__isnull=False, company=profile.company) | Q(administrator=profile)), enabled=True).prefetch_related(
+            Prefetch('pictures', queryset=PropertyPhoto.objects.filter(enabled=True).order_by('index'))
+        ).order_by(sortby)
 
         if size == 0 and page_number:
             # Remote Loader
@@ -1248,7 +1282,7 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
                 serializer = self.get_serializer(pagy, many=True)
                 return self.get_paginated_response(serializer.data)
         else:
-            page_number = int(page_number) if page_number else 1
+            page_number = int(page_number)-1 if page_number else 0
             size = int(size) if size and int(size) > 0 else 100
             print("A222")
             print(page_number, '   ', page_number*size, ' ---- ', size)
@@ -1280,7 +1314,7 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
                     queryset = Property.objects.filter(Q(Q(ref__icontains=search) | Q(name__icontains=search) | Q(type__icontains=search) | Q(space__icontains=search)), company__isnull=True, enabled=True).order_by(sortby)[page_number*size:(page_number*size)+size]
                     total = len(queryset)
                 else:
-                    print("A555b")
+                    print(size, ' --  ', page_number, " A555b ", [page_number*size, (page_number*size)+size])
                     queryset = Property.objects.filter(company__isnull=True, administrator=profile, enabled=True).order_by(sortby)[page_number*size:(page_number*size)+size]
                     total = len(queryset)
                 
@@ -1296,141 +1330,164 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
         # page_number = int(query_params.get("page", 1))
         size = int(request.query_params.get("size", 25))
         self.pagination_class.page_size = size
-        data = request.data
+
+        queryset = Property.objects.filter(enabled=True, is_published=True).prefetch_related(
+            Prefetch('pictures', queryset=PropertyPhoto.objects.filter(enabled=True, is_default=True))
+        )
+        
         query_params = request.query_params
-        print(size, '......query_params.....: ', query_params)
-        print('...........: ', data)
-        geometry = data.get('geometry', None)
-        address = data.get('address', None)
-        
-        # if not geometry and not address:
-        #     return Response({"message": "Address component is missing"}, status=status.HTTP_404_NOT_FOUND)
-        
-        print(type(geometry))
-        print(geometry)
-        print(1)
-        queryset = Property.objects.filter(enabled=True, is_published=True) 
-        if geometry:
-            print(2)
-            if geometry.get('type') == 'Point':
-                print(22)
-                geometry = json.dumps(data.get('geometry'))
-                print(type(geometry))
-                point = GEOSGeometry(geometry)
-                queryset = Property.objects.filter(address__location__distance_lt=(point, 300/40000*360))
-            elif geometry.get('type') == 'Polygon':
-                print(222)
-                ne = data.get('geometry').get('ne')
-                sw = data.get('geometry').get('sw')
-
-                # https://stackoverflow.com/questions/9466043/geodjango-within-a-ne-sw-box
-                # ne = (latitude, longitude) = high
-                # sw = (latitude, longitude) = Low
-                # xmin=sw[1]=sw.lng
-                # ymin=sw[0]=sw.lat
-                # xmax=ne[1]=ne.lng
-                # ymax=ne[0]=ne.lat
-                # bbox = (sw[1], sw[0], ne[1], ne[0]) = (xmin, ymin, xmax, ymax) = (sw['lng'], sw['lat'], ne['lng'], ne['lat'])
-
-                # bbox = (ne['lat'], sw['lng'], ne['lng'], sw['lat'])
-                bbox = (sw['lng'], sw['lat'], ne['lng'], ne['lat'])
-                print('****bbox  ', bbox)
-                geometry = Polygon.from_bbox(bbox)
-                queryset = queryset.filter(address__location__within=geometry)
-           
-        print(data.get('guest'))
-        print('-------Type: ', type(data.get('guest')))
-        print(queryset.count())
-        print(queryset)
-        print(data.get('state', None))
-        print('-------- ', query_params.get('com_ref', None))
-
         if query_params.get('com_ref', None):
             queryset = queryset.filter(company__ref=query_params.get('com_ref'))
         if query_params.get('off_ref', None):
             queryset = queryset.filter(office__ref=query_params.get('off_ref'))
         if query_params.get('port_ref', None):
             queryset = queryset.filter(portfolio__ref=query_params.get('port_ref'))
-            
-        if data.get('propertyId', None):
-            queryset = queryset.filter(Q(id__icontains=data.get('propertyId')) | Q(ref__icontains=data.get('propertyId')))
-        if data.get('city', None):
-            print('city: ', data.get('city'))
-            queryset = queryset.filter(address__city__name__icontains=data.get('city'))
-        if data.get('zip_code', None):
-            print('zip_code: ', data.get('zip_code', None))
-            queryset = queryset.filter(address__zip_code__icontains=data.get('zip_code'))
-        if data.get('state', None):
-            print('state: ', data.get('state'))
-            queryset = queryset.filter(address__city__state_name__icontains=data.get('state'))
-        if data.get('types', None):
-            queryset = queryset.filter(type__in=data.get('types'))
-        if data.get('bookedSpaces', None):
-            queryset = queryset.filter(space__in=data.get('bookedSpaces'))
-        if data.get('guest', None):
-            try:
-                queryset = queryset.filter(max_no_of_guest__gte=int(data.get('guest')))
-            except Exception:
-                queryset = queryset.filter(max_no_of_guest__in=data.get_list('guest', []))
-        if data.get('bedrooms', None):
-            queryset = queryset.filter(no_of_bedrooms__gte=data.get('bedrooms'))
-        if data.get('no_of_bathrooms', None):
-            queryset = queryset.filter(no_of_bathrooms__gte=data.get('no_of_bathrooms'))
-        if data.get('bookers', None):
-            queryset = queryset.filter(booking_sites__booker__in=data.get('bookers', []))
-        if data.get('priceRange', None):
-            pri = data.get('priceRange', [])
-            queryset = queryset.filter(Q(price_night__gte=pri[0], price_night__lte=pri[1]))
-        if data.get('suitabilities', None):
-            s = data.get('suitabilities')
-            if len(s) == 4:
-                queryset = queryset.filter(Q(suitabilities__icontains=s[0]) | Q(suitabilities__icontains=s[1]) | Q(suitabilities__icontains=s[2]) | Q(suitabilities__icontains=s[3]))
-            elif  len(s) == 3:
-                queryset = queryset.filter(Q(suitabilities__icontains=s[0]) | Q(suitabilities__icontains=s[1]) | Q(suitabilities__icontains=s[2]))
-            elif  len(s) == 2:
-                queryset = queryset.filter(Q(suitabilities__icontains=s[0]) | Q(suitabilities__icontains=s[1]))
-            elif  len(s) == 1:
-                queryset = queryset.filter(suitabilities__icontains=s[0])
-            
-        if data.get('petAllow', None):
-            queryset = queryset.filter(is_pet_allowed=data.get('petAllow'))
-        if data.get('accessibility', None):
-            queryset = queryset.filter(accessibility__in=data.get('accessibility', []))
-        if data.get('activities', None):
-            queryset = queryset.filter(activities__in=data.get('activities', []))
-        if data.get('bathrooms', None):
-            queryset = queryset.filter(bathrooms__in=data.get('bathrooms'))
-        if data.get('entertainments', None):
-            queryset = queryset.filter(entertainments__in=data.get('entertainments', []))
-        if data.get('essentials', None):
-            queryset = queryset.filter(essentials__in=data.get('essentials', []))
-        if data.get('families', None):
-            queryset = queryset.filter(families__in=data.get('families', []))
-        if data.get('features', None):
-            queryset = queryset.filter(features__in=data.get('features', []))
-        if data.get('kitchens', None):
-            queryset = queryset.filter(kitchens__in=data.get('kitchens', []))
-        if data.get('laundries', None):
-            queryset = queryset.filter(laundries__in=data.get('laundries', []))
-        if data.get('outsides', None):
-            queryset = queryset.filter(outsides__in=data.get('outsides', []))
-        if data.get('parking', None):
-            queryset = queryset.filter(parking__in=data.get('parking', []))
-        if data.get('pool_spas', None):
-            queryset = queryset.filter(pool_spas__in=data.get('pool_spas', []))
-        if data.get('safeties', None):
-            queryset = queryset.filter(safeties__in=data.get('safeties', []))
-        if data.get('services', None):
-            queryset = queryset.filter(services__in=data.get('services', []))
-        if data.get('spaces', None):
-            queryset = queryset.filter(spaces__in=data.get('spaces', []))
         
+        print('\n\n')
+        print('1 ++++ ', len(queryset))
+        print('1 ++++ ', queryset.query)
+        print(size, '......query_params.....: ', query_params)
+        
+        data = request.data
+        
+        if data:
+            print('...........: ', data)
+            location = data.get('location', None)
+            # address = data.get('address', None)
+            
+            # if not location and not address:
+            #     return Response({"message": "Address component is missing"}, status=status.HTTP_404_NOT_FOUND)
+            
+            print(type(location))
+            print(location)
+            print(11111111111111111111111)
+            print(data.get('guest'))
+            print('-------Type: ', type(data.get('guest')))
+            print(queryset.count())
+            print(queryset)
+            print(data.get('state', None))
+
+            # if location:
+            #     print(2)
+            #     if type(location) == dict:
+            #         print(22)
+            #         # geometry = json.dumps(data.get('geometry'))
+            #         # print(type(geometry))
+            #         point = Point(location['lng'], location['lat'], srid=4326)
+            #         queryset = Property.objects.annotate(distance=KMDistance('address__location', point)).order_by('distance').filter(enabled=True, is_published=True).prefetch_related(
+            #             Prefetch('pictures', queryset=PropertyPhoto.objects.filter(enabled=True, is_default=True))
+            #         )
+            #         # queryset = Property.objects.filter(address__location__distance_lt=(point, 300/40000*360))
+            #     # elif geometry.get('type') == 'Polygon':
+            #     #     print(222)
+            #     #     ne = data.get('geometry').get('ne')
+            #     #     sw = data.get('geometry').get('sw')
+
+            #     #     # https://stackoverflow.com/questions/9466043/geodjango-within-a-ne-sw-box
+            #     #     # ne = (latitude, longitude) = high
+            #     #     # sw = (latitude, longitude) = Low
+            #     #     # xmin=sw[1]=sw.lng
+            #     #     # ymin=sw[0]=sw.lat
+            #     #     # xmax=ne[1]=ne.lng
+            #     #     # ymax=ne[0]=ne.lat
+            #     #     # bbox = (sw[1], sw[0], ne[1], ne[0]) = (xmin, ymin, xmax, ymax) = (sw['lng'], sw['lat'], ne['lng'], ne['lat'])
+
+            #     #     # bbox = (ne['lat'], sw['lng'], ne['lng'], sw['lat'])
+            #     #     bbox = (sw['lng'], sw['lat'], ne['lng'], ne['lat'])
+            #     #     print('****bbox  ', bbox)
+            #     #     geometry = Polygon.from_bbox(bbox)
+            #     #     queryset = queryset.filter(address__location__within=geometry)
+            location = None
+            
+            if data.get('propertyId', None):
+                queryset = queryset.filter(Q(id__icontains=data.get('propertyId')) | Q(ref__icontains=data.get('propertyId')))
+            if not location and data.get('zip_code', None):
+                queryset = queryset.filter(address__zip_code=data.get('zip_code'))
+            if not location and data.get('city', None):
+                queryset = queryset.filter(address__city__name__icontains=data.get('city'))
+            if not location and data.get('state', None):
+                queryset = queryset.filter(address__city__state_name__icontains=data.get('state'))
+            if data.get('types', None):
+                queryset = queryset.filter(type__in=data.get('types'))
+            if data.get('bookedSpaces', None):
+                queryset = queryset.filter(space__in=data.get('bookedSpaces'))
+            
+            print('2 ++++ ', len(queryset))
+            if data.get('guest', None):
+                try:
+                    queryset = queryset.filter(max_no_of_guest__gte=int(data.get('guest')))
+                except Exception:
+                    queryset = queryset.filter(max_no_of_guest__in=data.get_list('guest', []))
+            if data.get('bedrooms', None):
+                queryset = queryset.filter(no_of_bedrooms__gte=data.get('bedrooms'))
+            if data.get('no_of_bathrooms', None):
+                queryset = queryset.filter(no_of_bathrooms__gte=data.get('no_of_bathrooms'))
+            if data.get('bookers', None):
+                queryset = queryset.filter(booking_sites__booker__in=data.get('bookers', []))
+            if data.get('priceRange', None):
+                pri = data.get('priceRange', [])
+                queryset = queryset.filter(Q(price_night__gte=pri[0], price_night__lte=pri[1]))
+            
+            print('3 ++++ ', len(queryset))
+            if data.get('suitabilities', None):
+                s = data.get('suitabilities')
+                # if len(s) == 4:
+                #     queryset = queryset.filter(Q(suitabilities__icontains=s[0]) | Q(suitabilities__icontains=s[1]) | Q(suitabilities__icontains=s[2]) | Q(suitabilities__icontains=s[3]))
+                # elif  len(s) == 3:
+                #     queryset = queryset.filter(Q(suitabilities__icontains=s[0]) | Q(suitabilities__icontains=s[1]) | Q(suitabilities__icontains=s[2]))
+                if  len(s) == 2:
+                    queryset = queryset.filter(Q(suitabilities__icontains=s[0]) | Q(suitabilities__icontains=s[1]))
+                elif  len(s) == 1:
+                    queryset = queryset.filter(suitabilities__icontains=s[0])
+                
+            if data.get('petAllow', None):
+                queryset = queryset.filter(is_pet_allowed=bool(data.get('petAllow')))
+            if data.get('accessibility', None):
+                queryset = queryset.filter(accessibility__in=data.get('accessibility', []))
+            if data.get('activities', None):
+                queryset = queryset.filter(activities__in=data.get('activities', []))
+            if data.get('bathrooms', None):
+                queryset = queryset.filter(bathrooms__in=data.get('bathrooms'))
+            if data.get('entertainments', None):
+                queryset = queryset.filter(entertainments__in=data.get('entertainments', []))
+            if data.get('essentials', None):
+                queryset = queryset.filter(essentials__in=data.get('essentials', []))
+            if data.get('families', None):
+                queryset = queryset.filter(families__in=data.get('families', []))
+            if data.get('features', None):
+                queryset = queryset.filter(features__in=data.get('features', []))
+            if data.get('kitchens', None):
+                queryset = queryset.filter(kitchens__in=data.get('kitchens', []))
+            if data.get('laundries', None):
+                queryset = queryset.filter(laundries__in=data.get('laundries', []))
+            if data.get('outsides', None):
+                queryset = queryset.filter(outsides__in=data.get('outsides', []))
+            if data.get('parking', None):
+                queryset = queryset.filter(parking__in=data.get('parking', []))
+            if data.get('pool_spas', None):
+                s = data.get('pool_spas')
+                if  len(s) >= 2:
+                    queryset = queryset.filter(Q(pool_spas__name__icontains=s[0]) | Q(pool_spas__name__icontains=s[1]))
+                elif  len(s) == 1:
+                    queryset = queryset.filter(pool_spas__name__icontains=s[0])
+                # queryset = queryset.filter(pool_spas__name__in=data.get('pool_spas', []))
+            if data.get('safeties', None):
+                queryset = queryset.filter(safeties__in=data.get('safeties', []))
+            if data.get('services', None):
+                queryset = queryset.filter(services__in=data.get('services', []))
+            if data.get('spaces', None):
+                queryset = queryset.filter(spaces__in=data.get('spaces', []))
+        else:
+            # serializer = self.get_serializer(queryset[:size], many=True)
+            # return Response({"data": serializer.data, "count": size, "total_pages": 1})?
+            return Response({"data": [], "count": size, "total_pages": 1})
         print(' +++ ', queryset.query)
         print('\n <<+++>> ', queryset)
+        queryset = queryset[0:500] if location else queryset
         page = self.paginate_queryset(queryset)
-        # print('Pagination: ', page)
+        print(' >>>>>>> Pagination: ', page)
         if page is not None:
-            print(queryset.count())
+            # print(queryset.count())
             # page.count =  queryset.count()
             serializer = self.get_serializer(page, many=True)
             return self.get_paginated_response(serializer.data)
@@ -1438,18 +1495,22 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
 
-    @action(methods=['get'], detail=False, url_path='table/data', url_name='table-data')
-    def table_data(self, request, *args, **kwargs):
-        pass
-        # {
-        # data: tradesCollection,
-        # paging: {
-        #     total: tradesCollectionCount,
-        #     page: currentPage,
-        #     pages: totalPages,
-        # },
-        # }
-            
+    @action(methods=['get'], detail=False, url_path='our/list', url_name='our-list')
+    def our_list(self, request, *args, **kwargs):
+        profile = request.user.user_profile
+        print(' ====>> ', request.query_params)
+        if len(request.query_params.get("office", "")) > 3:
+            para = request.query_params.get("office", "")
+            queryset = Property.objects.filter(Q(Q(company__isnull=False, company=profile.company) | Q(administrator=profile)), Q(Q(office__isnull=True) | Q(office__id=para) | Q(office__ref=para)), enabled=True)
+        elif len(request.query_params.get("portfolio", "")) > 3:
+            para = request.query_params.get("portfolio", "")
+            queryset = Property.objects.filter(Q(Q(company__isnull=False, company=profile.company) | Q(administrator=profile)), Q(Q(portfolio__isnull=True) | Q(portfolio__id=para) | Q(portfolio__ref=para)), enabled=True)
+        else:
+            queryset = Property.objects.filter(Q(Q(company__isnull=False, company=profile.company) | Q(administrator=profile)), enabled=True)
+        print(queryset.query)
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+           
     @action(methods=['get'], detail=False, url_path='form/items', url_name='form-items')
     def form_items(self, request, *args, **kwargs):
         selective = request.query_params.get('selective', '').split(',')
@@ -1463,6 +1524,14 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             sort_order = {x['name']: i for i, x in enumerate(data) if 'Additional' not in x['name'] or 'Direct Booking' not in x['name']}
             data.sort(key=lambda x: sort_order.get(x["name"], 1000 if 'Additional' in x["name"] else -10))
             bookers = data
+        
+        offices = []
+        portfolios = []
+        if request.user.is_authenticated:
+            profile = request.user.user_profile
+            if profile.company:
+                offices = OfficeSerializer(profile.company.offices.filter(enabled=True), many=True).data
+                portfolios = PortfolioSerializer(profile.company.portfolios.filter(enabled=True), many=True).data
         
         services = ServiceSerializer(Service.objects.filter(enabled=True), many=True).data if 'services' in selective or len(selective) == 0 else []
         sleepers = SleeperSerializer(Sleeper.objects.filter(enabled=True), many=True).data if 'sleepers' in selective or len(selective) == 0 else []
@@ -1499,7 +1568,9 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             'accessibility': accessibility,
             'safeties': safeties,
             'features': features,
-            'activities': activities
+            'activities': activities,
+            'portfolios': portfolios,
+            'offices': offices
         }, status=status.HTTP_201_CREATED)
      
     @action(methods=['get'], detail=False, url_path='fixed/items', url_name='fixed-items')
@@ -1548,18 +1619,19 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
     @action(methods=['post'], detail=True, url_path='pictures/upload', url_name='picture-upload')
     def pictures_upload(self, request, *args, **kwargs):
         with transaction.atomic():
-            print('============ 0 =============')
+            print('\n============ 0 =============\n')
             data = request.data
             print(data)
             instance = self.get_object()
+            originalPIDs = list(map(lambda x: x.id, instance.pictures.all()))
             
-            print('============ pictures =============')
-            print(request.data.getlist('pictures'))
+            print('\n============ pictures =============\n')
             
             pictures_set = set()
             for k in data.keys():
                 if f'pictures[' in k:
-                        pictures_set.add(re.findall(r"^pictures\[(\d+)\]\[(\w+)\]", k)[0][0])
+                    pictures_set.add(re.findall(r"^pictures\[(\d+)\]\[(\w+)\]", k)[0][0])
+                    print(k, ' ==> ', data[k], '  =>> ', type(data[k]))
             
             pictures = []
             foundDefault = False
@@ -1569,26 +1641,26 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
                 d['index'] = i
                 d['id'] = data.get(f'pictures[{i}][id]', None)
                 d['caption'] = data.get(f'pictures[{i}][caption]', None)
-                d['is_default'] = data.get(f'pictures[{i}][is_default]', None)
+                d['is_default'] = data.get(f'pictures[{i}][is_default]', False)
                 d['image'] = data.get(f'pictures[{i}][image]', None)
-                d['property'] = data.get(f'pictures[{i}][property]', None)
-                
-                if data.get(f'pictures[{i}][path]', None):
-                    d['path'] = data.get(f'pictures[{i}][path]', None)
-                if data.get(f'pictures[{i}][preview]', None):
-                    d['preview'] = data.get(f'pictures[{i}][preview]', None)
+                d['property'] = instance.id
                 
                 pictures.append(d)
-                if d['is_default']:
+                if d['is_default'] == 'true':
+                    print(i, ': ......', foundDefault)
                     if foundDefault:
                         d['is_default'] = False
                     else:
                         foundDefault = True
                         defaultIndex = i
             
+            print(defaultIndex, '::: =====>>> ', foundDefault)
+
             if len(pictures) > 0 and not foundDefault and defaultIndex == -1:
                 pictures[0]['is_default'] = True
+                print('.... ', 111)
             elif len(pictures) > 1 and defaultIndex > 0:
+                print('.... ', 222)
                 indexPic = pictures[defaultIndex]
                 del pictures[defaultIndex]
                 pictures.insert(0, indexPic)
@@ -1597,19 +1669,44 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             
             print('\n')
             x = 0
+            pids = []
             for p in pictures:
                 print(p)
                 print(f'======{x}\n')
                 x += 1
                 if p['id']:
                     inst = PropertyPhoto.objects.filter(id=p['id']).first()
+                    if type(p['image']) == str:
+                        print('String>>>>>>>>>>> 1')
+                        p.pop("image", None)
+                    else:
+                        print(type(p['image']), ' String>>>>>>>>>>> 2')
                     ser = PropertyPhotoSerializer(inst, data=p, partial=True)
+                    ser.is_valid(raise_exception=True)
+                    inst = self.perform_update(ser)
+                    pids.append(inst.id)
                 else:
                     ser = PropertyPhotoSerializer(data=p)
-                ser.is_valid(raise_exception=True)
-                pic = self.perform_create(ser)
+                    ser.is_valid(raise_exception=True)
+                    inst = self.perform_create(ser)
+                    pids.append(inst.id)
                 
-        return Response({'status': 'Ok'}, status=status.HTTP_200_OK)
+            if data.get('video[]', None):
+                print(' ===>> ', data['video[]'])
+                ser = PropertyVideoSerializer(instance, data={"id": instance, "video": data['video[]']}, partial=True)
+                ser.is_valid(raise_exception=True)
+                self.perform_update(ser)
+                instance.videoLink = None
+            else:
+                instance.videoLink = data.get('videoLink', None)
+                instance.video = None
+            instance.save()
+                
+            deletedIds = list((set(originalPIDs).difference(pids)))
+            if len(deletedIds) > 0:
+                PropertyPhoto.objects.filter(id__in=deletedIds).delete()
+                
+        return Response(PropertyDetailSerializer(instance).data, status=status.HTTP_200_OK)
     
     
 class SupportViewSet(viewsets.ModelViewSet):

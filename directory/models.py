@@ -638,6 +638,7 @@ class Property(StampedUpdaterModel):
     ref = models.CharField(max_length=16, verbose_name="Ref", unique=True)
     name = models.CharField(max_length=254, verbose_name="Name") # db_index=False
     video = models.FileField(upload_to="property_video_upload_path", blank=True, null=True, default=None)
+    video_link = models.URLField(blank=True, null=True, default=None)
     virtual_tour = models.FileField(upload_to="property_video_upload_path", blank=True, null=True, default=None)
     is_active = models.BooleanField(verbose_name="Is Active", default=False)
     is_draft = models.BooleanField(verbose_name="is draft", default=False)
@@ -665,7 +666,7 @@ class Property(StampedUpdaterModel):
     hide_email = models.BooleanField(default=False, )
     email = models.CharField(max_length=128, verbose_name="email", default='', blank=True, null=True)
     phone = models.CharField(max_length=16, verbose_name="phone", default='', blank=True, null=True)
-    logo = models.ImageField(blank=True, null=True, default=None)
+    # logo = models.ImageField(blank=True, null=True, default=None)
     
     accessibility = models.ManyToManyField(Accessibility, blank=True)
     activities = models.ManyToManyField(Activity, blank=True)
@@ -758,11 +759,17 @@ class PropertyPhoto(StampedUpdaterModel):
     image = models.ImageField(upload_to="property_image_upload_path")
     caption = models.CharField(max_length=256, verbose_name="caption", default='', blank=True, null=True) 
     is_default = models.BooleanField(default=False)
-    index = models.IntegerField(verbose_name="Picture Index")
+    index = models.IntegerField(verbose_name="Picture Index", default=0, help_text='Zero based Index')
     
     def __str__(self):
         return f"{self.image}"
-        
+    
+    class Meta:
+        ordering = ('index', 'created')
+        managed = AUTO_MANAGE
+        verbose_name = _('Property Photo')
+        verbose_name_plural = _('Property Photos')
+
 
 class Booker(StampedModel):
     name = models.CharField(max_length=128, verbose_name="name", unique=True)
