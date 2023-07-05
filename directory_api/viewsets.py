@@ -25,6 +25,9 @@ from django.db.models import Q, Prefetch
 from django.contrib.auth import get_user_model
 from django.contrib.gis.geos import Point, Polygon, GEOSGeometry
 from django.contrib.gis.measure import Distance
+from django.views import generic
+from django.contrib.gis.geos import fromstr
+from django.contrib.gis.db.models.functions import Distance as KMDistance
 from django.template.loader import render_to_string
 
 from auths.utils import get_domain
@@ -1349,56 +1352,59 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
         
         if data:
             print('...........: ', data)
-            geometry = data.get('geometry', None)
-            address = data.get('address', None)
+            location = data.get('location', None)
+            # address = data.get('address', None)
             
-            # if not geometry and not address:
+            # if not location and not address:
             #     return Response({"message": "Address component is missing"}, status=status.HTTP_404_NOT_FOUND)
             
-            print(type(geometry))
-            print(geometry)
-            print(1)
+            print(type(location))
+            print(location)
+            print(11111111111111111111111)
             print(data.get('guest'))
             print('-------Type: ', type(data.get('guest')))
             print(queryset.count())
             print(queryset)
             print(data.get('state', None))
 
-            if geometry:
+            if location:
                 print(2)
-                if geometry.get('type') == 'Point':
+                if type(location) == dict:
                     print(22)
-                    geometry = json.dumps(data.get('geometry'))
-                    print(type(geometry))
-                    point = GEOSGeometry(geometry)
-                    queryset = Property.objects.filter(address__location__distance_lt=(point, 300/40000*360))
-                elif geometry.get('type') == 'Polygon':
-                    print(222)
-                    ne = data.get('geometry').get('ne')
-                    sw = data.get('geometry').get('sw')
+                    # geometry = json.dumps(data.get('geometry'))
+                    # print(type(geometry))
+                    point = Point(location['lng'], location['lat'], srid=4326)
+                    queryset = Property.objects.annotate(distance=KMDistance('address__location', point)).order_by('distance').filter(enabled=True, is_published=True).prefetch_related(
+                        Prefetch('pictures', queryset=PropertyPhoto.objects.filter(enabled=True, is_default=True))
+                    )
+                    # queryset = Property.objects.filter(address__location__distance_lt=(point, 300/40000*360))
+                # elif geometry.get('type') == 'Polygon':
+                #     print(222)
+                #     ne = data.get('geometry').get('ne')
+                #     sw = data.get('geometry').get('sw')
 
-                    # https://stackoverflow.com/questions/9466043/geodjango-within-a-ne-sw-box
-                    # ne = (latitude, longitude) = high
-                    # sw = (latitude, longitude) = Low
-                    # xmin=sw[1]=sw.lng
-                    # ymin=sw[0]=sw.lat
-                    # xmax=ne[1]=ne.lng
-                    # ymax=ne[0]=ne.lat
-                    # bbox = (sw[1], sw[0], ne[1], ne[0]) = (xmin, ymin, xmax, ymax) = (sw['lng'], sw['lat'], ne['lng'], ne['lat'])
+                #     # https://stackoverflow.com/questions/9466043/geodjango-within-a-ne-sw-box
+                #     # ne = (latitude, longitude) = high
+                #     # sw = (latitude, longitude) = Low
+                #     # xmin=sw[1]=sw.lng
+                #     # ymin=sw[0]=sw.lat
+                #     # xmax=ne[1]=ne.lng
+                #     # ymax=ne[0]=ne.lat
+                #     # bbox = (sw[1], sw[0], ne[1], ne[0]) = (xmin, ymin, xmax, ymax) = (sw['lng'], sw['lat'], ne['lng'], ne['lat'])
 
-                    # bbox = (ne['lat'], sw['lng'], ne['lng'], sw['lat'])
-                    bbox = (sw['lng'], sw['lat'], ne['lng'], ne['lat'])
-                    print('****bbox  ', bbox)
-                    geometry = Polygon.from_bbox(bbox)
-                    queryset = queryset.filter(address__location__within=geometry)
+                #     # bbox = (ne['lat'], sw['lng'], ne['lng'], sw['lat'])
+                #     bbox = (sw['lng'], sw['lat'], ne['lng'], ne['lat'])
+                #     print('****bbox  ', bbox)
+                #     geometry = Polygon.from_bbox(bbox)
+                #     queryset = queryset.filter(address__location__within=geometry)
             
             if data.get('propertyId', None):
                 queryset = queryset.filter(Q(id__icontains=data.get('propertyId')) | Q(ref__icontains=data.get('propertyId')))
-            if data.get('zip_code', None):
+            if not location and data.get('zip_code', None):
                 queryset = queryset.filter(address__zip_code__icontains=data.get('zip_code'))
-            if data.get('city', None):
+            if not location and data.get('city', None):
                 queryset = queryset.filter(address__city__name__icontains=data.get('city'))
-            if data.get('state', None):
+            if not location and data.get('state', None):
                 queryset = queryset.filter(address__city__state_name__icontains=data.get('state'))
             if data.get('types', None):
                 queryset = queryset.filter(type__in=data.get('types'))
@@ -1471,10 +1477,11 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             return Response({"data": [], "count": size, "total_pages": 1})
         print(' +++ ', queryset.query)
         print('\n <<+++>> ', queryset)
+        queryset = queryset[0:500] if location else queryset
         page = self.paginate_queryset(queryset)
         print(' >>>>>>> Pagination: ', page)
         if page is not None:
-            print(queryset.count())
+            # print(queryset.count())
             # page.count =  queryset.count()
             serializer = self.get_serializer(page, many=True)
             return self.get_paginated_response(serializer.data)
