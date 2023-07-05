@@ -583,7 +583,7 @@ class PropertySearchResultSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Property
-        fields = ('id', 'is_active', 'ref', 'name', 'type', 'space', 'max_no_of_guest', 'no_of_bedrooms', 'no_of_bathrooms', 'pictures')
+        fields = ('id', 'is_active', 'ref', 'name', 'type', 'space', 'price_night', 'max_no_of_guest', 'no_of_bedrooms', 'no_of_bathrooms', 'pictures')
 
 
 class PropertyDetailSerializer(serializers.ModelSerializer):
