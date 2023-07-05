@@ -1327,144 +1327,152 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
         # page_number = int(query_params.get("page", 1))
         size = int(request.query_params.get("size", 25))
         self.pagination_class.page_size = size
-        data = request.data
-        query_params = request.query_params
-        print(size, '......query_params.....: ', query_params)
-        print('...........: ', data)
-        geometry = data.get('geometry', None)
-        address = data.get('address', None)
-        
-        # if not geometry and not address:
-        #     return Response({"message": "Address component is missing"}, status=status.HTTP_404_NOT_FOUND)
-        
-        print(type(geometry))
-        print(geometry)
-        print(1)
+
         queryset = Property.objects.filter(enabled=True, is_published=True).prefetch_related(
             Prefetch('pictures', queryset=PropertyPhoto.objects.filter(enabled=True, is_default=True))
         )
-        if geometry:
-            print(2)
-            if geometry.get('type') == 'Point':
-                print(22)
-                geometry = json.dumps(data.get('geometry'))
-                print(type(geometry))
-                point = GEOSGeometry(geometry)
-                queryset = Property.objects.filter(address__location__distance_lt=(point, 300/40000*360))
-            elif geometry.get('type') == 'Polygon':
-                print(222)
-                ne = data.get('geometry').get('ne')
-                sw = data.get('geometry').get('sw')
-
-                # https://stackoverflow.com/questions/9466043/geodjango-within-a-ne-sw-box
-                # ne = (latitude, longitude) = high
-                # sw = (latitude, longitude) = Low
-                # xmin=sw[1]=sw.lng
-                # ymin=sw[0]=sw.lat
-                # xmax=ne[1]=ne.lng
-                # ymax=ne[0]=ne.lat
-                # bbox = (sw[1], sw[0], ne[1], ne[0]) = (xmin, ymin, xmax, ymax) = (sw['lng'], sw['lat'], ne['lng'], ne['lat'])
-
-                # bbox = (ne['lat'], sw['lng'], ne['lng'], sw['lat'])
-                bbox = (sw['lng'], sw['lat'], ne['lng'], ne['lat'])
-                print('****bbox  ', bbox)
-                geometry = Polygon.from_bbox(bbox)
-                queryset = queryset.filter(address__location__within=geometry)
-           
-        print(data.get('guest'))
-        print('-------Type: ', type(data.get('guest')))
-        print(queryset.count())
-        print(queryset)
-        print(data.get('state', None))
-        print('-------- ', query_params.get('com_ref', None))
-
+        
+        query_params = request.query_params
         if query_params.get('com_ref', None):
             queryset = queryset.filter(company__ref=query_params.get('com_ref'))
         if query_params.get('off_ref', None):
             queryset = queryset.filter(office__ref=query_params.get('off_ref'))
         if query_params.get('port_ref', None):
             queryset = queryset.filter(portfolio__ref=query_params.get('port_ref'))
+        
         print('\n\n')
         print('1 ++++ ', len(queryset))
         print('1 ++++ ', queryset.query)
-        if data.get('propertyId', None):
-            queryset = queryset.filter(Q(id__icontains=data.get('propertyId')) | Q(ref__icontains=data.get('propertyId')))
-        if data.get('zip_code', None):
-            print('zip_code: ', data.get('zip_code', None))
-            queryset = queryset.filter(address__zip_code__icontains=data.get('zip_code'))
-        if data.get('city', None):
-            queryset = queryset.filter(address__city__name__icontains=data.get('city'))
-        if data.get('state', None):
-            print('state: ', data.get('state'))
-            queryset = queryset.filter(address__city__state_name__icontains=data.get('state'))
-        if data.get('types', None):
-            queryset = queryset.filter(type__in=data.get('types'))
-        if data.get('bookedSpaces', None):
-            queryset = queryset.filter(space__in=data.get('bookedSpaces'))
-        print('2 ++++ ', len(queryset))
-        if data.get('guest', None):
-            try:
-                queryset = queryset.filter(max_no_of_guest__gte=int(data.get('guest')))
-            except Exception:
-                queryset = queryset.filter(max_no_of_guest__in=data.get_list('guest', []))
-        if data.get('bedrooms', None):
-            queryset = queryset.filter(no_of_bedrooms__gte=data.get('bedrooms'))
-        if data.get('no_of_bathrooms', None):
-            queryset = queryset.filter(no_of_bathrooms__gte=data.get('no_of_bathrooms'))
-        if data.get('bookers', None):
-            queryset = queryset.filter(booking_sites__booker__in=data.get('bookers', []))
-        if data.get('priceRange', None):
-            pri = data.get('priceRange', [])
-            queryset = queryset.filter(Q(price_night__gte=pri[0], price_night__lte=pri[1]))
-        print('3 ++++ ', len(queryset))
-        if data.get('suitabilities', None):
-            s = data.get('suitabilities')
-            if len(s) == 4:
-                queryset = queryset.filter(Q(suitabilities__icontains=s[0]) | Q(suitabilities__icontains=s[1]) | Q(suitabilities__icontains=s[2]) | Q(suitabilities__icontains=s[3]))
-            elif  len(s) == 3:
-                queryset = queryset.filter(Q(suitabilities__icontains=s[0]) | Q(suitabilities__icontains=s[1]) | Q(suitabilities__icontains=s[2]))
-            elif  len(s) == 2:
-                queryset = queryset.filter(Q(suitabilities__icontains=s[0]) | Q(suitabilities__icontains=s[1]))
-            elif  len(s) == 1:
-                queryset = queryset.filter(suitabilities__icontains=s[0])
-            
-        if data.get('petAllow', None):
-            queryset = queryset.filter(is_pet_allowed=data.get('petAllow'))
-        if data.get('accessibility', None):
-            queryset = queryset.filter(accessibility__in=data.get('accessibility', []))
-        if data.get('activities', None):
-            queryset = queryset.filter(activities__in=data.get('activities', []))
-        if data.get('bathrooms', None):
-            queryset = queryset.filter(bathrooms__in=data.get('bathrooms'))
-        if data.get('entertainments', None):
-            queryset = queryset.filter(entertainments__in=data.get('entertainments', []))
-        if data.get('essentials', None):
-            queryset = queryset.filter(essentials__in=data.get('essentials', []))
-        if data.get('families', None):
-            queryset = queryset.filter(families__in=data.get('families', []))
-        if data.get('features', None):
-            queryset = queryset.filter(features__in=data.get('features', []))
-        if data.get('kitchens', None):
-            queryset = queryset.filter(kitchens__in=data.get('kitchens', []))
-        if data.get('laundries', None):
-            queryset = queryset.filter(laundries__in=data.get('laundries', []))
-        if data.get('outsides', None):
-            queryset = queryset.filter(outsides__in=data.get('outsides', []))
-        if data.get('parking', None):
-            queryset = queryset.filter(parking__in=data.get('parking', []))
-        if data.get('pool_spas', None):
-            queryset = queryset.filter(pool_spas__in=data.get('pool_spas', []))
-        if data.get('safeties', None):
-            queryset = queryset.filter(safeties__in=data.get('safeties', []))
-        if data.get('services', None):
-            queryset = queryset.filter(services__in=data.get('services', []))
-        if data.get('spaces', None):
-            queryset = queryset.filter(spaces__in=data.get('spaces', []))
+        print(size, '......query_params.....: ', query_params)
         
+        data = request.data
+        
+        if data:
+            print('...........: ', data)
+            geometry = data.get('geometry', None)
+            address = data.get('address', None)
+            
+            # if not geometry and not address:
+            #     return Response({"message": "Address component is missing"}, status=status.HTTP_404_NOT_FOUND)
+            
+            print(type(geometry))
+            print(geometry)
+            print(1)
+            print(data.get('guest'))
+            print('-------Type: ', type(data.get('guest')))
+            print(queryset.count())
+            print(queryset)
+            print(data.get('state', None))
+
+            if geometry:
+                print(2)
+                if geometry.get('type') == 'Point':
+                    print(22)
+                    geometry = json.dumps(data.get('geometry'))
+                    print(type(geometry))
+                    point = GEOSGeometry(geometry)
+                    queryset = Property.objects.filter(address__location__distance_lt=(point, 300/40000*360))
+                elif geometry.get('type') == 'Polygon':
+                    print(222)
+                    ne = data.get('geometry').get('ne')
+                    sw = data.get('geometry').get('sw')
+
+                    # https://stackoverflow.com/questions/9466043/geodjango-within-a-ne-sw-box
+                    # ne = (latitude, longitude) = high
+                    # sw = (latitude, longitude) = Low
+                    # xmin=sw[1]=sw.lng
+                    # ymin=sw[0]=sw.lat
+                    # xmax=ne[1]=ne.lng
+                    # ymax=ne[0]=ne.lat
+                    # bbox = (sw[1], sw[0], ne[1], ne[0]) = (xmin, ymin, xmax, ymax) = (sw['lng'], sw['lat'], ne['lng'], ne['lat'])
+
+                    # bbox = (ne['lat'], sw['lng'], ne['lng'], sw['lat'])
+                    bbox = (sw['lng'], sw['lat'], ne['lng'], ne['lat'])
+                    print('****bbox  ', bbox)
+                    geometry = Polygon.from_bbox(bbox)
+                    queryset = queryset.filter(address__location__within=geometry)
+            
+            if data.get('propertyId', None):
+                queryset = queryset.filter(Q(id__icontains=data.get('propertyId')) | Q(ref__icontains=data.get('propertyId')))
+            if data.get('zip_code', None):
+                queryset = queryset.filter(address__zip_code__icontains=data.get('zip_code'))
+            if data.get('city', None):
+                queryset = queryset.filter(address__city__name__icontains=data.get('city'))
+            if data.get('state', None):
+                queryset = queryset.filter(address__city__state_name__icontains=data.get('state'))
+            if data.get('types', None):
+                queryset = queryset.filter(type__in=data.get('types'))
+            if data.get('bookedSpaces', None):
+                queryset = queryset.filter(space__in=data.get('bookedSpaces'))
+            
+            print('2 ++++ ', len(queryset))
+            if data.get('guest', None):
+                try:
+                    queryset = queryset.filter(max_no_of_guest__gte=int(data.get('guest')))
+                except Exception:
+                    queryset = queryset.filter(max_no_of_guest__in=data.get_list('guest', []))
+            if data.get('bedrooms', None):
+                queryset = queryset.filter(no_of_bedrooms__gte=data.get('bedrooms'))
+            if data.get('no_of_bathrooms', None):
+                queryset = queryset.filter(no_of_bathrooms__gte=data.get('no_of_bathrooms'))
+            if data.get('bookers', None):
+                queryset = queryset.filter(booking_sites__booker__in=data.get('bookers', []))
+            if data.get('priceRange', None):
+                pri = data.get('priceRange', [])
+                queryset = queryset.filter(Q(price_night__gte=pri[0], price_night__lte=pri[1]))
+            
+            print('3 ++++ ', len(queryset))
+            if data.get('suitabilities', None):
+                s = data.get('suitabilities')
+                if len(s) == 4:
+                    queryset = queryset.filter(Q(suitabilities__icontains=s[0]) | Q(suitabilities__icontains=s[1]) | Q(suitabilities__icontains=s[2]) | Q(suitabilities__icontains=s[3]))
+                elif  len(s) == 3:
+                    queryset = queryset.filter(Q(suitabilities__icontains=s[0]) | Q(suitabilities__icontains=s[1]) | Q(suitabilities__icontains=s[2]))
+                elif  len(s) == 2:
+                    queryset = queryset.filter(Q(suitabilities__icontains=s[0]) | Q(suitabilities__icontains=s[1]))
+                elif  len(s) == 1:
+                    queryset = queryset.filter(suitabilities__icontains=s[0])
+                
+            if data.get('petAllow', None):
+                queryset = queryset.filter(is_pet_allowed=data.get('petAllow'))
+            if data.get('accessibility', None):
+                queryset = queryset.filter(accessibility__in=data.get('accessibility', []))
+            if data.get('activities', None):
+                queryset = queryset.filter(activities__in=data.get('activities', []))
+            if data.get('bathrooms', None):
+                queryset = queryset.filter(bathrooms__in=data.get('bathrooms'))
+            if data.get('entertainments', None):
+                queryset = queryset.filter(entertainments__in=data.get('entertainments', []))
+            if data.get('essentials', None):
+                queryset = queryset.filter(essentials__in=data.get('essentials', []))
+            if data.get('families', None):
+                queryset = queryset.filter(families__in=data.get('families', []))
+            if data.get('features', None):
+                queryset = queryset.filter(features__in=data.get('features', []))
+            if data.get('kitchens', None):
+                queryset = queryset.filter(kitchens__in=data.get('kitchens', []))
+            if data.get('laundries', None):
+                queryset = queryset.filter(laundries__in=data.get('laundries', []))
+            if data.get('outsides', None):
+                queryset = queryset.filter(outsides__in=data.get('outsides', []))
+            if data.get('parking', None):
+                queryset = queryset.filter(parking__in=data.get('parking', []))
+            if data.get('pool_spas', None):
+                queryset = queryset.filter(pool_spas__in=data.get('pool_spas', []))
+            if data.get('safeties', None):
+                queryset = queryset.filter(safeties__in=data.get('safeties', []))
+            if data.get('services', None):
+                queryset = queryset.filter(services__in=data.get('services', []))
+            if data.get('spaces', None):
+                queryset = queryset.filter(spaces__in=data.get('spaces', []))
+        else:
+            # serializer = self.get_serializer(queryset[:size], many=True)
+            # return Response({"data": serializer.data, "count": size, "total_pages": 1})?
+            return Response({"data": [], "count": size, "total_pages": 1})
         print(' +++ ', queryset.query)
         print('\n <<+++>> ', queryset)
         page = self.paginate_queryset(queryset)
-        # print('Pagination: ', page)
+        print(' >>>>>>> Pagination: ', page)
         if page is not None:
             print(queryset.count())
             # page.count =  queryset.count()
@@ -1511,6 +1519,7 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             if profile.company:
                 offices = OfficeSerializer(profile.company.offices.filter(enabled=True), many=True).data
                 portfolios = PortfolioSerializer(profile.company.portfolios.filter(enabled=True), many=True).data
+        
         services = ServiceSerializer(Service.objects.filter(enabled=True), many=True).data if 'services' in selective or len(selective) == 0 else []
         sleepers = SleeperSerializer(Sleeper.objects.filter(enabled=True), many=True).data if 'sleepers' in selective or len(selective) == 0 else []
         spaces = SpaceSerializer(Space.objects.filter(enabled=True), many=True).data if 'spaces' in selective or len(selective) == 0 else []

@@ -666,7 +666,7 @@ class Property(StampedUpdaterModel):
     hide_email = models.BooleanField(default=False, )
     email = models.CharField(max_length=128, verbose_name="email", default='', blank=True, null=True)
     phone = models.CharField(max_length=16, verbose_name="phone", default='', blank=True, null=True)
-    logo = models.ImageField(blank=True, null=True, default=None)
+    # logo = models.ImageField(blank=True, null=True, default=None)
     
     accessibility = models.ManyToManyField(Accessibility, blank=True)
     activities = models.ManyToManyField(Activity, blank=True)

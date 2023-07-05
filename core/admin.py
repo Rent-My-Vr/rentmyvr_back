@@ -1,6 +1,7 @@
 # from django.contrib import admin
 from django.contrib.auth import get_user_model
 from django.contrib import admin
+from django.contrib.gis.admin import OSMGeoAdmin
 from directory.models import ManagerDirectory
 from .models import *
 from .forms import *
@@ -69,12 +70,14 @@ class AddressResource(resources.ModelResource):
         model = Address
         fields = ('country', 'street', 'city', 'number', 'zipcode', 'more_info', 'import_id')
 
-
+# https://realpython.com/location-based-app-with-geodjango-tutorial/#creating-a-django-model
 @admin.register(Address)
-class AddressAdmin(ImportExportModelAdmin):
+# class AddressAdmin(ImportExportModelAdmin):
+class AddressAdmin(OSMGeoAdmin, ImportExportModelAdmin):
     resource_classes = [AddressResource]
-    list_filter = ('imported', 'enabled', 'city__state_name')
-    list_display = ('street', 'number', 'city', 'zip_code', 'hidden', 'formatted', 'location', 'more_info', 'enabled', 'imported', 'import_id')
+    search_fields = ['city__name', 'city__id', 'city__name', 'city__state_name', 'zip_code', 'formatted', 'import_id', 'more_info', 'street', 'number']
+    list_filter = ('imported', 'enabled', 'hidden', 'city__state_name', 'import_id')
+    list_display = ('street', 'number', 'city', 'zip_code', 'hidden', 'formatted', 'more_info', 'enabled', 'imported', 'import_id', 'location')
 
 
 class CompanyResource(resources.ModelResource):

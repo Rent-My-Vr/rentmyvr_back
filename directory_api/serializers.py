@@ -593,6 +593,8 @@ class PropertyDetailSerializer(serializers.ModelSerializer):
     social_media = SocialMediaLinkSerializer(many=True, read_only=True)
     pictures = PropertyPhotoSerializer(many=True, read_only=True)
     room_types = RoomTypeFullSerializer(many=True, read_only=True)
+    office = OfficeSerializer(many=False, read_only=True)
+    portfolio = PortfolioSerializer(many=False, read_only=True)
     
     accessibility = AccessibilitySerializer(many=True, read_only=True)
     activities = ActivitySerializer(many=True, read_only=True)
