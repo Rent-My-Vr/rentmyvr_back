@@ -1283,6 +1283,7 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
                 return self.get_paginated_response(serializer.data)
         else:
             page_number = int(page_number)-1 if page_number else 0
+            page_number = 0 if page_number < 0 else page_number
             size = int(size) if size and int(size) > 0 else 100
             print("A222")
             print(page_number, '   ', page_number*size, ' ---- ', size)
