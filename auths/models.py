@@ -525,7 +525,8 @@ class User(AbstractUser):
         elif UserModel.PASSWORD_RESET == action:
             template = 'auths/mail_templates/password_reset_email_html.html'
             subject = f"{settings.COMPANY_NAME} - Password Reset"
-            action_link = reverse('auths_api:password-reset-confirm-token', kwargs={'uidb64': uidb64, 'session_key': session_key})  
+            action_link = reverse('auths_api:password-reset-confirm-token', kwargs={'uidb64': uidb64, 'session_key': session_key}) 
+            print('   >>>>>>>>>   ', action_link) 
         elif UserModel.VERIFY_EMAIL == action:
             template = 'auths/mail_templates/email_activation.html'
             subject = f"{settings.COMPANY_NAME} - Email Activation"
