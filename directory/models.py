@@ -686,7 +686,7 @@ class Property(StampedUpdaterModel):
     spaces = models.ManyToManyField(Space, blank=True)
     services = models.ManyToManyField(Service, blank=True)
     
-    calendar = models.ForeignKey(Calendar, on_delete=models.SET_NULL, related_name='properties', blank=True, null=True, default=None)
+    calendar = models.ForeignKey(Calendar, on_delete=models.CASCADE, related_name='properties', blank=True, null=True, default=None)
     company = models.ForeignKey(Company, on_delete=models.SET_NULL, related_name='properties', blank=True, null=True, default=None)
     administrator = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name='properties', blank=True, null=True, default=None)
     office = models.ForeignKey(Office, on_delete=models.CASCADE, related_name='properties', blank=True, null=True, default=None)
