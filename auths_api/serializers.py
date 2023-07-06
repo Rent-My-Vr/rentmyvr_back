@@ -185,7 +185,7 @@ class PasswordResetSerializer(DJ_PasswordResetSerializer):
         return value
 
     def save(self, data):
-        self.users = UserModel.objects.filter(Q(email__icontains=data["email"], is_active=True) | Q(email=data["email"], is_active=False, last_login__isnull=True))
+        self.users = UserModel.objects.filter(Q(email__iexact=data["email"], is_active=True) | Q(email__iexact=data["email"], is_active=False, last_login__isnull=True))
         extra = {"processing_channel": data.get('processing_channel'), "client_callback_link": data.get('client_callback_link')}
         
         print(self.users)

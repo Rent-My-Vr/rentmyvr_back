@@ -578,6 +578,7 @@ class PasswordResetView(DJ_PasswordResetView):
         data['session_key'] = 565666662222
         domain = get_domain(request)
         data['domain'] = domain
+        print('++++++++++++++++++ ', data)
         channel = data.get("channel", UserModel.EMAIL_CHANNEL)
         processing_channel = request.data.get('processing_channel', UserModel.TOKEN if channel == UserModel.PHONE_CHANNEL else UserModel.LINK)
         client_callback_link = request.data.get('client_callback_link')
@@ -821,10 +822,6 @@ class UserViewSet(viewsets.ModelViewSet):
     @action(methods=['get'], detail=False, url_path='me', url_name='me')
     def me(self, request, *args, **kwargs):
         return Response(UserSessionSerializer(request.user).data, status=status.HTTP_200_OK)
-
-
-
-
 
 
 
