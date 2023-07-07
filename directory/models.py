@@ -642,7 +642,7 @@ class Property(StampedUpdaterModel):
     virtual_tour = models.FileField(upload_to="property_video_upload_path", blank=True, null=True, default=None)
     is_active = models.BooleanField(verbose_name="Is Active", default=False)
     is_draft = models.BooleanField(verbose_name="is draft", default=False)
-    is_published = models.BooleanField(verbose_name="is published", default=False)
+    is_published = models.BooleanField(verbose_name="is published", default=True)
     type = models.CharField(max_length=254, verbose_name="Type", choices=TYPES)
     space = models.CharField(max_length=254, verbose_name="Booked Space", choices=BOOKED_SPACE)
     hosted_by = models.CharField(max_length=254, verbose_name="Hosted By", blank=True, null=True, default=None)

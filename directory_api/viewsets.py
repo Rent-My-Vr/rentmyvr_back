@@ -291,6 +291,11 @@ class OfficeViewSet(viewsets.ModelViewSet, AchieveModelMixin):
          
         return Office.objects.filter(enabled=True)
  
+    def get_permissions(self):
+        if self.action in ['check_name']:
+            return []  # This method should return iterable of permissions
+        return super().get_permissions()
+
     def perform_create(self, serializer):
         return serializer.save(updated_by_id=self.request.user.id)
         
@@ -398,7 +403,32 @@ class OfficeViewSet(viewsets.ModelViewSet, AchieveModelMixin):
     @action(methods=['get'], detail=False, url_path='names', url_name='names')
     def names(self, request, *args, **kwargs):
         return Response(self.get_queryset().values_list('email', flat=True), status=status.HTTP_200_OK)
-
+    
+    @action(methods=['get'], detail=False, url_path='check/name', url_name='check-name')
+    def check_name(self, request, *args, **kwargs):
+        key = request.query_params.get('key', None)
+        result = None
+        kind = None
+        if key:
+            if key.startswith('F'):
+                kind = 'Portfolio'
+                result = Portfolio.objects.values('name', 'ref', 'company__name', 'company__ref').filter(ref=key).first()
+            elif key.startswith('O'):
+                kind = 'Office'
+                result = Office.objects.values('name', 'ref', 'company__name', 'company__ref').filter(ref=key).first()
+            elif key.startswith('C'):
+                kind = 'Company'
+                result = Company.objects.values('name', 'ref').filter(ref=key).first()
+        if result:
+            result['type'] = kind
+            if kind in ['Office', 'Portfolio']:
+                result['company'] = {'name': result['company__name'], 'ref': result['company__ref']}
+                result.pop('company__name', None)
+                result.pop('company__ref', None)
+            print('....', result)
+            
+        return Response(result, status=status.HTTP_200_OK)
+        
     @action(methods=['post'], detail=True, url_path='delete/member/(?P<mid>[0-9A-Fa-f-]+)', url_name='delete-member')
     def delete_member(self, request, *args, **kwargs):
         instance = self.get_object()
@@ -1196,18 +1226,21 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             print(data.get('address'))
             inst = Address.objects.filter(id=data.get('address').get('id', None)).first()
             print(inst)
+            addData = data.get('address')
+            addData['properties']['city_id'] = city_id
+            addData['properties']['updated_by_id'] = self.request.user.id
             if inst:
-                ser = AddressSerializer(inst, data=data.get('address'), partial=partial) 
+                ser = AddressGeoSerializer(inst, data=addData, partial=partial) 
             else:
-                ser = AddressSerializer(data=data.get('address'))
+                ser = AddressGeoSerializer(data=addData)
             print(1)
             ser.is_valid(raise_exception=True)
-            print(2)
-            address = ser.save(updated_by_id=self.request.user.id, city_id=city_id)
+            address = ser.save()
             # address.city_id = city_id
             # address.save()
             print(address)
             print(address.id)
+            print(data.get('address')['properties']['hidden'], ' <<<<<<<<<++++++++>>>>>>>>>>> ', address.hidden)
                 
             serializer = PropertySerializer(instance, data=data, partial=partial, context={'address_id': address.id, 'updated_by_id': self.request.user.id})
             # serializer = self.get_serializer(instance, data=request.data, partial=partial)
