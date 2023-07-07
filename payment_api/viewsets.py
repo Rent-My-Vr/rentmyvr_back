@@ -388,7 +388,7 @@ class ProcessingView(viewsets.ViewSet):
                                 if it not in items:
                                     subscrip = Subscription()
                                     subscrip.external_ref=subscription_id
-                                    subscrip.external_obj = "subscription"
+                                    subscrip.external_obj = Transaction.SUBSCRIPTION
                                     subscrip.start_date = datetime.fromtimestamp(subscription['current_period_start'])
                                     subscrip.end_date = datetime.fromtimestamp(subscription['current_period_end'])
                                     subscrip.transaction = txn
@@ -481,7 +481,7 @@ class ProcessingView(viewsets.ViewSet):
                         if it not in items:
                             subscrip = Subscription()
                             subscrip.external_ref=subscription['id']
-                            subscrip.external_obj = subscription
+                            subscrip.external_obj = Transaction.SUBSCRIPTION
                             subscrip.start_date = datetime.fromtimestamp(subscription['current_period_start'])
                             subscrip.end_date = datetime.fromtimestamp(subscription['current_period_end'])
                             subscrip.transaction = txn
@@ -545,7 +545,7 @@ class ProcessingView(viewsets.ViewSet):
                                 for md in ManagerDirectory.objects.filter(subscription__isnull=True, id__in=txn.items):
                                     sub = Subscription()
                                     sub.external_ref=subscription['id']
-                                    sub.external_obj = "subscription"
+                                    sub.external_obj = Transaction.SUBSCRIPTION
                                     sub.start_date = datetime.fromtimestamp(subscription['current_period_start'])
                                     sub.end_date = datetime.fromtimestamp(subscription['current_period_end'])
                                     sub.transaction = txn
@@ -562,7 +562,7 @@ class ProcessingView(viewsets.ViewSet):
                                 for pro in Property.objects.filter(subscription__isnull=True, id__in=txn.items):
                                     sub = Subscription()
                                     sub.external_ref=subscription['id']
-                                    sub.external_obj = "subscription"
+                                    sub.external_obj = Transaction.SUBSCRIPTION
                                     sub.start_date = datetime.fromtimestamp(subscription['current_period_start'])
                                     sub.end_date = datetime.fromtimestamp(subscription['current_period_end'])
                                     sub.transaction = txn
@@ -584,7 +584,7 @@ class ProcessingView(viewsets.ViewSet):
                         for it in txn.items:
                             subscrip = Subscription()
                             subscrip.external_ref = subscription['id']
-                            subscrip.external_obj = "subscription"
+                            subscrip.external_obj = Transaction.SUBSCRIPTION
                             subscrip.start_date = datetime.fromtimestamp(subscription['current_period_start'])
                             subscrip.end_date = datetime.fromtimestamp(subscription['current_period_end'])
                             subscrip.transaction = txn
@@ -598,7 +598,7 @@ class ProcessingView(viewsets.ViewSet):
                                 print('+++++++++++++++++++++++++++:: Pay Attention to this error A ::++++++++++++++++++++++++++++++\n', e)
                                 # payment_subscription.external_ref, payment_subscription.subscriber_id, payment_subscription.transaction_id
                                 subscrip = Subscription.objects.get(external_ref=subscription_id, subscriber=txn.payee, transaction=txn)
-                                subscrip.external_obj = "subscription"
+                                subscrip.external_obj = Transaction.SUBSCRIPTION
                                 subscrip.start_date = datetime.fromtimestamp(subscription['current_period_start'])
                                 subscrip.end_date = datetime.fromtimestamp(subscription['current_period_end'])
                                 subscrip.status = subscription['status']
@@ -718,7 +718,7 @@ class ProcessingView(viewsets.ViewSet):
                             subscription = stripe.Subscription.retrieve(subscription_id)
                             subscrip = Subscription()
                             subscrip.external_ref = subscription_id
-                            subscrip.external_obj = "subscription"
+                            subscrip.external_obj = Transaction.SUBSCRIPTION
                             subscrip.start_date = datetime.fromtimestamp(subscription['current_period_start'])
                             subscrip.end_date = datetime.fromtimestamp(subscription['current_period_end'])
                             subscrip.transaction = txn
@@ -732,7 +732,7 @@ class ProcessingView(viewsets.ViewSet):
                                 print('+++++++++++++++++++++++++++:: Pay Attention to this error B ::++++++++++++++++++++++++++++++\n', e)
                                 # payment_subscription.external_ref, payment_subscription.subscriber_id, payment_subscription.transaction_id
                                 subscrip = Subscription.objects.get(external_ref=subscription_id, subscriber=txn.payee, transaction=txn)
-                                subscrip.external_obj = "subscription"
+                                subscrip.external_obj = Transaction.SUBSCRIPTION
                                 subscrip.start_date = datetime.fromtimestamp(subscription['current_period_start'])
                                 subscrip.end_date = datetime.fromtimestamp(subscription['current_period_end'])
                                 subscrip.status = subscription['status']
@@ -935,7 +935,7 @@ class TransactionViewSet(viewsets.ModelViewSet, AchieveModelMixin):
                     if len(subscrips) == 0:
                         subscrips = Subscription()
                         subscrips.external_ref = subscription['id']
-                        subscrips.external_obj = "subscription"
+                        subscrips.external_obj = Transaction.SUBSCRIPTION
                         subscrips.start_date = datetime.fromtimestamp(subscription['current_period_start'])
                         subscrips.end_date = datetime.fromtimestamp(subscription['current_period_end'])
                         subscrips.transaction = txn
