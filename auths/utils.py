@@ -29,7 +29,7 @@ class TokenGenerator(PasswordResetTokenGenerator):
             return super().check_token(user, str(token))
 
 
-    def persist(self, user, action, channel, session_key, data=None, token_length=getattr(settings, 'AUTH_TOKEN_LENGTH', 6), timeout=60*10):
+    def persist(self, user, action, channel, session_key, data=None, token_length=getattr(settings, 'AUTH_TOKEN_LENGTH', 6), timeout=60*60):
         data = data if data else str(random_with_N_digits(token_length))
         cache.delete_pattern(f"access_token_{user.id}_{action}_{channel}_*")
         cache.set(f"access_token_{user.id}_{action}_{channel}_{session_key}", data, timeout=timeout)
