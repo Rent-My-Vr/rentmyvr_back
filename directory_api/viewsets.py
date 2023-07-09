@@ -1369,12 +1369,16 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             Prefetch('pictures', queryset=PropertyPhoto.objects.filter(enabled=True, is_default=True))
         )
         
+        is_direct = True
         query_params = request.query_params
         if query_params.get('com_ref', None):
+            is_direct = False
             queryset = queryset.filter(company__ref=query_params.get('com_ref'))
         if query_params.get('off_ref', None):
+            is_direct = False
             queryset = queryset.filter(office__ref=query_params.get('off_ref'))
         if query_params.get('port_ref', None):
+            is_direct = False
             queryset = queryset.filter(portfolio__ref=query_params.get('port_ref'))
         
         print('\n\n')
@@ -1434,13 +1438,13 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             location = None
             
             if data.get('propertyId', None):
-                queryset = queryset.filter(Q(id__icontains=data.get('propertyId')) | Q(ref__icontains=data.get('propertyId')))
+                queryset = queryset.filter(Q(id__iexact=data.get('propertyId')) | Q(ref__iexact=data.get('propertyId')))
             if not location and data.get('zip_code', None):
                 queryset = queryset.filter(address__zip_code=data.get('zip_code'))
             if not location and data.get('city', None):
-                queryset = queryset.filter(address__city__name__icontains=data.get('city'))
+                queryset = queryset.filter(address__city__name__iexact=data.get('city'))
             if not location and data.get('state', None):
-                queryset = queryset.filter(address__city__state_name__icontains=data.get('state'))
+                queryset = queryset.filter(address__city__state_name__iexact=data.get('state'))
             if data.get('types', None):
                 queryset = queryset.filter(type__in=data.get('types'))
             if data.get('bookedSpaces', None):
@@ -1514,7 +1518,16 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
         else:
             # serializer = self.get_serializer(queryset[:size], many=True)
             # return Response({"data": serializer.data, "count": size, "total_pages": 1})?
-            return Response({"data": [], "count": size, "total_pages": 1})
+            if is_direct:
+                queryset = queryset.filter(address__city__state_name__iexact="Arizona")[0:25]
+                page = self.paginate_queryset(queryset)
+                if page is not None:
+                    serializer = self.get_serializer(page, many=True)
+                    return self.get_paginated_response(serializer.data)
+                serializer = self.get_serializer(queryset, many=True)
+                return Response(serializer.data)
+            else:
+                return Response({"data": [], "count": size, "total_pages": 1})
         print(' +++ ', queryset.query)
         print('\n <<+++>> ', queryset)
         queryset = queryset[0:500] if location else queryset
@@ -1725,15 +1738,19 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
                     inst = self.perform_create(ser)
                     pids.append(inst.id)
                 
-            if data.get('video[]', None):
+            print('++++++++++++++++++++++++++++++++++++++++++++++++++++++\n', data)
+            if data.get('videoLink', '') and len(data.get('videoLink', '')) > 5:
+                print(' ===>> ', data['videoLink'])
+                instance.video_link = data.get('videoLink')
+                instance.video = None
+            elif data.get('video[]', None):
                 print(' ===>> ', data['video[]'])
                 ser = PropertyVideoSerializer(instance, data={"id": instance, "video": data['video[]']}, partial=True)
                 ser.is_valid(raise_exception=True)
                 self.perform_update(ser)
-                instance.videoLink = None
+                instance.video_link = None
             else:
-                instance.videoLink = data.get('videoLink', None)
-                instance.video = None
+                print(' ======>> Nothing')
             instance.save()
                 
             deletedIds = list((set(originalPIDs).difference(pids)))
