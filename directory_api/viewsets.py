@@ -943,8 +943,9 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             data['address']['geometry']['type'] = request.data.get('address[geometry][type]', None)
             data['address']['geometry']['coordinates'] = [float(request.data.get('address[geometry][coordinates][0]', 0)), float(request.data.get('address[geometry][coordinates][1]', 0))]
             data['address']['properties'] = dict()
+            country = request.data.get('address[properties][country_name]')
             data['address']['properties']['formatted'] = request.data.get('address[properties][formatted]')
-            data['address']['properties']['country_name'] = request.data.get('address[properties][country_name]')
+            data['address']['properties']['country_name'] = country if country else 'United States'
             data['address']['properties']['street'] = request.data.get('address[properties][street]')
             data['address']['properties']['number'] = request.data.get('address[properties][number]')
             data['address']['properties']['zip_code'] = request.data.get('address[properties][zip_code]')
@@ -957,7 +958,8 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             data['address']['properties']['city']['import_id'] = request.data.get('address[properties][city][import_id]', None)
             data['address']['properties']['city']['name'] = request.data.get('address[properties][city][name]')
             data['address']['properties']['city']['state_name'] = request.data.get('address[properties][city][state_name]')
-            data['address']['properties']['city']['country_name'] = request.data.get('address[properties][city][country_name]')
+            country = request.data.get('address[properties][city][country_name]')
+            data['address']['properties']['city']['country_name'] = country if country else 'United States'
             data['address']['properties']['city']['approved'] = True if data['address']['properties']['city']['id'] else False
             data['address']['properties']['city_data'] = data['address']['properties']['city']
             # data['address']['properties']['city'] = data['address']['properties']['city'].get('id', None) if data['address']['properties']['city'].get('id', None) else None
@@ -1203,10 +1205,13 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             print(suitabilities)
             print('============ ******3***** =============\n')
             
-            if not data.get('video'):
-                data['logo'] = None
-                data['video'] = None
-                data['virtual_tour'] = None
+            data.pop('logo', None)
+            data.pop('video', None)
+            data.pop('virtual_tour', None)
+            # if not data.get('video'):
+                # data['logo'] = None
+                # data['video'] = None
+                # data['virtual_tour'] = None
             print('----------------')
             print(data.get('address'))
             print('============ 4 =============')
