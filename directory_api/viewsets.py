@@ -1232,7 +1232,7 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             inst = Address.objects.filter(id=data.get('address').get('id', None)).first()
             print(inst)
             addData = data.get('address')
-            addData['properties']['city_id'] = city_id
+            addData['properties']['city'] = city_id
             addData['properties']['updated_by_id'] = self.request.user.id
             if inst:
                 ser = AddressGeoSerializer(inst, data=addData, partial=partial) 
@@ -1241,8 +1241,9 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             print(1)
             ser.is_valid(raise_exception=True)
             address = ser.save()
-            # address.city_id = city_id
-            # address.save()
+            address.city_id = city_id
+            address.save()
+            print(city_id, ' ==================+++++++++++++++++++++++++++++++++++++>>>>>>>>>>>>> \n\n\n', addData)
             print(address)
             print(address.id)
             print(data.get('address')['properties']['hidden'], ' <<<<<<<<<++++++++>>>>>>>>>>> ', address.hidden)
