@@ -990,7 +990,7 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             
             booking_sites_set = set()
             social_media_set = set()
-            pictures_set = set()
+            # pictures_set = set()
             suitabilities_set = set()
             room_types_set = set()
             room_types_dict = dict()
@@ -1000,10 +1000,10 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
                     booking_sites_set.add(re.findall(r"^booking_sites\[(\d+)\]\[\w+\]", k)[0])
                 elif f'social_media[' in k:
                     social_media_set.add(re.findall(r"^social_media\[(\d+)\]\[\w+\]$", k)[0])
-                elif f'pictures[' in k:
-                    if k != 'pictures[]':
-                        pictures_set.add(re.findall(r"^pictures\[(\d+)\]", k)[0])
-                        # pictures_set.add(re.findall(r"^pictures\[(\d+)\]\[\w+\]$", k)[0])
+                # elif f'pictures[' in k:
+                #     if k != 'pictures[]':
+                #         pictures_set.add(re.findall(r"^pictures\[(\d+)\]", k)[0])
+                #         # pictures_set.add(re.findall(r"^pictures\[(\d+)\]\[\w+\]$", k)[0])
                 elif f'suitabilities[' in k:
                     suitabilities_set.add(re.findall(r"^suitabilities\[(\d+)\]\[\w+\]$", k)[0])
                 elif f'room_types[' in k:
@@ -1024,7 +1024,7 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             print('booking_sites_set: ', booking_sites_set)
             print('booking_sites_set_length: ', len(booking_sites_set))
             print('social_media_set_length: ', len(social_media_set))
-            print('pictures_set_length: ', len(pictures_set))
+            # print('pictures_set_length: ', len(pictures_set))
             print('social_media_set_length: ', len(social_media_set))
             print('room_types_set_length: ', len(room_types_set))
             print('room_types_dict: ', room_types_dict)
@@ -1115,36 +1115,36 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
                 s_ids.append(inst.id)
             SocialMediaLink.objects.filter(~Q(id__in=s_ids), property=instance).delete()
                 
-            pi_ids = []
-            for i in range(len(pictures_set)):
-                d = dict()
-                d['id'] = data.get(f'pictures[{i}][id]', None)
-                d['property'] = data.get(f'pictures[{i}][property]', id)
-                # d['image'] = data[f'pictures[{i}][image]']
-                d['image'] = data.get(f'pictures[{i}]', None) if data.get(f'pictures[{i}]', None) else data.get(f'pictures[{i}][image]', None)
+            # pi_ids = []
+            # for i in range(len(pictures_set)):
+            #     d = dict()
+            #     d['id'] = data.get(f'pictures[{i}][id]', None)
+            #     d['property'] = data.get(f'pictures[{i}][property]', id)
+            #     # d['image'] = data[f'pictures[{i}][image]']
+            #     d['image'] = data.get(f'pictures[{i}]', None) if data.get(f'pictures[{i}]', None) else data.get(f'pictures[{i}][image]', None)
                 
-                print(d, '----------\n')
+            #     print(d, '----------\n')
                 
-                data.pop(f'pictures[{i}]', None)
-                data.pop(f'pictures[{i}][id]', None)
-                data.pop(f'pictures[{i}][property]', None)
-                data.pop(f'pictures[{i}][image]', None)
+            #     data.pop(f'pictures[{i}]', None)
+            #     data.pop(f'pictures[{i}][id]', None)
+            #     data.pop(f'pictures[{i}][property]', None)
+            #     data.pop(f'pictures[{i}][image]', None)
                 
-                inst = PropertyPhoto.objects.filter(id=d.get('id', None))
-                if len(inst) == 0:
-                    ser = PropertyPhotoSerializer(data=d)
-                    ser.is_valid(raise_exception=True)
-                    inst = ser.save(updated_by_id=self.request.user.id)
-                else:
-                    inst = inst.first()
-                    # ser = PropertyPhotoSerializer(inst, data=d, partial=partial) 
-                pi_ids.append(inst.id)
-            for p in request.data.getlist('pictures[]'):
-                ser = PropertyPhotoSerializer(data={'image': p, "property": instance.id})
-                ser.is_valid(raise_exception=True)
-                inst = self.perform_create(ser)
-                pi_ids.append(inst.id)
-            PropertyPhoto.objects.filter(~Q(id__in=pi_ids), property=instance).delete()
+            #     inst = PropertyPhoto.objects.filter(id=d.get('id', None))
+            #     if len(inst) == 0:
+            #         ser = PropertyPhotoSerializer(data=d)
+            #         ser.is_valid(raise_exception=True)
+            #         inst = ser.save(updated_by_id=self.request.user.id)
+            #     else:
+            #         inst = inst.first()
+            #         # ser = PropertyPhotoSerializer(inst, data=d, partial=partial) 
+            #     pi_ids.append(inst.id)
+            # for p in request.data.getlist('pictures[]'):
+            #     ser = PropertyPhotoSerializer(data={'image': p, "property": instance.id})
+            #     ser.is_valid(raise_exception=True)
+            #     inst = self.perform_create(ser)
+            #     pi_ids.append(inst.id)
+            # PropertyPhoto.objects.filter(~Q(id__in=pi_ids), property=instance).delete()
                 
             suitabilities = []
             for i in range(len(suitabilities_set)):
