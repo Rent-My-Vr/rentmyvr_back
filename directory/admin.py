@@ -265,7 +265,22 @@ class PropertyAdmin(ImportExportModelAdmin):
     search_fields = ['id','ref', 'name', 'type', 'space', 'hosted_by', 'suitabilities', 'price_night', 'email', 'phone', 'ical_url', 'subscription__external_ref', 'subscription__id', 'company__id', 'company__ref', 'company__name', 'administrator__id', 'administrator__ref', 'administrator__user__email', 'administrator__user__first_name', 'administrator__user__last_name', 'address__city__state_name', 'address__city__name', 'address__zip_code']
     list_filter = ('imported', 'enabled', 'is_active', 'is_published', 'is_draft', 'space', 'is_pet_allowed', 'type', )
     list_display = ('ref', 'name', 'company', 'administrator', 'subscription', 'video', 'virtual_tour', 'is_active', 'is_published', 'is_draft', 'calendar', 'ical_url', 'type', 'space', 'hosted_by', 'max_no_of_guest', 'no_of_bedrooms', 'no_of_bathrooms', 'is_pet_allowed', 'suitabilities', 'price_night', 'address', 'email', 'phone', 'id', 'imported', 'enabled', 'created', 'updated', 'updated_by')
-    
+
+    actions = ("publish", "unpublish")
+
+    @admin.action(description='Publish selected Properties')
+    def publish(modeladmin, request, queryset):
+        queryset.update(is_published=True)
+        # for obj in queryset:
+        #     obj.is_published = True
+        #     obj.save()
+
+    @admin.action(description='Unpublish selected Properties')
+    def unpublish(modeladmin, request, queryset):
+        queryset.update(is_published=False)
+        # for obj in queryset:
+        #     obj.is_published = False
+        #     obj.save()
 
 @admin.register(PropertyPhoto)
 class PropertyPhotoAdmin(admin.ModelAdmin):

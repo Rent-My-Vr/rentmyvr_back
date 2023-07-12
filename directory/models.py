@@ -245,6 +245,7 @@ class ManagerDirectory(TrackedModel):
     ref = models.CharField(max_length=16, verbose_name="Ref", unique=True)
     name = models.CharField(max_length=254, verbose_name="name")
     is_active = models.BooleanField(default=False)
+    is_published = models.BooleanField(verbose_name="is published", default=True)
     status = models.CharField(verbose_name="status", max_length=32, choices=STATUS_CHOICES, default=DRAFT)
     manage_for_others = models.BooleanField(default=False)
     
