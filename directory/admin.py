@@ -4,6 +4,7 @@ from import_export import resources
 from import_export.fields import Field
 from import_export.admin import ImportExportModelAdmin
 from import_export.widgets import ForeignKeyWidget
+from django.contrib import messages
 
 
 @admin.register(Accessibility)
@@ -270,17 +271,14 @@ class PropertyAdmin(ImportExportModelAdmin):
 
     @admin.action(description='Publish selected Properties')
     def publish(modeladmin, request, queryset):
-        queryset.update(is_published=True)
-        # for obj in queryset:
-        #     obj.is_published = True
-        #     obj.save()
-
+        x = queryset.update(is_published=True)
+        messages.success(request, f"Successfully Published {x} Properties")
+        
     @admin.action(description='Unpublish selected Properties')
     def unpublish(modeladmin, request, queryset):
-        queryset.update(is_published=False)
-        # for obj in queryset:
-        #     obj.is_published = False
-        #     obj.save()
+        x = queryset.update(is_published=False)
+        messages.success(request, f"Successfully Unpublished {x} Properties")
+        
 
 @admin.register(PropertyPhoto)
 class PropertyPhotoAdmin(admin.ModelAdmin):
