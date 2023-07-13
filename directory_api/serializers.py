@@ -274,6 +274,7 @@ class PropertyPhotoSerializer(serializers.ModelSerializer):
         model = PropertyPhoto
         fields = ('id', 'property', 'index', 'image', 'is_default', 'caption')
 
+
 class PropertyVideoSerializer(serializers.ModelSerializer):
     
     class Meta:
@@ -580,10 +581,11 @@ class PropertyListSerializer(serializers.ModelSerializer):
 
 class PropertySearchResultSerializer(serializers.ModelSerializer):
     pictures = PropertyPhotoSerializer(many=True, read_only=True)
+    address = AddressDetailGeoSerializer(many=False, read_only=True)
 
     class Meta:
         model = Property
-        fields = ('id', 'is_active', 'ref', 'name', 'type', 'space', 'price_night', 'max_no_of_guest', 'no_of_bedrooms', 'no_of_bathrooms', 'pictures')
+        fields = ('id', 'address', 'is_active', 'ref', 'name', 'type', 'space', 'price_night', 'max_no_of_guest', 'no_of_bedrooms', 'no_of_bathrooms', 'pictures')
 
 
 class PropertyDetailSerializer(serializers.ModelSerializer):
