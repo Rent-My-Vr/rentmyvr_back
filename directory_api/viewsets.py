@@ -273,6 +273,18 @@ class ManagerDirectoryViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             qs = qs[:int(request.query_params.get("limit"))]
         return Response(CompanyMDLDetailSerializer(qs, many=True).data)
 
+    @action(methods=['patch', 'post'], detail=True, url_path='publisher', url_name='publish')
+    def publisher(self, request, *args, **kwargs):
+        instance = self.get_object()
+        profile = request.user.user_profile
+        if instance.company != profile.company or (instance.company.administrator != profile and not profile.user.is_manager):
+            return Response({"message": "You are not authorised to perform this action", "required": []}, status=status.HTTP_403_FORBIDDEN)
+        
+        instance.is_published = not instance.is_published
+        instance.save()
+        
+        return Response(ManagerDirectoryListSerializer(instance=instance).data)
+    
 
 class OfficeViewSet(viewsets.ModelViewSet, AchieveModelMixin):
     permission_classes = (IsAuthenticated, )

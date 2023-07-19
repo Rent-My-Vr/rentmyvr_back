@@ -246,7 +246,7 @@ class Address(UntrackedModel):
     import_id = models.CharField(max_length=16, verbose_name="Imported Id", default='', blank=True, null=True)
     
     def __str__(self):
-        return self.more_info if self.more_info else self.formatted if self.formatted else 'No. {}, {}, {}, {}'.format(self.number, self.street, self.city, self.zip_code)
+        return self.formatted if self.formatted else self.more_info if self.more_info else '{} {}, {}, {}'.format(self.number, self.street, self.city, self.zip_code)
 
     def get_admin_url(self):
         return reverse('admin:{}_{}_change'.format(self._meta.app_label, self._meta.model_name), args=(self.pk, ))
