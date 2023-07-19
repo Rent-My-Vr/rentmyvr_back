@@ -1767,6 +1767,8 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
                 ser.is_valid(raise_exception=True)
                 self.perform_update(ser)
                 instance.video_link = None
+            elif data.get('videoLink', None) is not None and len(data.get('videoLink').strip()) == 0:
+                instance.video_link = None
             else:
                 print(' ======>> Nothing')
             instance.save()
