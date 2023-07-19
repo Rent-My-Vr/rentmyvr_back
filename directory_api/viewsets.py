@@ -248,7 +248,7 @@ class ManagerDirectoryViewSet(viewsets.ModelViewSet, AchieveModelMixin):
         print(request.data)
         data = request.data
         
-        qs = Company.objects.filter(enabled=True, mdl__is_active=True)
+        qs = Company.objects.filter(enabled=True, mdl__is_active=True, mdl__is_published=True)
         if len(data.get('state', '')) > 0:
             print('1. ', data.get('state'))
             qs = qs.filter(mdl__state__icontains=data.get('state'))
