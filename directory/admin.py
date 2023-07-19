@@ -65,8 +65,8 @@ class LaundryAdmin(admin.ModelAdmin):
 @admin.register(ManagerDirectory)
 class ManagerDirectoryAdmin(admin.ModelAdmin):
     search_fields = ('id', 'ref', 'name', 'email', 'website', 'contact_name', 'phone', 'company__name', 'company__ref', 'company__id', 'subscription__id', 'subscription__external_ref')
-    list_filter = ('is_active', 'enabled', 'manage_for_others')
-    list_display = ('ref', 'name', 'company', 'is_active', 'subscription', 'administrator', 'website', 'contact_name', 'email', 'phone', 'phone_2', 'ext_2', 'state', 'city', 'zip_code', 'manage_for_others', 'id', 'created', 'updated', 'description')
+    list_filter = ('is_active', 'is_published', 'enabled', 'manage_for_others')
+    list_display = ('ref', 'name', 'company', 'is_active', 'is_published', 'subscription', 'administrator', 'website', 'contact_name', 'email', 'phone', 'phone_2', 'ext_2', 'state', 'city', 'zip_code', 'manage_for_others', 'id', 'created', 'updated', 'description')
 
     @admin.display(ordering='name', description='Name')
     def name(self, instance):
@@ -108,6 +108,18 @@ class ManagerDirectoryAdmin(admin.ModelAdmin):
     def state(self, instance):
         return instance.company.state 
 
+    actions = ("publish", "unpublish")
+
+    @admin.action(description='Publish selected MDLs')
+    def publish(modeladmin, request, queryset):
+        x = queryset.update(is_published=True)
+        messages.success(request, f"Successfully Published {x} MDLs")
+        
+    @admin.action(description='Unpublish selected MDLs')
+    def unpublish(modeladmin, request, queryset):
+        x = queryset.update(is_published=False)
+        messages.success(request, f"Successfully Unpublished {x} MDLs")
+        
 
 @admin.register(Office)
 class OfficeAdmin(admin.ModelAdmin):
@@ -265,7 +277,7 @@ class PropertyAdmin(ImportExportModelAdmin):
     resource_classes = [PropertyResource]
     search_fields = ['id','ref', 'name', 'type', 'space', 'hosted_by', 'suitabilities', 'price_night', 'email', 'phone', 'ical_url', 'subscription__external_ref', 'subscription__id', 'company__id', 'company__ref', 'company__name', 'administrator__id', 'administrator__ref', 'administrator__user__email', 'administrator__user__first_name', 'administrator__user__last_name', 'address__city__state_name', 'address__city__name', 'address__zip_code']
     list_filter = ('imported', 'enabled', 'is_active', 'is_published', 'is_draft', 'space', 'is_pet_allowed', 'type', )
-    list_display = ('ref', 'name', 'company', 'administrator', 'subscription', 'video', 'virtual_tour', 'is_active', 'is_published', 'is_draft', 'calendar', 'ical_url', 'type', 'space', 'hosted_by', 'max_no_of_guest', 'no_of_bedrooms', 'no_of_bathrooms', 'is_pet_allowed', 'suitabilities', 'price_night', 'address', 'email', 'phone', 'id', 'imported', 'enabled', 'created', 'updated', 'updated_by')
+    list_display = ('ref', 'name', 'company', 'administrator', 'subscription', 'is_active', 'is_published', 'is_draft', 'calendar', 'ical_url', 'type', 'space', 'hosted_by', 'max_no_of_guest', 'no_of_bedrooms', 'no_of_bathrooms', 'is_pet_allowed', 'suitabilities', 'price_night', 'address', 'email', 'phone', 'id', 'video', 'virtual_tour', 'imported', 'enabled', 'created', 'updated', 'updated_by')
 
     actions = ("publish", "unpublish")
 

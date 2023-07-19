@@ -23,7 +23,7 @@ class UserAdmin(DjangoUserAdmin):
     list_per_page = settings.ADMIN_PER_PAGE
     list_display_links = ('first_name', 'last_name', 'email',)
 
-    list_filter = ('is_manager', 'is_staff', 'is_superuser', 'is_active', 'groups', 'force_password_change')
+    list_filter = ('is_manager', 'is_staff', 'is_superuser', 'is_active', 'position', 'email_verified', 'groups', 'force_password_change')
     # search_fields = ('first_name', 'last_name', 'email', 'email_verified', 'last_login_signature')
     ordering = ('first_name', 'last_name', )
     readonly_fields = ('last_login', 'date_joined', 'last_password_change',)
