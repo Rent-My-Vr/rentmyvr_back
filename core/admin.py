@@ -76,9 +76,13 @@ class AddressResource(resources.ModelResource):
 # class AddressAdmin(ImportExportModelAdmin):
 class AddressAdmin(OSMGeoAdmin, ImportExportModelAdmin):
     resource_classes = [AddressResource]
-    search_fields = ['id', 'city__name', 'city__id', 'city__state_name', 'zip_code', 'formatted', 'import_id', 'more_info', 'street', 'number']
+    search_fields = ['id', 'city__name', 'city__id', 'city__state_name', 'zip_code', 'country', 'formatted', 'import_id', 'more_info', 'street', 'number']
     list_filter = ('imported', 'enabled', 'hidden', 'city__state_name', 'import_id')
-    list_display = ('street', 'number', 'city', 'zip_code', 'hidden', 'formatted', 'more_info', 'enabled', 'imported', 'import_id', 'location')
+    list_display = ('number', 'street', 'city', 'state', 'zip_code', 'country', 'more_info', 'formatted', 'enabled', 'hidden', 'imported', 'import_id', 'location')
+
+    @admin.display(ordering='city__state_name', description='State')
+    def state(self, instance):
+        return instance.city.state_name
 
 
 class CompanyResource(resources.ModelResource):
