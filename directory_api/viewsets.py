@@ -667,7 +667,7 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
     def perform_update(self, serializer):
         return serializer.save(updated_by_id=self.request.user.id)
       
-    #   TODO: Fix COuntry_name
+    #   TODO: Fix Country_name
     def create(self, request, *args, **kwargs):
         with transaction.atomic():
             print('============ 0 =============')
