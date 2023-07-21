@@ -1499,7 +1499,7 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
                     queryset = queryset.filter(suitabilities__icontains=s[0])
                 
             if data.get('petAllow', None):
-                queryset = queryset.filter(is_pet_allowed=bool(data.get('petAllow')))
+                queryset = queryset.filter(is_pet_allowed=not bool(data.get('petAllow')))
             if data.get('accessibility', None):
                 queryset = queryset.filter(accessibility__in=data.get('accessibility', []))
             if data.get('activities', None):
