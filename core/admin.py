@@ -49,6 +49,7 @@ class CityResource(resources.ModelResource):
 @admin.register(City)
 class CityAdmin(ImportExportModelAdmin):
     resource_classes = [CityResource]
+    search_fields = ['id', 'name', 'state_name', 'country_name']
     list_filter = ('enabled', 'imported', 'state_name', 'country_name', 'approved')
     list_display = ('name', 'state_name', 'country_name', 'approved', 'enabled', 'imported', 'import_id')
 
@@ -75,7 +76,7 @@ class AddressResource(resources.ModelResource):
 # class AddressAdmin(ImportExportModelAdmin):
 class AddressAdmin(OSMGeoAdmin, ImportExportModelAdmin):
     resource_classes = [AddressResource]
-    search_fields = ['city__name', 'city__id', 'city__name', 'city__state_name', 'zip_code', 'formatted', 'import_id', 'more_info', 'street', 'number']
+    search_fields = ['id', 'city__name', 'city__id', 'city__state_name', 'zip_code', 'formatted', 'import_id', 'more_info', 'street', 'number']
     list_filter = ('imported', 'enabled', 'hidden', 'city__state_name', 'import_id')
     list_display = ('street', 'number', 'city', 'zip_code', 'hidden', 'formatted', 'more_info', 'enabled', 'imported', 'import_id', 'location')
 
@@ -255,7 +256,7 @@ class StateAdmin(admin.ModelAdmin):
 class ProfileAdmin(admin.ModelAdmin):
     list_display_links = ('first_name', 'last_name', 'email',)
     list_filter = ('user__is_manager', 'user__position', 'user__is_staff', 'user__is_superuser', 'user__is_active', 'user__email_verified', 'user__position', 'company', )
-    search_fields = ('user__first_name', 'user__last_name', 'user__email', 'user__phone', 'company__name')
+    search_fields = ('id', 'user__id', 'user__first_name', 'user__last_name', 'user__email', 'user__phone', 'company__name')
     list_display = ('first_name', 'last_name', 'email', 'phone', 'company', 'is_manager', 'position', 'is_staff', 'is_superuser', 'is_active', 'image', 'created', 'updated')
     
     @admin.display(ordering='user__first_name', description='First Name')
