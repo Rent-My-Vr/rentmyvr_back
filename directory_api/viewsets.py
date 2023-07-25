@@ -1458,7 +1458,7 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             if data.get('propertyId', None):
                 queryset = queryset.filter(Q(id__iexact=data.get('propertyId')) | Q(ref__iexact=data.get('propertyId')))
             if data.get('name', None):
-                queryset = queryset.filter(Q(id__icontains=data.get('name')) | Q(ref__icontains=data.get('name')))
+                queryset = queryset.filter(Q(name__icontains=data.get('name')))
             if not location and data.get('zip_code', None):
                 queryset = queryset.filter(address__zip_code=data.get('zip_code'))
             if not location and data.get('city', None):
