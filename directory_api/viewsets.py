@@ -706,7 +706,7 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             # data['address']['properties']['city']['import_id'] = request.data.get('address[properties][city][import_id]', None)
             data['address']['properties']['city']['name'] = request.data.get('address[properties][city][name]')
             data['address']['properties']['city']['state_name'] = request.data.get('address[properties][city][state_name]')
-            data['address']['properties']['city']['country_name'] = request.data.get('address[properties][country]')
+            data['address']['properties']['city']['country_name'] = request.data.get('address[properties][country]') or "United States"
             data['address']['properties']['city']['approved'] = True if data['address']['properties']['city']['id'] else False
             data['address']['properties']['city_data'] = data['address']['properties']['city']
             # data['address']['properties']['city'] = data['address']['properties']['city'].get('id', None) if data['address']['properties']['city'].get('id', None) else None
