@@ -30,11 +30,27 @@ class CountrySerializer(serializers.ModelSerializer):
         exclude = ('enabled', )
 
 
+class CountryLiteSerializer(serializers.ModelSerializer):
+    pass
+
+    class Meta:
+        model = Country
+        fields = ('id', 'name', 'iso2', 'iso3')
+
+
 class StateSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = State
         exclude = ('enabled', )
+
+
+class StateLiteSerializer(serializers.ModelSerializer):
+    country = CountryLiteSerializer(many=False, read_only=True)
+    
+    class Meta:
+        model = State
+        fields = ('id', 'name', 'code', 'country')
 
 
 class CitySerializer(serializers.ModelSerializer):
@@ -45,73 +61,89 @@ class CitySerializer(serializers.ModelSerializer):
         read_only_fields = ('id', 'created', 'import_id', 'imported', 'updated', 'updated_by')
 
 
-class AddressSerializer(serializers.ModelSerializer):
-    city = serializers.PrimaryKeyRelatedField(many=False, read_only=True)
-
+class CityLiteSerializer(serializers.ModelSerializer):
+    
     class Meta:
-        model = Address
-        fields = ('id', 'street', 'number', 'city', 'zip_code', 'formatted', 'hidden', 'location', 'more_info')
+        model = City
+        fields = ('id', 'name', 'state_name', 'country_name')
         read_only_fields = ('id', 'created', 'import_id', 'imported', 'updated', 'updated_by')
 
 
-class AddressCreateSerializer(serializers.ModelSerializer):
-    city = CitySerializer(many=False, read_only=True)
+# class AddressSerializer(serializers.ModelSerializer):
+#     city = serializers.PrimaryKeyRelatedField(many=False, read_only=True)
 
-    class Meta:
-        model = Address
-        fields = ('id', 'street', 'number', 'city', 'zip_code', 'formatted', 'hidden', 'location',  'more_info')
-        read_only_fields = ('id', 'created', 'import_id', 'imported', 'updated', 'updated_by')
-
-
-class AddressDetailSerializer(serializers.ModelSerializer):
-    city = CitySerializer(many=False, read_only=False)
-
-    class Meta:
-        model = Address
-        fields = ('id', 'street', 'number', 'city', 'zip_code', 'formatted', 'hidden', 'location',  'more_info')
-        read_only_fields = ('id', 'created', 'import_id', 'imported', 'updated', 'updated_by')
+#     class Meta:
+#         model = Address
+#         fields = ('id', 'street', 'number', 'city', 'zip_code', 'formatted', 'hidden', 'location', 'more_info')
+#         read_only_fields = ('id', 'created', 'import_id', 'imported', 'updated', 'updated_by')
 
 
-class AddressGeoSerializer(GeoFeatureModelSerializer):
-    # updated_by_id = serializers.SerializerMethodField()
-    # city = serializers.PrimaryKeyRelatedField(many=False, read_only=True)
-    city = serializers.PrimaryKeyRelatedField(many=False, read_only=True)
+# class AddressCreateSerializer(serializers.ModelSerializer):
+#     city = CitySerializer(many=False, read_only=True)
 
-    # def get_updated_by_id(self, obj):
-    #     return obj.updated_by.id
-
-    class Meta:
-        model = Address
-        geo_field = "location"
-        fields = ('id', 'street', 'number', 'city', 'zip_code', 'formatted', 'hidden', 'location', 'more_info')
-        read_only_fields = ('id', 'created', 'import_id', 'imported', 'updated', 'updated_by')
+#     class Meta:
+#         model = Address
+#         fields = ('id', 'street', 'number', 'city', 'zip_code', 'formatted', 'hidden', 'location',  'more_info')
+#         read_only_fields = ('id', 'created', 'import_id', 'imported', 'updated', 'updated_by')
 
 
-class AddressCreateGeoSerializer(GeoFeatureModelSerializer):
-    # updated_by_id = serializers.SerializerMethodField()
-    # city = serializers.PrimaryKeyRelatedField(many=False, read_only=True)
-    # city_data = CitySerializer(many=False, read_only=True)
-    city = CitySerializer(many=False, read_only=True)
+# class AddressDetailSerializer(serializers.ModelSerializer):
+#     city = CitySerializer(many=False, read_only=False)
 
-    # def get_updated_by_id(self, obj):
-    #     return obj.updated_by.id
-
-    class Meta:
-        model = Address
-        geo_field = "location"
-        # fields = ('id', 'street', 'number', 'city', 'city_data', 'zip_code', 'formatted', 'hidden', 'location',  'more_info')
-        fields = ('id', 'street', 'number', 'city', 'zip_code', 'formatted', 'hidden', 'location',  'more_info')
-        read_only_fields = ('id', 'created', 'import_id', 'imported', 'updated', 'updated_by')
+#     class Meta:
+#         model = Address
+#         fields = ('id', 'street', 'number', 'city', 'zip_code', 'formatted', 'hidden', 'location',  'more_info')
+#         read_only_fields = ('id', 'created', 'import_id', 'imported', 'updated', 'updated_by')
 
 
-class AddressDetailGeoSerializer(GeoFeatureModelSerializer):
-    city = CitySerializer(many=False, read_only=False)
+# class AddressGeoSerializer(GeoFeatureModelSerializer):
+#     # updated_by_id = serializers.SerializerMethodField()
+#     # city = serializers.PrimaryKeyRelatedField(many=False, read_only=True)
+#     city = serializers.PrimaryKeyRelatedField(many=False, read_only=True)
 
-    class Meta:
-        model = Address
-        geo_field = "location"
-        fields = ('id', 'street', 'number', 'city', 'zip_code', 'formatted', 'hidden', 'location',  'more_info')
-        read_only_fields = ('id', 'created', 'import_id', 'imported', 'updated', 'updated_by')
+#     # def get_updated_by_id(self, obj):
+#     #     return obj.updated_by.id
+
+#     class Meta:
+#         model = Address
+#         geo_field = "location"
+#         fields = ('id', 'street', 'number', 'city', 'zip_code', 'formatted', 'hidden', 'location', 'more_info')
+#         read_only_fields = ('id', 'created', 'import_id', 'imported', 'updated', 'updated_by')
+
+
+# class AddressGeoSmallSerializer(GeoFeatureModelSerializer):
+#     class Meta:
+#         model = Address
+#         geo_field = "location"
+#         fields = ('id', 'formatted', 'location')
+#         read_only_fields = ('id', 'created', 'import_id', 'imported', 'updated', 'updated_by')
+
+
+# class AddressCreateGeoSerializer(GeoFeatureModelSerializer):
+#     # updated_by_id = serializers.SerializerMethodField()
+#     # city = serializers.PrimaryKeyRelatedField(many=False, read_only=True)
+#     # city_data = CitySerializer(many=False, read_only=True)
+#     city = CitySerializer(many=False, read_only=True)
+
+#     # def get_updated_by_id(self, obj):
+#     #     return obj.updated_by.id
+
+#     class Meta:
+#         model = Address
+#         geo_field = "location"
+#         # fields = ('id', 'street', 'number', 'city', 'city_data', 'zip_code', 'formatted', 'hidden', 'location',  'more_info')
+#         fields = ('id', 'street', 'number', 'city', 'zip_code', 'formatted', 'hidden', 'location',  'more_info')
+#         read_only_fields = ('id', 'created', 'import_id', 'imported', 'updated', 'updated_by')
+
+
+# class AddressDetailGeoSerializer(GeoFeatureModelSerializer):
+#     city = CitySerializer(many=False, read_only=False)
+
+#     class Meta:
+#         model = Address
+#         geo_field = "location"
+#         fields = ('id', 'street', 'number', 'city', 'zip_code', 'formatted', 'hidden', 'location',  'more_info')
+#         read_only_fields = ('id', 'created', 'import_id', 'imported', 'updated', 'updated_by')
 
 
 class CompanySerializer(serializers.ModelSerializer):
@@ -126,6 +158,7 @@ class CompanySerializer(serializers.ModelSerializer):
 
 class CompanyMinSerializer(serializers.ModelSerializer):
     city = CitySerializer(many=False, read_only=True)
+    country = CountryLiteSerializer(many=False, read_only=True)
     
     class Meta:
         model = Company
@@ -159,11 +192,10 @@ class InvitationSerializer(serializers.ModelSerializer):
 
 class ProfileSerializer(serializers.ModelSerializer):
     user = UserSerializer(many=False, read_only=False)
-    address = AddressSerializer(many=False, read_only=True)
+    city = CitySerializer(many=False, read_only=True)
     offices = serializers.PrimaryKeyRelatedField(many=True, read_only=False, required=False, queryset=Office.objects.filter(enabled=True))
     portfolios = serializers.PrimaryKeyRelatedField(many=True, read_only=False, required=False, queryset=Portfolio.objects.filter(enabled=True))
     company_id = serializers.PrimaryKeyRelatedField(many=False, read_only=True, required=False)
-    # address = AddressSerializer(many=False, read_only=False, required=False)
     updated_by_id = serializers.SerializerMethodField()
     # worker_statuses = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
     # image_url = serializers.ImageField(required=False)
@@ -174,17 +206,13 @@ class ProfileSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         print('Ready to Create Profile***', validated_data)
         user_data = validated_data.pop('user')
-        address_data = validated_data.pop('address') if validated_data.get('address', False) else None
         with transaction.atomic():
             user = UserModel.objects.create_user(**user_data)
-            address = None
-            if address_data:
-                address = Address.objects.create(**address_data)
             # print(" +++++ *** 1 *** +++++ ")
             # print(user.id)
             # print(validated_data)
             # print(" +++++ *** 2 *** +++++ ")
-            profile = Profile.objects.create(user=user, address=address, updated_by_id=user.id, company=validated_data.get('company', None)) #, **validated_data)
+            profile = Profile.objects.create(user=user, updated_by_id=user.id, company=validated_data.get('company', None)) #, **validated_data)
             # print(" +++++ *** 3 *** +++++ ")
             return profile
         return None
@@ -208,7 +236,7 @@ class ProfileImageSerializer(serializers.ModelSerializer):
 
 class ProfileUpdateSerializer(ProfileSerializer):
     user = UserUpdateSerializer(many=False, read_only=True)
-    address = AddressSerializer(many=False, read_only=True)
+    # address = AddressSerializer(many=False, read_only=True)
 
 
 class InvitationListSerializer(serializers.ModelSerializer):
@@ -246,7 +274,8 @@ class CompanyMineSerializer(serializers.ModelSerializer):
 class ProfileMoreSerializer(serializers.ModelSerializer):
     from directory_api.serializers import OfficeSerializer, PortfolioSerializer
     user = UserSerializer(many=False, read_only=False)
-    address = AddressSerializer(many=False, read_only=True)
+    city = CitySerializer(many=False, read_only=True)
+    # address = AddressSerializer(many=False, read_only=True)
     portfolios = PortfolioSerializer(many=True, read_only=True)
     offices = OfficeSerializer(many=True, read_only=True)
 
@@ -291,7 +320,8 @@ class ContactSerializer(serializers.ModelSerializer):
 class ProfileDetailSerializer(serializers.ModelSerializer):
     from directory_api.serializers import OfficeSerializer, PortfolioSerializer, PropertySerializer
     user = UserSerializerClean(many=False, read_only=False)
-    address = AddressDetailSerializer(many=False, read_only=True)
+    city = CitySerializer(many=False, read_only=True)
+    # address = AddressDetailSerializer(many=False, read_only=True)
     company = CompanySerializer(many=False, read_only=True)
     # company_admins = ProfileSerializer(many=True, read_only=True)
     offices = OfficeSerializer(many=True, read_only=True)

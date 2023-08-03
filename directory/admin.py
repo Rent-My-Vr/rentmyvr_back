@@ -64,9 +64,10 @@ class LaundryAdmin(admin.ModelAdmin):
 
 @admin.register(ManagerDirectory)
 class ManagerDirectoryAdmin(admin.ModelAdmin):
-    search_fields = ('id', 'ref', 'name', 'email', 'website', 'contact_name', 'phone', 'company__name', 'company__ref', 'company__id', 'subscription__ref', 'subscription__id', 'subscription__external_ref')
+    search_fields = ('id', 'ref', 'name', 'email', 'website', 'contact_name', 'phone', 'company__name', 'company__ref', 'company__id', 'subscription__ref', 'subscription__id', 
+                     'subscription__external_ref', 'city__name', 'city__id', 'state_obj__name', 'zip_code', 'state_obj__country__name', 'formatted', 'import_id', 'more_info', 'street', 'number')
     list_filter = ('is_active', 'is_published', 'enabled', 'manage_for_others')
-    list_display = ('ref', 'name', 'company', 'is_active', 'is_published', 'subscription', 'administrator', 'website', 'contact_name', 'email', 'phone', 'phone_2', 'ext_2', 'state', 'city', 'zip_code', 'manage_for_others', 'id', 'created', 'updated', 'description')
+    list_display = ('ref', 'name', 'company', 'is_active', 'is_published', 'subscription', 'administrator', 'website', 'contact_name', 'email', 'phone', 'phone_2', 'ext_2', 'address', 'manage_for_others', 'id', 'created', 'updated', 'description')
 
     @admin.display(ordering='name', description='Name')
     def name(self, instance):
@@ -100,13 +101,11 @@ class ManagerDirectoryAdmin(admin.ModelAdmin):
     def description(self, instance):
         return instance.company.description 
 
-    # @admin.display(description='City')
-    # def city(self, instance):
-    #     return instance.company.city 
-
-    @admin.display(description='State')
-    def state(self, instance):
-        return instance.company.state 
+    @admin.display(description='Address')
+    def address(self, i):
+        street = f'{i.number} {i.street}, ' if i.number and i.street else f'{i.street}, ' if i.street else ''
+        zip = f' {i.zip_code}, ' if i.zip_code else ', '
+        return '{}{}, {}{}{}'.format(street, i.city.name, i.state_obj.name, zip, i.state_obj.country.name)
 
     actions = ("publish", "unpublish")
 
@@ -123,11 +122,15 @@ class ManagerDirectoryAdmin(admin.ModelAdmin):
 
 @admin.register(Office)
 class OfficeAdmin(admin.ModelAdmin):
-    list_display = ('ref', 'name', 'company', 'administrator', 'state', 'city', 'enabled', 'created', 'updated')
+    search_fields = ['id', 'ref', 'name', 'company__id', 'company__ref', 'company__name', 'company__email', 'company__website', 'company__contact_name', 'company__phone',
+                     'company__mdl__name', 'company__mdl__ref', 'company__mdl__id',  'city__name', 'city__id', 'state__name', 'zip_code', 'formatted', 'import_id', 'more_info', 'street', 'number']
+    list_display = ('ref', 'name', 'company', 'administrator', 'address', 'enabled', 'created', 'updated')
     
-    @admin.display(description='State')
-    def state(self, instance):
-        return instance.city.state_name
+    @admin.display(description='Address')
+    def address(self, i):
+        street = f'{i.number} {i.street}, ' if i.number and i.street else f'{i.street}, ' if i.street else ''
+        zip = f' {i.zip_code}, ' if i.zip_code else ', '
+        return '{}{}, {}{}{}'.format(street, i.city.name, i.state.name, zip, i.country.name)
 
 
 @admin.register(Outside)
@@ -170,11 +173,11 @@ class PropertyResource(resources.ModelResource):
     
     def __init__(self):
         print("\n 111 ****  __init__(self) ")
-        if not hasattr(self, 'address'):
-            print(111)
-            self.address = None
-            self.bookings = []
-            self.socials = []
+        # if not hasattr(self, 'address'):
+        #     print(111)
+        #     self.address = None
+        #     self.bookings = []
+        #     self.socials = []
         self.id = None
 
     def get_or_init_instance(self, instance_loader, row):
@@ -216,7 +219,7 @@ class PropertyResource(resources.ModelResource):
         #     s.property = instance
         #     s.save()
         # print("\n+++++++++")
-        instance.address = self.address
+        # instance.address = self.address
         instance.updated_by_id = '6fc9383d-c476-4706-b6e2-a0752e0390b6'
    
     def after_save_instance(self, instance, using_transactions, dry_run):
@@ -246,8 +249,8 @@ class PropertyResource(resources.ModelResource):
         import_id = row["import_id"]
         # print(".1\n\n\n", row)
         # defaults={"number": number, "street": street, "city_id": city_id, "zip_code": zip_code, "country": country, "more_info": more_info, "imported": imported, "import_id": import_id}
-        (address, created) = Address.objects.get_or_create(number=number, street=street, city_id=city_id, zip_code=zip_code, country=country, more_info=more_info, imported=imported, import_id=import_id)
-        self.address = address
+        # (address, created) = Address.objects.get_or_create(number=number, street=street, city_id=city_id, zip_code=zip_code, country=country, more_info=more_info, imported=imported, import_id=import_id)
+        # self.address = address
         # print(".2", address)
         bookings = []
         socials = []
@@ -262,7 +265,7 @@ class PropertyResource(resources.ModelResource):
          
     class Meta:
         model = Property
-        fields = ('id', 'ref', 'is_draft', 'name', 'author', 'price', 'type', 'space', 'hosted_by', 'max_no_of_guest', 'no_of_bedrooms', 'no_of_bathrooms', 'is_pet_allowed', 'address', 'imported', 'import_id', 'created', 'updated')
+        fields = ('id', 'ref', 'is_draft', 'name', 'author', 'price', 'type', 'space', 'hosted_by', 'max_no_of_guest', 'no_of_bedrooms', 'no_of_bathrooms', 'is_pet_allowed', 'imported', 'import_id', 'created', 'updated')
 
 
 @admin.register(InquiryMessage)
@@ -275,11 +278,20 @@ class InquiryMessageAdmin(admin.ModelAdmin):
 @admin.register(Property)
 class PropertyAdmin(ImportExportModelAdmin):
     resource_classes = [PropertyResource]
-    search_fields = ['id','ref', 'name', 'type', 'space', 'hosted_by', 'suitabilities', 'price_night', 'email', 'phone', 'ical_url', 'subscription__external_ref', 'subscription__id', 'company__id', 'company__ref', 'company__name', 'administrator__id', 'administrator__ref', 'administrator__user__email', 'administrator__user__first_name', 'administrator__user__last_name', 'address__city__state_name', 'address__city__name', 'address__zip_code']
-    list_filter = ('imported', 'enabled', 'is_active', 'is_published', 'is_draft', 'space', 'is_pet_allowed', 'type', )
-    list_display = ('ref', 'name', 'company', 'administrator', 'subscription', 'is_active', 'is_published', 'is_draft', 'calendar', 'ical_url', 'type', 'space', 'hosted_by', 'max_no_of_guest', 'no_of_bedrooms', 'no_of_bathrooms', 'is_pet_allowed', 'suitabilities', 'price_night', 'address', 'email', 'phone', 'id', 'video', 'virtual_tour', 'imported', 'enabled', 'created', 'updated', 'updated_by')
+    search_fields = ['id','ref', 'name', 'type', 'space', 'hosted_by', 'suitabilities', 'price_night', 'email', 'phone', 'ical_url','subscription__external_ref',
+                     'subscription__id', 'company__id', 'company__ref', 'company__name', 'administrator__id', 'administrator__ref', 'administrator__user__email',
+                     'administrator__user__first_name', 'administrator__user__last_name', 'city__name', 'city__id', 'state__name', 'zip_code', 'state__country__name',
+                     'formatted', 'import_id', 'more_info', 'street', 'number']
+    list_filter = ('imported', 'enabled', 'is_active', 'is_published', 'is_draft', 'hide_address', 'space', 'is_pet_allowed', 'type', )
+    list_display = ('ref', 'name', 'company', 'administrator', 'subscription', 'is_active', 'is_published', 'is_draft', 'calendar', 'ical_url', 'type', 'space', 'hosted_by', 'max_no_of_guest', 'no_of_bedrooms', 'no_of_bathrooms', 'is_pet_allowed', 'suitabilities', 'price_night', 'address', 'hide_address', 'email', 'phone', 'id', 'video', 'virtual_tour', 'imported', 'enabled', 'created', 'updated', 'updated_by')
 
     actions = ("publish", "unpublish")
+
+    @admin.display(description='Provided Address')
+    def address(self, i):
+        street = f'{i.number} {i.street}, ' if i.number and i.street else f'{i.street}, ' if i.street else ''
+        zip = f' {i.zip_code}, ' if i.zip_code else ', '
+        return '{}{}, {}{}{}'.format(street, i.city.name, i.city.state_name, zip, i.city.country_name)
 
     @admin.action(description='Publish selected Properties')
     def publish(modeladmin, request, queryset):

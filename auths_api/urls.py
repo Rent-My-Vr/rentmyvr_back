@@ -24,6 +24,7 @@ urlpatterns = [
 
     path('ws/auth/token/', viewsets.WsAuthTokenView.as_view(), name='ws-token'),
     path('login/', viewsets.LoginView.as_view(), name='login'),
+    path('login/callback/', viewsets.LoginView.as_view(), name='login-callback'),
     path('logout/', viewsets.LogoutView.as_view(), name='logout'),
     path('password/reset/', viewsets.PasswordResetView.as_view(), name='password-reset-send'),
     path('password/change/', viewsets.PasswordChange.as_view(), name='password-change'),

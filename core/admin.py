@@ -1,6 +1,5 @@
-# from django.contrib import admin
-from django.contrib.auth import get_user_model
 from django.contrib import admin
+from django.contrib.auth import get_user_model
 from django.contrib.gis.admin import OSMGeoAdmin
 from directory.models import ManagerDirectory
 from .models import *
@@ -54,35 +53,35 @@ class CityAdmin(ImportExportModelAdmin):
     list_display = ('name', 'state_name', 'country_name', 'approved', 'enabled', 'imported', 'import_id')
 
 
-class AddressResource(resources.ModelResource):
-    country = Field(column_name='Country', attribute='country')
-    street = Field(column_name='Street', attribute='street')
-    city = Field(column_name='city_id', attribute='city', widget=ForeignKeyWidget(City, field='id'))
-    number = Field(column_name='House Number', attribute='number')
-    zipcode = Field(column_name='Zipcode', attribute='zipcode')
-    more_info = Field(column_name='Property Address', attribute='more_info')
+# class AddressResource(resources.ModelResource):
+#     country = Field(column_name='Country', attribute='country')
+#     street = Field(column_name='Street', attribute='street')
+#     city = Field(column_name='city_id', attribute='city', widget=ForeignKeyWidget(City, field='id'))
+#     number = Field(column_name='House Number', attribute='number')
+#     zipcode = Field(column_name='Zipcode', attribute='zipcode')
+#     more_info = Field(column_name='Property Address', attribute='more_info')
     
-    # def before_import_row(self, row, **kwargs):
-    #     name = row["city"]
-    #     state_name = row["state_name"]
-    #     City.objects.get_or_create(name=name, defaults={"name": name, "state_name": state_name, "country_name": "United States"})
+#     # def before_import_row(self, row, **kwargs):
+#     #     name = row["city"]
+#     #     state_name = row["state_name"]
+#     #     City.objects.get_or_create(name=name, defaults={"name": name, "state_name": state_name, "country_name": "United States"})
 
-    class Meta:
-        model = Address
-        fields = ('country', 'street', 'city', 'number', 'zipcode', 'more_info', 'import_id')
+#     class Meta:
+#         model = Address
+#         fields = ('country', 'street', 'city', 'number', 'zipcode', 'more_info', 'import_id')
 
-# https://realpython.com/location-based-app-with-geodjango-tutorial/#creating-a-django-model
-@admin.register(Address)
-# class AddressAdmin(ImportExportModelAdmin):
-class AddressAdmin(OSMGeoAdmin, ImportExportModelAdmin):
-    resource_classes = [AddressResource]
-    search_fields = ['id', 'city__name', 'city__id', 'city__state_name', 'zip_code', 'country', 'formatted', 'import_id', 'more_info', 'street', 'number']
-    list_filter = ('imported', 'enabled', 'hidden', 'city__state_name', 'import_id')
-    list_display = ('number', 'street', 'city', 'state', 'zip_code', 'country', 'more_info', 'formatted', 'enabled', 'hidden', 'imported', 'import_id', 'location')
+# # https://realpython.com/location-based-app-with-geodjango-tutorial/#creating-a-django-model
+# @admin.register(Address)
+# # class AddressAdmin(ImportExportModelAdmin):
+# class AddressAdmin(OSMGeoAdmin, ImportExportModelAdmin):
+#     resource_classes = [AddressResource]
+#     search_fields = ['id', 'city__name', 'city__id', 'city__state_name', 'zip_code', 'country', 'formatted', 'import_id', 'more_info', 'street', 'number']
+#     list_filter = ('imported', 'enabled', 'hidden', 'city__state_name', 'import_id')
+#     list_display = ('number', 'street', 'city', 'state', 'zip_code', 'country', 'more_info', 'formatted', 'enabled', 'hidden', 'imported', 'import_id', 'location')
 
-    @admin.display(ordering='city__state_name', description='State')
-    def state(self, instance):
-        return instance.city.state_name
+#     @admin.display(ordering='city__state_name', description='State')
+#     def state(self, instance):
+#         return instance.city.state_name
 
 
 class CompanyResource(resources.ModelResource):
@@ -229,13 +228,20 @@ class CompanyResource(resources.ModelResource):
 @admin.register(Company)
 class CompanyAdmin(ImportExportModelAdmin):
     resource_classes = [CompanyResource]
-    search_fields = ('id', 'ref', 'name', 'email', 'website', 'contact_name', 'phone', 'mdl__name', 'mdl__ref', 'mdl__id')
-    list_filter = ('enabled', 'state', )
-    list_display = ('ref', 'name', 'mdl', 'administrator', 'website', 'contact_name', 'email', 'phone', 'ext', 'city', 'state', 'created', 'updated', 'enabled')
+    search_fields = ('id', 'ref', 'name', 'email', 'website', 'contact_name', 'phone', 'mdl__name', 'mdl__ref', 'mdl__id', 'city__name', 'city__id', 
+                     'state_obj__name', 'zip_code', 'state_obj__country__name', 'street', 'number')
+    list_filter = ('enabled', 'state')
+    list_display = ('ref', 'name', 'mdl', 'administrator', 'website', 'contact_name', 'email', 'phone', 'ext', 'city', 'address', 'created', 'updated', 'enabled')
 
     @admin.display(description='Phone')
     def phone(self, instance):
         return f"{instance.company.phone}-{instance.company.ext}" if instance.company.ext else instance.company.phone
+
+    @admin.display(description='Address')
+    def address(self, i):
+        street = f'{i.number} {i.street}, ' if i.number and i.street else f'{i.street}, ' if i.street else ''
+        zip = f' {i.zip_code}, ' if i.zip_code else ', '
+        return '{}{}, {}{}{}'.format(street, i.city.name, i.state_obj.name, zip, i.state_obj.country.iso3)
 
 
 @admin.register(Country)
@@ -252,17 +258,23 @@ class InvitationAdmin(admin.ModelAdmin):
 
 @admin.register(State)
 class StateAdmin(admin.ModelAdmin):
-    list_filter = ('enabled', 'country_name')
-    list_display = ('name', 'code', 'enabled', 'country_name', 'latitude', 'longitude')
+    list_filter = ('enabled', 'country__name')
+    list_display = ('name', 'code', 'enabled', 'country', 'latitude', 'longitude')
 
 
 @admin.register(Profile)
 class ProfileAdmin(admin.ModelAdmin):
     list_display_links = ('first_name', 'last_name', 'email',)
     list_filter = ('user__is_manager', 'user__position', 'user__is_staff', 'user__is_superuser', 'user__is_active', 'user__email_verified', 'user__position', 'company', )
-    search_fields = ('id', 'user__id', 'user__first_name', 'user__last_name', 'user__email', 'user__phone', 'company__name')
-    list_display = ('first_name', 'last_name', 'email', 'phone', 'company', 'is_manager', 'position', 'is_staff', 'is_superuser', 'is_active', 'image', 'created', 'updated')
+    search_fields = ('id', 'user__id', 'user__first_name', 'user__last_name', 'user__email', 'user__phone', 'company__name', 'city__name', 'city__id', 'state__name', 'zip_code', 'state__country__name', 'formatted', 'import_id', 'more_info', 'street', 'number')
+    list_display = ('first_name', 'last_name', 'email', 'phone', 'company', 'address', 'is_manager', 'position', 'is_staff', 'is_superuser', 'is_active', 'image', 'created', 'updated')
     
+    @admin.display(description='Address')
+    def address(self, i):
+        street = f'{i.number} {i.street}, ' if i.number and i.street else f'{i.street}, ' if i.street else ''
+        zip = f' {i.zip_code}, ' if i.zip_code else ', '
+        return '{}{}, {}{}{}'.format(street, i.city.name, i.state.name, zip, i.state.country.iso3)
+
     @admin.display(ordering='user__first_name', description='First Name')
     def first_name(self, instance):
         return instance.user.first_name 

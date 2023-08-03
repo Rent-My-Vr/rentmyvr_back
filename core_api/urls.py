@@ -7,7 +7,6 @@ from . import viewsets as vs
 
 router_v1 = routers.DefaultRouter()
 
-router_v1.register(r'address', vs.AddressViewSet, basename="address")
 router_v1.register(r'company', vs.CompanyViewSet, basename="company")
 router_v1.register(r'city', vs.CityViewSet, basename="city")
 router_v1.register(r'contact', vs.ContactViewSet, basename="contact")

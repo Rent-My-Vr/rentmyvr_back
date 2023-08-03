@@ -52,50 +52,50 @@ class UUIDEncoder(json.JSONEncoder):
         return json.JSONEncoder.default(self, obj)
 
 
-class AddressViewSet(viewsets.ModelViewSet, AchieveModelMixin):
-    permission_classes = (IsAuthenticated, )
-    authentication_classes = (TokenAuthentication,)
-    parser_classes = (JSONParser, MultiPartParser)
+# class AddressViewSet(viewsets.ModelViewSet, AchieveModelMixin):
+#     permission_classes = (IsAuthenticated, )
+#     authentication_classes = (TokenAuthentication,)
+#     parser_classes = (JSONParser, MultiPartParser)
         
-    # def perform_create(self, serializer):
-    #     return serializer.save(updated_by_id=self.request.user.id) 
-    #     # return serializer.save(updated_by_id=settings.EMAIL_PROCESSOR_ID) 
+#     # def perform_create(self, serializer):
+#     #     return serializer.save(updated_by_id=self.request.user.id) 
+#     #     # return serializer.save(updated_by_id=settings.EMAIL_PROCESSOR_ID) 
         
-    def get_queryset(self):
-        """
-        This view should return a list of all the Company for
-        the user as determined by currently logged in user.
-        """
-        return Address.objects.filter(enabled=True)
+#     def get_queryset(self):
+#         """
+#         This view should return a list of all the Company for
+#         the user as determined by currently logged in user.
+#         """
+#         return Address.objects.filter(enabled=True)
  
-    def get_serializer_class(self):
-        if self.action in ['retrieve',]:
-            return AddressDetailSerializer
-        return AddressSerializer
+#     def get_serializer_class(self):
+#         if self.action in ['retrieve',]:
+#             return AddressDetailSerializer
+#         return AddressSerializer
 
-    def create(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        address = self.perform_create(serializer)
-        headers = self.get_success_headers(serializer.data)
+#     def create(self, request, *args, **kwargs):
+#         serializer = self.get_serializer(data=request.data)
+#         serializer.is_valid(raise_exception=True)
+#         address = self.perform_create(serializer)
+#         headers = self.get_success_headers(serializer.data)
 
-    def update(self, request, *args, **kwargs):
-        with transaction.atomic():
-            partial = kwargs.pop('partial', False)
-            instance = self.get_object()
-            serializer = self.get_serializer(instance, data=request.data, partial=partial)
+#     def update(self, request, *args, **kwargs):
+#         with transaction.atomic():
+#             partial = kwargs.pop('partial', False)
+#             instance = self.get_object()
+#             serializer = self.get_serializer(instance, data=request.data, partial=partial)
 
-            serializer.is_valid(raise_exception=True)
-            address = serializer.save()
+#             serializer.is_valid(raise_exception=True)
+#             address = serializer.save()
             
-            self.perform_update(serializer)
+#             self.perform_update(serializer)
 
-        if getattr(instance, '_prefetched_objects_cache', None):
-            # If 'prefetch_related' has been applied to a queryset, we need to
-            # forcibly invalidate the prefetch cache on the instance.
-            instance._prefetched_objects_cache = {}
+#         if getattr(instance, '_prefetched_objects_cache', None):
+#             # If 'prefetch_related' has been applied to a queryset, we need to
+#             # forcibly invalidate the prefetch cache on the instance.
+#             instance._prefetched_objects_cache = {}
 
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+#         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
 class CountryViewSet(viewsets.ModelViewSet, AchieveModelMixin):
@@ -742,35 +742,35 @@ class ProfileViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             user_instance = UserModel.objects.get(id=data['user']['id'])
             serializer = self.get_serializer(instance, data=request.data, partial=partial)
 
-            print(data.get('address'))
+            # print(data.get('address'))
             city_id = None
-            if data.get('address').get('city').get('id', None):
+            if data.get('city').get('id', None):
                 print('====Have City****')
-                city_id = data.get('address').get('city').get('id')
-                data['address']['city_id'] = city_id
-                data['address'].pop('city', None)
+                city_id = data.get('city').get('id')
+                data['city_id'] = city_id
+                data.pop('city', None)
             else:
                 print('====Create City****')
-                ser = CitySerializer(data=data.get('address').get('city'))
+                ser = CitySerializer(data=data.get('city'))
                 ser.is_valid(raise_exception=True)
                 inst = ser.save()
-                data['address']['city_id'] = inst.id
+                data['city_id'] = inst.id
                 city_id = inst.id
-            print(data.get('address'))
-            inst = Address.objects.filter(id=data.get('address').get('id', None)).first()
-            print(inst)
-            if inst:
-                ser = AddressSerializer(inst, data=data.get('address'), partial=partial) 
-            else:
-                ser = AddressSerializer(data=data.get('address'))
-            print(1)
-            ser.is_valid(raise_exception=True)
-            print(2)
-            address = ser.save(city_id=city_id)
+            
+            # inst = Address.objects.filter(id=data.get('address').get('id', None)).first()
+            # print(inst)
+            # if inst:
+            #     ser = AddressSerializer(inst, data=data.get('address'), partial=partial) 
+            # else:
+            #     ser = AddressSerializer(data=data.get('address'))
+            # print(1)
+            # ser.is_valid(raise_exception=True)
+            # print(2)
+            # address = ser.save(city_id=city_id)
             # address.city_id = city_id
             # address.save()
-            print(address)
-            print(address.id)
+            # print(address)
+            # print(address.id)
                  
             user_serializer = UserUpdateSerializer(user_instance, data=data['user'], partial=partial)
             print(3)
@@ -784,11 +784,11 @@ class ProfileViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             
             print(6)
             new_profile = self.perform_update(serializer)
-            new_profile = self.get_object()
-            print(7)
-            new_profile.address_id = address.id
-            new_profile.save()
-            print(8)
+            # new_profile = self.get_object()
+            # print(7)
+            # new_profile.address_id = address.id
+            # new_profile.save()
+            # print(8)
 
         if getattr(instance, '_prefetched_objects_cache', None):
             # If 'prefetch_related' has been applied to a queryset, we need to
