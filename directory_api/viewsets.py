@@ -731,7 +731,6 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             data.pop("city[created]", None)
             data.pop("city[country_name]", None)
             data.pop("city[approved]", None)
-            
             print(data)
             print(data.get('booking_sites[]'))
             
@@ -1266,6 +1265,14 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             print('============ 5 =============')
             print('============ 6 =============')
             instance = self.perform_update(serializer)
+            if instance.office_id is not None and data.get('office') is None:
+                instance.office_id = None
+                instance.save()
+
+            if instance.portfolio_id is not None and data.get('portfolio') is None:
+                instance.portfolio_id = None
+                instance.save()
+
             print('============ 7 =============')
             # print(instance__)
             if instance.calendar is None:
