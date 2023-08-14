@@ -125,12 +125,14 @@ EMAIL_CONNECTIONS = {
 INSTALLED_APPS = [
     'auths.apps.AuthsConfig',
     'core.apps.CoreConfig',
+    'blog.apps.BlogConfig',
     'directory.apps.DirectoryConfig',
     'payment.apps.PaymentConfig',
     'schedule.apps.ScheduleConfig',
 
     'auths_api.apps.AuthsApiConfig',
     'core_api.apps.CoreApiConfig',
+    'blog_api.apps.BlogApiConfig',
     'directory_api.apps.DirectoryApiConfig',
     'payment_api.apps.PaymentApiConfig',
     'schedule_api.apps.ScheduleApiConfig',

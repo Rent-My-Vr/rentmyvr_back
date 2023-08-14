@@ -71,17 +71,18 @@ class CityAdmin(ImportExportModelAdmin):
 #         fields = ('country', 'street', 'city', 'number', 'zipcode', 'more_info', 'import_id')
 
 # # https://realpython.com/location-based-app-with-geodjango-tutorial/#creating-a-django-model
-# @admin.register(Address)
+@admin.register(Address)
+class AddressAdmin(admin.ModelAdmin):
 # # class AddressAdmin(ImportExportModelAdmin):
 # class AddressAdmin(OSMGeoAdmin, ImportExportModelAdmin):
-#     resource_classes = [AddressResource]
-#     search_fields = ['id', 'city__name', 'city__id', 'city__state_name', 'zip_code', 'country', 'formatted', 'import_id', 'more_info', 'street', 'number']
-#     list_filter = ('imported', 'enabled', 'hidden', 'city__state_name', 'import_id')
-#     list_display = ('number', 'street', 'city', 'state', 'zip_code', 'country', 'more_info', 'formatted', 'enabled', 'hidden', 'imported', 'import_id', 'location')
+    # resource_classes = [AddressResource]
+    search_fields = ['id', 'city__name', 'city__id', 'city__state_name', 'zip_code', 'country', 'formatted', 'import_id', 'more_info', 'street', 'number']
+    list_filter = ('imported', 'enabled', 'hidden', 'city__state_name', 'import_id')
+    list_display = ('number', 'street', 'city', 'state', 'zip_code', 'country', 'more_info', 'formatted', 'enabled', 'hidden', 'imported', 'import_id', 'location')
 
-#     @admin.display(ordering='city__state_name', description='State')
-#     def state(self, instance):
-#         return instance.city.state_name
+    @admin.display(ordering='city__state_name', description='State')
+    def state(self, instance):
+        return instance.city.state_name
 
 
 class CompanyResource(resources.ModelResource):
@@ -258,6 +259,7 @@ class InvitationAdmin(admin.ModelAdmin):
 
 @admin.register(State)
 class StateAdmin(admin.ModelAdmin):
+    search_fields = ('id', 'name', 'code', 'enabled', 'latitude', 'longitude', )
     list_filter = ('enabled', 'country__name')
     list_display = ('name', 'code', 'enabled', 'country', 'latitude', 'longitude')
 

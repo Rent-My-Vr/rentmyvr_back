@@ -661,7 +661,7 @@ class Property(StampedUpdaterModel):
     address = models.ForeignKey(Address, related_name='property_address', on_delete=models.CASCADE)
     
     street = models.CharField(max_length=128, verbose_name="Street", null=True, blank=True, default='')
-    number = models.CharField(max_length=16, verbose_name="Number", null=True, blank=True, default='')
+    number = models.CharField(max_length=32, verbose_name="Number", null=True, blank=True, default='')
     city = models.ForeignKey(City, on_delete=models.CASCADE, verbose_name="City")
     zip_code = models.CharField(max_length=16, verbose_name="Zip Code", null=True, blank=True, default='')
     state = models.ForeignKey(State, on_delete=models.CASCADE, verbose_name="State")

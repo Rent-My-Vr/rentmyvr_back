@@ -23,10 +23,9 @@ from datetime import datetime, timedelta
 from django.utils import timezone
 from django.db.models import Q, Prefetch
 from django.contrib.auth import get_user_model
-from django.contrib.gis.geos import Point, Polygon, GEOSGeometry
+from django.contrib.gis.geos import fromstr, Point, Polygon, GEOSGeometry
 from django.contrib.gis.measure import Distance
 from django.views import generic
-from django.contrib.gis.geos import fromstr
 from django.contrib.gis.db.models.functions import Distance as KMDistance
 from django.template.loader import render_to_string
 
@@ -1417,13 +1416,14 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
         if data:
             print('...........: ', data)
             location = data.get('location', None)
+            boundary = data.get('boundary', None)
             # address = data.get('address', None)
             
             # if not location and not address:
             #     return Response({"message": "Address component is missing"}, status=status.HTTP_404_NOT_FOUND)
             
-            print(type(location))
-            print(location)
+            print("boundary: ", boundary)
+            print("location: ", location)
             # print(11111111111111111111111)
             # print(data.get('guest'))
             # print('-------Type: ', type(data.get('guest')))
@@ -1431,37 +1431,58 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             # print(queryset)
             print(data.get('state', None))
 
-            if location:
-                print(2)
-                if type(location) == dict:
-                    print(22)
+            if boundary or location:
+                
+                if type(boundary) == dict:
+                    print(111)
+                    # ne = data.get('geometry').get('ne')
+                    # sw = data.get('geometry').get('sw')
+
+                    # https://stackoverflow.com/questions/9466043/geodjango-within-a-ne-sw-box
+                    # sw = (latitude, longitude)
+                    # ne = (latitude, longitude)
+                    # sw = (boundary['south'], boundary['west'])
+                    # ne = (boundary['north'], boundary['east'])
+                    # xmin=sw[1]
+                    # ymin=sw[0]
+                    # xmax=ne[1]
+                    # ymax=ne[0]
+
+                    xmin=boundary['west']
+                    ymin=boundary['south']
+                    xmax=boundary['east']
+                    ymax=boundary['north']
+                    
+                    bbox = (xmin, ymin, xmax, ymax)
+
+                    geometry = Polygon.from_bbox(bbox)
+                    b = boundary
+                    point = Point((b['west']+b['east'])/2, (b['south']+b['north'])/2, srid=4326)
+                    queryset = Property.objects.annotate(distance=KMDistance('location', point)).filter(location__contained=geometry).order_by('distance').filter(enabled=True, is_published=True).prefetch_related(
+                        Prefetch('pictures', queryset=PropertyPhoto.objects.filter(enabled=True, is_default=True))
+                    )
+                    
+                    print('\n+++++++++++++++++++++++++++++++++++++++++++++++++')
+                    print(queryset.query)
+                    # xmin=sw[1]=sw.lng
+                    # ymin=sw[0]=sw.lat
+                    # xmax=ne[1]=ne.lng
+                    # ymax=ne[0]=ne.lat
+                    # bbox = (sw[1], sw[0], ne[1], ne[0]) = (xmin, ymin, xmax, ymax) = (sw['lng'], sw['lat'], ne['lng'], ne['lat'])
+
+                    # # bbox = (ne['lat'], sw['lng'], ne['lng'], sw['lat'])
+                    # bbox = (sw['lng'], sw['lat'], ne['lng'], ne['lat'])
+                    # print('****bbox  ', bbox)
+                    # geometry = Polygon.from_bbox(bbox)
+                    # queryset = queryset.filter(location__within=geometry)
+                elif type(location) == dict:
+                    print(222)
                     # geometry = json.dumps(data.get('geometry'))
                     # print(type(geometry))
                     point = Point(location['lng'], location['lat'], srid=4326)
                     queryset = Property.objects.annotate(distance=KMDistance('location', point)).order_by('distance').filter(enabled=True, is_published=True, distance__lte=180000).prefetch_related(
                         Prefetch('pictures', queryset=PropertyPhoto.objects.filter(enabled=True, is_default=True))
                     )
-                    # queryset = Property.objects.filter(location__distance_lt=(point, 300/40000*360))
-                # elif geometry.get('type') == 'Polygon':
-                #     print(222)
-                #     ne = data.get('geometry').get('ne')
-                #     sw = data.get('geometry').get('sw')
-
-                #     # https://stackoverflow.com/questions/9466043/geodjango-within-a-ne-sw-box
-                #     # ne = (latitude, longitude) = high
-                #     # sw = (latitude, longitude) = Low
-                #     # xmin=sw[1]=sw.lng
-                #     # ymin=sw[0]=sw.lat
-                #     # xmax=ne[1]=ne.lng
-                #     # ymax=ne[0]=ne.lat
-                #     # bbox = (sw[1], sw[0], ne[1], ne[0]) = (xmin, ymin, xmax, ymax) = (sw['lng'], sw['lat'], ne['lng'], ne['lat'])
-
-                #     # bbox = (ne['lat'], sw['lng'], ne['lng'], sw['lat'])
-                #     bbox = (sw['lng'], sw['lat'], ne['lng'], ne['lat'])
-                #     print('****bbox  ', bbox)
-                #     geometry = Polygon.from_bbox(bbox)
-                #     queryset = queryset.filter(location__within=geometry)
-            # location = None
             
             if data.get('propertyId', None):
                 queryset = queryset.filter(Q(id__iexact=data.get('propertyId')) | Q(ref__iexact=data.get('propertyId')))
@@ -1550,8 +1571,9 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
 
             print('++++++++++++++\n')
             if is_direct:
+                # {'south': 29.755532355140886, 'west': -117.26938590625, 'north': 47.98310225144885, 'east': -84.35434684375}
                 point = Point(-109.9429638, 34.125919, srid=4326)
-                queryset = Property.objects.annotate(distance=KMDistance('location', point)).filter(enabled=True, is_published=True, distance__lte=180000).prefetch_related(
+                queryset = Property.objects.annotate(distance=KMDistance('location', point)).filter(enabled=True, is_published=True).prefetch_related(
                     Prefetch('pictures', queryset=PropertyPhoto.objects.filter(enabled=True, is_default=True))
                 ).order_by('distance')[0:25]
                 
@@ -1570,7 +1592,7 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
                 return Response({"data": [], "count": size, "total_pages": 1})
         print(' +++ ', queryset.query)
         print('\n <<+++>> ', queryset)
-        queryset = queryset[0:500] if location else queryset
+        queryset = queryset[0:300] if (location or boundary) else queryset
         page = self.paginate_queryset(queryset)
         print(' >>>>>>> Pagination: ', page)
         if page is not None:
