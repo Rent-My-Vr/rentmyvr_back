@@ -427,9 +427,9 @@ class Profile(TrackedModel):
     
     street = models.CharField(max_length=128, verbose_name="Street", null=True, blank=True, default='')
     number = models.CharField(max_length=16, verbose_name="Number", null=True, blank=True, default='')
-    city = models.ForeignKey(City, on_delete=models.CASCADE, verbose_name="City")
+    city = models.ForeignKey(City, on_delete=models.CASCADE, verbose_name="City", blank=True, null=True, default=None)
     zip_code = models.CharField(max_length=16, verbose_name="Zip Code", null=True, blank=True, default='')
-    state = models.ForeignKey(State, on_delete=models.CASCADE, verbose_name="State")
+    state = models.ForeignKey(State, on_delete=models.CASCADE, verbose_name="State", blank=True, null=True, default=None)
     # location = gis_model.PointField(null=True, blank=True, spatial_index=True, geography=True, srid=4326)
     # formatted = models.CharField(max_length=512, verbose_name="Formatted Address", null=True, blank=True, default='')
     more_info = models.CharField(max_length=512, verbose_name="Additional Info", null=True, blank=True, default='')
