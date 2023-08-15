@@ -1458,7 +1458,8 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
                     geometry = Polygon.from_bbox(bbox)
                     b = boundary
                     point = Point((b['west']+b['east'])/2, (b['south']+b['north'])/2, srid=4326)
-                    queryset = Property.objects.annotate(distance=KMDistance('location', point)).filter(location__contained=geometry).order_by('distance').filter(enabled=True, is_published=True).prefetch_related(
+                    # queryset = Property.objects.annotate(distance=KMDistance('location', point)).filter(location__contained=geometry).order_by('distance').filter(enabled=True, is_published=True).prefetch_related(
+                    queryset = Property.objects.annotate(distance=KMDistance('location', point)).filter(location__coveredby=geometry).order_by('distance').filter(enabled=True, is_published=True).prefetch_related(
                         Prefetch('pictures', queryset=PropertyPhoto.objects.filter(enabled=True, is_default=True))
                     )
                     
