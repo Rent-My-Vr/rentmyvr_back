@@ -1294,7 +1294,11 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             #     p_ids.append(inst.id)
             # PropertyPhoto.objects.filter(~Q(id__in=p_ids), property=instance).delete()
             print('============ 8 =============')
+
+            # Reza: to save min_nights_stay
+            instance.refresh_from_db()
             instance.save()
+
             if instance.ical_url != ical_old:    
                 processPropertyEvents.apply_async(kwargs={'calendar_id': instance.calendar.id, 'calendar_url': instance.ical_url})
             return Response(PropertySerializer(instance).data, status=status.HTTP_201_CREATED)
