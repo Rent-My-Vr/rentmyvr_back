@@ -645,6 +645,9 @@ class Property(StampedUpdaterModel):
     no_of_bathrooms = models.DecimalField(verbose_name="No of Bathrooms", max_digits=5, decimal_places=1, default=0.0)
     is_pet_allowed = models.BooleanField(default=True, )
     suitabilities = models.JSONField(default=list, blank=True, null=True)
+
+    min_night_stay = models.IntegerField(verbose_name="Min Nights Stay", default=0)
+
     description = models.TextField(verbose_name="Description")
     host_note = models.TextField(verbose_name="Host Notes", default='', blank=True, null=True)
     cancellation_policy = models.TextField(verbose_name="Cancellation Policy", default='', blank=True, null=True)
@@ -698,6 +701,12 @@ class Property(StampedUpdaterModel):
     import_id = models.CharField(max_length=128, verbose_name="import id", default='', blank=True, null=True)
     
     def save(self, *args, **kwargs):
+        self.min_night_stay = 0
+        if self.suitabilities and len(self.suitabilities):
+            for s in self.suitabilities:
+                if s['id'] == 'night-stay':
+                    self.min_night_stay = int(s['days'])
+
         if not self.created:
             try:
                 x = int(Property.objects.latest('created').ref[1:]) + 1
