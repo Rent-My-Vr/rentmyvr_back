@@ -1485,7 +1485,9 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
                     queryset = Property.objects.annotate(distance=KMDistance('location', point)).order_by('distance').filter(enabled=True, is_published=True, distance__lte=180000).prefetch_related(
                         Prefetch('pictures', queryset=PropertyPhoto.objects.filter(enabled=True, is_default=True))
                     )
-            
+            else:
+                queryset = queryset.annotate(distance=KMDistance('location', Point(-109.9429638, 34.125919, srid=4326))).order_by('distance')
+                
             if data.get('propertyId', None):
                 queryset = queryset.filter(Q(id__iexact=data.get('propertyId')) | Q(ref__iexact=data.get('propertyId')))
             if data.get('name', None):
