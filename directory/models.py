@@ -648,6 +648,8 @@ class Property(StampedUpdaterModel):
 
     min_night_stay = models.IntegerField(verbose_name="Min Nights Stay", default=0)
 
+    featured_listing = models.BooleanField(verbose_name="Featurd Listing?", default=False)
+
     description = models.TextField(verbose_name="Description")
     host_note = models.TextField(verbose_name="Host Notes", default='', blank=True, null=True)
     cancellation_policy = models.TextField(verbose_name="Cancellation Policy", default='', blank=True, null=True)
