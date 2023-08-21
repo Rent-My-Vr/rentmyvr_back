@@ -321,11 +321,12 @@ class CompanyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             headers = self.get_success_headers(serializer.data)
             profile.company = company
             profile.save()
-            c = profile.properties.all().update(company=company)
-            print(f'-----Upgraded {c} companies------')
-            user = request.user
-            user.position = UserModel.ADMIN
-            user.save()
+            if not profile.user.is_manager:
+                c = profile.properties.all().update(company=company)
+                print(f'-----Upgraded {c} companies------')
+                user = request.user
+                user.position = UserModel.ADMIN
+                user.save()
 
         return Response(CompanyMinSerializer(company).data, status=status.HTTP_201_CREATED, headers=headers)
     
@@ -349,7 +350,8 @@ class CompanyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
                     
             partial = kwargs.pop('partial', False)
             instance = self.get_object()
-            data['administrator'] = instance.administrator.id
+            if not profile.user.is_manager:
+                data['administrator'] = instance.administrator.id
             serializer = self.get_serializer(instance, data=request.data, partial=partial)
             
             serializer.is_valid(raise_exception=True)
@@ -382,16 +384,22 @@ class CompanyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
     @action(methods=['get'], detail=False, url_path='mine', url_name='mine')
     def mine(self, request, *args, **kwargs):
         p = request.user.user_profile
-        company = Company.objects.filter(Q(administrator=p) | Q(members=p), enabled=True).prefetch_related(
-            Prefetch('offices', queryset=Office.objects.filter(enabled=True).prefetch_related(
-                Prefetch('properties', queryset=Property.objects.filter(enabled=True)))), 
-            Prefetch('portfolios', queryset=Portfolio.objects.filter(enabled=True).prefetch_related(
-                Prefetch('properties', queryset=Property.objects.filter(enabled=True)))),
-            Prefetch('members', queryset=Profile.objects.filter(enabled=True).prefetch_related(
-                Prefetch('member_portfolios', queryset=Portfolio.objects.filter(enabled=True)),
-                Prefetch('member_offices', queryset=Office.objects.filter(enabled=True)))),
-            Prefetch('invitations', queryset=Invitation.objects.filter(enabled=True))
-        ).first()
+        
+        if p.user.is_manager:
+            company = Company.objects.filter(Q(members=p), enabled=True)
+        else:
+            company = Company.objects.filter(Q(administrator=p) | Q(members=p), enabled=True)
+        
+        company.prefetch_related(
+                Prefetch('offices', queryset=Office.objects.filter(enabled=True).prefetch_related(
+                    Prefetch('properties', queryset=Property.objects.filter(enabled=True)))), 
+                Prefetch('portfolios', queryset=Portfolio.objects.filter(enabled=True).prefetch_related(
+                    Prefetch('properties', queryset=Property.objects.filter(enabled=True)))),
+                Prefetch('members', queryset=Profile.objects.filter(enabled=True).prefetch_related(
+                    Prefetch('member_portfolios', queryset=Portfolio.objects.filter(enabled=True)),
+                    Prefetch('member_offices', queryset=Office.objects.filter(enabled=True)))),
+                Prefetch('invitations', queryset=Invitation.objects.filter(enabled=True))
+            ).first()
         
         print("Company: ", company)
         if company:
@@ -414,12 +422,12 @@ class CompanyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
                 Office.objects.filter(administrator=profile).update(administrator=p)
                 for off in Office.objects.filter(company=p.company, members=profile):
                     members = off.members.all()
-                    members = list(filter(lambda x: x.id != profile.id, members))
+                    members = list(filter(lambda x: (x.id != profile.id and not profile.user.is_manager), members))
                     off.members.set(members)
                 Office.objects.filter(company=p.company, administrator=profile).update(administrator=p)
                 for port in Portfolio.objects.filter(company=p.company, members=profile):
                     members = port.members.all()
-                    members = list(filter(lambda x: x.id != profile.id, members))
+                    members = list(filter(lambda x: (x.id != profile.id and not profile.user.is_manager), members))
                     port.members.set(members)
                 Portfolio.objects.filter(company=p.company, administrator=profile).update(administrator=p)
                 Property.objects.filter(company=p.company, administrator=profile).update(administrator=p)
@@ -549,6 +557,8 @@ class InvitationViewSet(viewsets.ModelViewSet):
             if invite.status in [Invitation.SENT, Invitation.PENDING, Invitation.RESENT]:
                 if action in [Invitation.ACCEPTED, Invitation.REJECTED]:
                     profile = Profile.objects.filter(user__email=invite.email).first()
+                    if profile.user.is_manager:
+                        return Response({'message': f"Sorry you are a staff of RentMyVR and cannot be Company member at the same time. Kindly as your admin to strip off your RentMyVR access first."}, status=status.HTTP_400_BAD_REQUEST)
                     if profile is not None and action == Invitation.ACCEPTED:
                         try:
                             if profile.company is not None  and profile.company.id != invite.company.id:
@@ -585,7 +595,12 @@ class InvitationViewSet(viewsets.ModelViewSet):
         print(request.user.user_profile.company)
         # client_callback_link = request.query_params.get('client_callback_link', None)
         client_callback_link = request.data.get('client_callback_link', None)
-        invite = Invitation.objects.filter(id=kwargs['pk'], company=request.user.user_profile.company).first()   
+        
+        if request.user.is_manager:
+            invite = Invitation.objects.filter(id=kwargs['pk']).first()
+        else:
+            invite = Invitation.objects.filter(id=kwargs['pk'], company=request.user.user_profile.company).first()
+
         if invite and client_callback_link:
             uidb64 = urlsafe_base64_encode(force_bytes(invite.email))
             print(uidb64)
@@ -797,6 +812,20 @@ class ProfileViewSet(viewsets.ModelViewSet, AchieveModelMixin):
 
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
+    @action(methods=['post'], detail=False, url_path='update/company', url_name='update-company')
+    def update_company(self, request, *args, **kwargs):
+        instance = request.user.user_profile
+        data = request.data
+        print(data)
+        print(instance)
+        print(instance.user.is_manager)
+        
+        if instance.user.is_manager:
+            instance.company_id = data['company']
+            instance.save()
+        
+        return Response({"status": "Ok"}, status=status.HTTP_200_OK)
+
     @action(methods=['patch'], detail=False, permission_classes=[], url_path='timezone/(?P<pk>[^/.]+)',
             url_name='timezone-update')
     def update_timezone(self, request, *args, **kwargs):
@@ -821,8 +850,7 @@ class ProfileViewSet(viewsets.ModelViewSet, AchieveModelMixin):
 
     @action(methods=['get'], detail=False, url_path='me', url_name='me')
     def me(self, request, *args, **kwargs):
-        p = request.user.user_profile
-        profile = self.get_queryset().filter(id=p.id).prefetch_related(
+        profile = self.get_queryset().filter(id=request.user.user_profile.id).prefetch_related(
             Prefetch('member_offices', queryset=Office.objects.filter(enabled=True).prefetch_related(
                 Prefetch('properties', queryset=Property.objects.filter(enabled=True)))), 
             Prefetch('offices', queryset=Office.objects.filter(enabled=True).prefetch_related(
@@ -842,10 +870,11 @@ class ProfileViewSet(viewsets.ModelViewSet, AchieveModelMixin):
         company = profile.company
         if not company:
             try:
-                company = Company.objects.filter(Q(Q(administrator=profile) | Q(members=profile)), enabled=True).first()
-                if company:
-                    profiles = Profile.objects.filter(Q(Q(company=company) | Q(administrator__company=company), enabled=True)).distinct()
-                    data = ProfileSerializer(profiles).data
+                if not request.user.is_manager:
+                    company = Company.objects.filter(Q(Q(administrator=profile) | Q(members=profile)), enabled=True).first()
+                    if company:
+                        profiles = Profile.objects.filter(Q(Q(company=company) | Q(administrator__company=company), enabled=True)).distinct()
+                        data = ProfileSerializer(profiles).data
             except Profile.administrator.RelatedObjectDoesNotExist:
                 pass
         else:
@@ -877,21 +906,4 @@ class ProfileViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             instance._prefetched_objects_cache = {}
 
         return Response(ProfileImageSerializer(instance).data)
-
-    def list(self, request, *args, **kwargs):
-        queryset = Profile.objects.filter(enabled=True).prefetch_related(Prefetch('worker_statuses', queryset=WorkStatus.objects.filter(enabled=True, project__enabled=True)))
-        
-        if request.query_params.get('project_id'):
-            queryset = Profile.objects.filter(enabled=True, work_statuses__project_id=request.query_params.get('project_id')).prefetch_related(Prefetch('worker_statuses', queryset=WorkStatus.objects.filter(~Q(status=Project.FINISHED), enabled=True, project__enabled=True)))       
-        else:
-            queryset = Profile.objects.filter(enabled=True).prefetch_related(Prefetch('worker_statuses', queryset=WorkStatus.objects.filter(~Q(status=Project.FINISHED), enabled=True, project__enabled=True)))
-        queryset = self.filter_queryset(queryset)
-
-        page = self.paginate_queryset(queryset)
-        if page is not None:
-            serializer = self.get_serializer(page, many=True)
-            return self.get_paginated_response(serializer.data)
-
-        serializer = self.get_serializer(queryset, many=True)
-        return Response(serializer.data)
 

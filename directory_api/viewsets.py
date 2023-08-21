@@ -89,7 +89,7 @@ class ManagerDirectoryViewSet(viewsets.ModelViewSet, AchieveModelMixin):
         profile = request.user.user_profile
         if request.user.position == UserModel.ADMIN and (profile.company is not None or profile.administrative_company is not None):
             data = request.data.dict()
-            data['company'] = profile.company.id if profile.company else profile.administrative_company.id
+            data['company'] = profile.company.id if profile.company else None
             
             data['city'] = dict()
             data['city']['id'] = data.get('city[id]', None)
@@ -151,9 +151,10 @@ class ManagerDirectoryViewSet(viewsets.ModelViewSet, AchieveModelMixin):
     def update(self, request, *args, **kwargs):
         print('---- data----')
         print(request.data)
+        instance = self.get_object()
         
         profile = request.user.user_profile
-        if request.user.position == UserModel.ADMIN and (profile.company is not None or profile.administrative_company is not None):
+        if (not request.user.is_manager and request.user.position == UserModel.ADMIN and (profile.company is not None or profile.administrative_company is not None) and (profile.company == instance.company or profile.administrative_company == instance.company)) or (request.user.is_manager and profile.company is not None and profile.company == instance.company):
             data = request.data.dict()
             
             data['city'] = dict()
@@ -390,7 +391,7 @@ class OfficeViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             instance = self.get_object()
             
             profile = request.user.user_profile
-            data['administrator'] = instance.administrator.id if instance.administrator else profile.id
+            data['administrator'] = instance.administrator.id if not instance.administrator.user.is_manager else profile.id
             data['company'] = instance.company.id if instance.company else profile.company.id
             pids = data.get('properties', [])
             
@@ -528,8 +529,8 @@ class PortfolioViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             instance = self.get_object()
             
             profile = request.user.user_profile
-            data['administrator'] = instance.administrator.id if instance.administrator else profile.id
-            data['company'] = instance.company.id if instance.company else profile.company.id
+            data['administrator'] = instance.administrator.id if request.user.is_manager else profile.id
+            data['company'] = instance.company.id if request.user.is_manager else profile.company.id
             pids = data.get('properties', [])
             
             serializer = self.get_serializer(instance, data=data, partial=partial)
