@@ -1295,6 +1295,11 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             #     p_ids.append(inst.id)
             # PropertyPhoto.objects.filter(~Q(id__in=p_ids), property=instance).delete()
             print('============ 8 =============')
+
+            # Reza: to save min_nights_stay
+            instance.refresh_from_db()
+            instance.save()
+
             if instance.ical_url != ical_old:    
                 processPropertyEvents.apply_async(kwargs={'calendar_id': instance.calendar.id, 'calendar_url': instance.ical_url})
             return Response(PropertySerializer(instance).data, status=status.HTTP_201_CREATED)
@@ -1530,7 +1535,21 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
                     queryset = queryset.filter(Q(suitabilities__icontains=s[0]) | Q(suitabilities__icontains=s[1]))
                 elif  len(s) == 1:
                     queryset = queryset.filter(suitabilities__icontains=s[0])
-                
+            
+            if data.get('checkIn', None) and data.get('checkOut', None):
+                try:
+                    check_in = datetime.fromtimestamp(
+                        int(data['checkIn'])
+                    )
+                    check_out = datetime.fromtimestamp(
+                        int(data['checkOut'])
+                    )
+                    days = (check_out - check_in).days;
+                    queryset = queryset.filter(
+                        min_night_stay__lte=days
+                    )
+                except:
+                    print('Error on filtering by checkIn/checkOut')
             if data.get('petAllow', None):
                 queryset = queryset.filter(is_pet_allowed=bool(data.get('petAllow')))
             if data.get('accessibility', None):
