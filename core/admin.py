@@ -268,7 +268,7 @@ class StateAdmin(admin.ModelAdmin):
 class ProfileAdmin(admin.ModelAdmin):
     list_display_links = ('first_name', 'last_name', 'email',)
     list_filter = ('user__is_manager', 'user__position', 'user__is_staff', 'user__is_superuser', 'user__is_active', 'user__email_verified', 'user__position', 'company', )
-    search_fields = ('id', 'user__id', 'user__first_name', 'user__last_name', 'user__email', 'user__phone', 'company__name', 'city__name', 'city__id', 'state__name', 'zip_code', 'state__country__name', 'formatted', 'import_id', 'more_info', 'street', 'number')
+    search_fields = ('id', 'user__id', 'user__first_name', 'user__last_name', 'user__email', 'user__phone', 'company__name', 'city__name', 'city__id', 'state__name', 'zip_code', 'state__country__name', 'more_info', 'street', 'number')
     list_display = ('first_name', 'last_name', 'email', 'phone', 'company', 'address', 'is_manager', 'position', 'is_staff', 'is_superuser', 'is_active', 'image', 'created', 'updated')
     
     @admin.display(description='Address')
