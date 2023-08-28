@@ -566,6 +566,7 @@ class PropertyListSerializer(serializers.ModelSerializer):
     social_media = SocialMediaLinkSerializer(many=True, read_only=False)
     pictures = PropertyPhotoSerializer(many=True, read_only=True)
     room_types = RoomTypeSerializer(many=True, read_only=False)
+    distance = serializers.CharField()
     
     class Meta:
         model = Property
