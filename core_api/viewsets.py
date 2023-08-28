@@ -350,8 +350,7 @@ class CompanyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
                     
             partial = kwargs.pop('partial', False)
             instance = self.get_object()
-            if not profile.user.is_manager:
-                data['administrator'] = instance.administrator.id
+            data['administrator'] = instance.administrator.id if request.user.is_manager else request.user.profile.id
             serializer = self.get_serializer(instance, data=request.data, partial=partial)
             
             serializer.is_valid(raise_exception=True)
@@ -390,7 +389,7 @@ class CompanyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
         else:
             company = Company.objects.filter(Q(administrator=p) | Q(members=p), enabled=True)
         
-        company.prefetch_related(
+        company = company.prefetch_related(
                 Prefetch('offices', queryset=Office.objects.filter(enabled=True).prefetch_related(
                     Prefetch('properties', queryset=Property.objects.filter(enabled=True)))), 
                 Prefetch('portfolios', queryset=Portfolio.objects.filter(enabled=True).prefetch_related(
@@ -402,6 +401,10 @@ class CompanyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             ).first()
         
         print("Company: ", company)
+        print("Company***: ", type(company))
+        print("Ref: ", company.ref)
+        print("\n\n")
+        
         if company:
             return Response(CompanyMDLDetailSerializer(company).data, status=status.HTTP_200_OK)
         else:
@@ -878,7 +881,7 @@ class ProfileViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             except Profile.administrator.RelatedObjectDoesNotExist:
                 pass
         else:
-            profiles = Profile.objects.filter(Q(Q(company=company) | Q(properties__company=company), enabled=True)).distinct()
+            profiles = Profile.objects.filter(Q(Q(company=company) | Q(properties__company=company), enabled=True, user__is_manager=False)).distinct()
             data = ProfileSerializer(profiles, many=True).data
               
         return Response(data, status=status.HTTP_200_OK)
