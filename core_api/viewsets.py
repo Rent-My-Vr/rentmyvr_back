@@ -872,6 +872,7 @@ class ProfileViewSet(viewsets.ModelViewSet, AchieveModelMixin):
         profile = request.user.user_profile
         company = profile.company
         if not company:
+            print(111)
             try:
                 if not request.user.is_manager:
                     company = Company.objects.filter(Q(Q(administrator=profile) | Q(members=profile)), enabled=True).first()
@@ -881,7 +882,11 @@ class ProfileViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             except Profile.administrator.RelatedObjectDoesNotExist:
                 pass
         else:
-            profiles = Profile.objects.filter(Q(Q(company=company) | Q(properties__company=company), enabled=True, user__is_manager=False)).distinct()
+            print(222)
+            profiles = Profile.objects.filter(Q(Q(company__administrator__company=company) | Q(company=company) | Q(properties__company=company)), enabled=True, user__is_manager=False).distinct()
+            print(profiles.query)
+            print('++++++++++++++++++++++++++++')
+            print(profiles)
             data = ProfileSerializer(profiles, many=True).data
               
         return Response(data, status=status.HTTP_200_OK)
