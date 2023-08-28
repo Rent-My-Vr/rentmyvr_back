@@ -650,9 +650,9 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
     def get_serializer_class(self):
         if self.action in ['retrieve']:
             return PropertyDetailSerializer
-        elif self.action in ['list', 'publisher']:
+        elif self.action in ['list', 'publisher', 'our_list']:
             return PropertyListSerializer
-        elif self.action in ['search', 'our_list']:
+        elif self.action in ['search']:
             return PropertySearchResultSerializer
         return PropertySerializer
 
