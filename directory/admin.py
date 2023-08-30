@@ -123,14 +123,14 @@ class ManagerDirectoryAdmin(admin.ModelAdmin):
 @admin.register(Office)
 class OfficeAdmin(admin.ModelAdmin):
     search_fields = ['id', 'ref', 'name', 'company__id', 'company__ref', 'company__name', 'company__email', 'company__website', 'company__contact_name', 'company__phone',
-                     'company__mdl__name', 'company__mdl__ref', 'company__mdl__id',  'city__name', 'city__id', 'state__name', 'zip_code', 'formatted', 'import_id', 'more_info', 'street', 'number']
+                     'company__mdl__name', 'company__mdl__ref', 'company__mdl__id',  'city__name', 'city__id', 'state__name', 'zip_code', 'more_info', 'street', 'number']
     list_display = ('ref', 'name', 'company', 'administrator', 'address', 'enabled', 'created', 'updated')
     
     @admin.display(description='Address')
     def address(self, i):
         street = f'{i.number} {i.street}, ' if i.number and i.street else f'{i.street}, ' if i.street else ''
         zip = f' {i.zip_code}, ' if i.zip_code else ', '
-        return '{}{}, {}{}{}'.format(street, i.city.name, i.state.name, zip, i.country.name)
+        return '{}{}, {}{}{}'.format(street, i.city.name, i.state.name, zip, i.city.country_name)
 
 
 @admin.register(Outside)
@@ -150,6 +150,9 @@ class PoolSpaAdmin(admin.ModelAdmin):
 
 @admin.register(Portfolio)
 class PortfolioAdmin(admin.ModelAdmin):
+    search_fields = ['id', 'ref', 'name', 'company__id', 'company__ref', 'company__name', 'company__email', 'company__website',
+                     'company__contact_name', 'company__phone', 'company__mdl__name', 'company__mdl__ref', 'company__mdl__id']
+    
     list_filter = ('enabled', )
     list_display = ('ref', 'name', 'company', 'administrator', 'enabled', 'created', 'updated')
     
@@ -283,7 +286,7 @@ class PropertyAdmin(ImportExportModelAdmin):
                      'administrator__user__first_name', 'administrator__user__last_name', 'city__name', 'city__id', 'state__name', 'zip_code', 'state__country__name',
                      'formatted', 'import_id', 'more_info', 'street', 'number']
     list_filter = ('imported', 'enabled', 'is_active', 'is_published', 'is_draft', 'hide_address', 'space', 'is_pet_allowed', 'type', )
-    list_display = ('ref', 'name', 'company', 'administrator', 'subscription', 'is_active', 'is_published', 'is_draft', 'calendar', 'ical_url', 'type', 'space', 'hosted_by', 'max_no_of_guest', 'no_of_bedrooms', 'no_of_bathrooms', 'is_pet_allowed', 'suitabilities', 'price_night', 'address', 'hide_address', 'email', 'phone', 'id', 'video', 'virtual_tour', 'imported', 'enabled', 'created', 'updated', 'updated_by')
+    list_display = ('ref', 'name', 'company', 'administrator', 'subscription', 'is_active', 'is_published', 'is_draft', 'office', 'portfolio', 'calendar', 'ical_url', 'type', 'space', 'hosted_by', 'max_no_of_guest', 'no_of_bedrooms', 'no_of_bathrooms', 'is_pet_allowed', 'suitabilities', 'price_night', 'address', 'hide_address', 'email', 'phone', 'id', 'video', 'virtual_tour', 'imported', 'enabled', 'created', 'updated', 'updated_by')
 
     actions = ("publish", "unpublish")
 

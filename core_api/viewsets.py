@@ -384,20 +384,18 @@ class CompanyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
     def mine(self, request, *args, **kwargs):
         p = request.user.user_profile
         
-        if p.user.is_manager:
-            company = Company.objects.filter(Q(members=p), enabled=True)
-        else:
-            company = Company.objects.filter(Q(administrator=p) | Q(members=p), enabled=True)
+        print(p.id)
+        print(Company.objects.filter(Q(Q(administrator=p, administrator__user__is_manager=False) | Q(id=p.company.id)), enabled=True))
         
-        company = company.prefetch_related(
-                Prefetch('offices', queryset=Office.objects.filter(enabled=True).prefetch_related(
-                    Prefetch('properties', queryset=Property.objects.filter(enabled=True)))), 
-                Prefetch('portfolios', queryset=Portfolio.objects.filter(enabled=True).prefetch_related(
-                    Prefetch('properties', queryset=Property.objects.filter(enabled=True)))),
-                Prefetch('members', queryset=Profile.objects.filter(enabled=True).prefetch_related(
-                    Prefetch('member_portfolios', queryset=Portfolio.objects.filter(enabled=True)),
-                    Prefetch('member_offices', queryset=Office.objects.filter(enabled=True)))),
-                Prefetch('invitations', queryset=Invitation.objects.filter(enabled=True))
+        company = Company.objects.filter(Q(Q(administrator=p, administrator__user__is_manager=False) | Q(id=p.company.id)), enabled=True).prefetch_related(
+                Prefetch('offices', queryset=Office.objects.filter(Q(Q(administrator=p, administrator__user__is_manager=False) | Q(company=p.company)), enabled=True).prefetch_related(
+                    Prefetch('properties', queryset=Property.objects.filter(Q(Q(administrator=p, administrator__user__is_manager=False) | Q(company=p.company)), enabled=True)))), 
+                Prefetch('portfolios', queryset=Portfolio.objects.filter(Q(Q(administrator=p, administrator__user__is_manager=False) | Q(company=p.company)), enabled=True).prefetch_related(
+                    Prefetch('properties', queryset=Property.objects.filter(Q(Q(administrator=p, administrator__user__is_manager=False) | Q(company=p.company)), enabled=True)))),
+                Prefetch('members', queryset=Profile.objects.filter(user__is_manager=False, company=p.company, enabled=True).prefetch_related(
+                    Prefetch('member_portfolios', queryset=Portfolio.objects.filter(Q(Q(administrator=p, administrator__user__is_manager=False) | Q(company=p.company)), enabled=True)),
+                    Prefetch('member_offices', queryset=Office.objects.filter(Q(Q(administrator=p, administrator__user__is_manager=False) | Q(company=p.company)), enabled=True)))),
+                Prefetch('invitations', queryset=Invitation.objects.filter(company=p.company, enabled=True))
             ).first()
         
         print("Company: ", company)
@@ -872,7 +870,6 @@ class ProfileViewSet(viewsets.ModelViewSet, AchieveModelMixin):
         profile = request.user.user_profile
         company = profile.company
         if not company:
-            print(111)
             try:
                 if not request.user.is_manager:
                     company = Company.objects.filter(Q(Q(administrator=profile) | Q(members=profile)), enabled=True).first()
@@ -882,11 +879,7 @@ class ProfileViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             except Profile.administrator.RelatedObjectDoesNotExist:
                 pass
         else:
-            print(222)
             profiles = Profile.objects.filter(Q(Q(company__administrator__company=company) | Q(company=company) | Q(properties__company=company)), enabled=True, user__is_manager=False).distinct()
-            print(profiles.query)
-            print('++++++++++++++++++++++++++++')
-            print(profiles)
             data = ProfileSerializer(profiles, many=True).data
               
         return Response(data, status=status.HTTP_200_OK)

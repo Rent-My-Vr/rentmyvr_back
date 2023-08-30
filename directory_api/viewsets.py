@@ -223,7 +223,7 @@ class ManagerDirectoryViewSet(viewsets.ModelViewSet, AchieveModelMixin):
     @action(methods=['get'], detail=False, url_path='me', url_name='me')
     def me(self, request, *args, **kwargs):
         p = request.user.user_profile
-        md = ManagerDirectory.objects.filter(Q(company__administrator=p) | Q(company__members=p), enabled=True).first()
+        md = ManagerDirectory.objects.filter(Q(company__administrator=p, administrator__user__is_manager=False) | Q(company__members=p), enabled=True).first()
         # company = ManagerDirectory.objects.filter(Q(company__administrator=p) | Q(company__members=p), enabled=True).prefetch_related(
         #     Prefetch('offices', queryset=Office.objects.filter(enabled=True).prefetch_related(
         #         Prefetch('properties', queryset=Property.objects.filter(enabled=True)))), 
@@ -319,17 +319,16 @@ class OfficeViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             data = request.data
             print(data)
             if data and data.get('city', {}).get('id', None):
-                print('====Have City****')
-                data['country'] = data.get('city').get('country_name')
-                data['state'] = data.get('city').get('state_name')
+                s = State.objects.filter(country__id=data.get('country').get('id'), name=data.get('state')).first()
+                data['state'] = s.id if s else s
                 data['city'] = data.get('city').get('id')
             else:
                 print('====Create City****')
                 ser = CitySerializer(data=data.get('city'))
                 ser.is_valid(raise_exception=True)
                 inst = ser.save()
-                data['country'] = inst.country_name
-                data['state'] = inst.state_name
+                s = State.objects.filter(country__id=data.get('country').get('id'), name=data.get('state')).first()
+                data['state'] = s.id if s else s
                 data['city'] = inst.id
             
             profile = request.user.user_profile
@@ -337,12 +336,14 @@ class OfficeViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             data['company'] = profile.company.id
             pids = data.get('properties', [])
             
+            print('======================================')
             print(data)
+            print(pids)
             serializer = self.get_serializer(data=data)
             serializer.is_valid(raise_exception=True)
             instance = self.perform_create(serializer)
             
-            for property in Property.objects.filter(id__in=pids, company=instance.company):
+            for property in Property.objects.filter(Q(Q(company__isnull=False, company=instance.company) | Q(administrator=profile, administrator__user__is_manager=False)), enabled=True, id__in=pids):
                 property.office = instance
                 property.save()
 
@@ -375,16 +376,16 @@ class OfficeViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             print(data)
             if data.get('city').get('id', None):
                 print('====Have City****')
-                data['country'] = data.get('city').get('country_name')
-                data['state'] = data.get('city').get('state_name')
+                s = State.objects.filter(country__id=data.get('country', {}).get('id'), name=data.get('state')).first()
+                data['state'] = s.id if s else State.objects.filter(country__name=data.get('city', {}).get('country_name'), name=data.get('state')).first().id
                 data['city'] = data.get('city').get('id')
             else:
                 print('====Create City****')
                 ser = CitySerializer(data=data.get('city'))
                 ser.is_valid(raise_exception=True)
                 inst = ser.save()
-                data['country'] = inst.country_name
-                data['state'] = inst.state_name
+                s = State.objects.filter(country__id=data.get('country').get('id'), name=data.get('state')).first()
+                data['state'] = s.id if s else s
                 data['city'] = inst.id
                     
             partial = kwargs.pop('partial', False)
@@ -400,7 +401,8 @@ class OfficeViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             serializer.is_valid(raise_exception=True)
             instance = self.perform_update(serializer)
 
-            for property in Property.objects.filter(id__in=pids, company=instance.company):
+            Property.objects.filter(office=instance).update(office=None)
+            for property in Property.objects.filter(Q(Q(company__isnull=False, company=instance.company) | Q(administrator=profile, administrator__user__is_manager=False)), enabled=True, id__in=pids):
                 property.office = instance
                 property.save()
             serializer = OfficeDetailSerializer(instance)
@@ -449,7 +451,7 @@ class OfficeViewSet(viewsets.ModelViewSet, AchieveModelMixin):
         if p.company is not None:
             if  instance.company == p.company:
                 profile = Profile.objects.filter(id=kwargs['mid']).first()
-                if profile is not None and (profile.company == p.company or profile.company is None) and (instance in profile.offices.all() or instance.administrator == profile):
+                if profile is not None and (profile.company == p.company or profile.company is None) and (instance in profile.offices.all() or (instance.administrator == profile and not profile.user.is_manager)):
                     if instance.administrator == profile:
                         return Response({'message': 'You cannot evict the Administrator'}, status=status.HTTP_403_FORBIDDEN)
                         
@@ -511,7 +513,7 @@ class PortfolioViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             serializer.is_valid(raise_exception=True)
             instance = self.perform_create(serializer)
             
-            for property in Property.objects.filter(id__in=pids, company=instance.company):
+            for property in Property.objects.filter(Q(Q(company__isnull=False, company=instance.company) | Q(administrator=profile, administrator__user__is_manager=False)), enabled=True, id__in=pids):
                 property.portfolio = instance
                 property.save()
             
@@ -537,7 +539,8 @@ class PortfolioViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             serializer.is_valid(raise_exception=True)
             instance = serializer.save()
             
-            for property in Property.objects.filter(id__in=pids, company=instance.company):
+            Property.objects.filter(portfolio=instance).update(portfolio=None)
+            for property in Property.objects.filter(Q(Q(company__isnull=False, company=instance.company) | Q(administrator=profile, administrator__user__is_manager=False)), enabled=True, id__in=pids):
                 property.portfolio = instance
                 property.save()
 
@@ -562,7 +565,7 @@ class PortfolioViewSet(viewsets.ModelViewSet, AchieveModelMixin):
         if p.company is not None:
             if  instance.company == p.company:
                 profile = Profile.objects.filter(id=kwargs['mid']).first()
-                if profile is not None and (profile.company == p.company or profile.company is None) and (instance in profile.portfolios.all() or instance.administrator == profile):
+                if profile is not None and (profile.company == p.company or profile.company is None) and (instance in profile.portfolios.all() or (instance.administrator == profile and not profile.user.is_manager)):
                     if instance.administrator == profile:
                         return Response({'message': 'You cannot evict the Administrator'}, status=status.HTTP_403_FORBIDDEN)
                         
@@ -1327,7 +1330,7 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
         #     Prefetch('pictures', queryset=PropertyPhoto.objects.filter(enabled=True)
         # ).order_by(sortby)
             
-        queryset = Property.objects.filter(Q(Q(company__isnull=False, company=profile.company) | Q(administrator=profile)), enabled=True).prefetch_related(
+        queryset = Property.objects.filter(Q(Q(company__isnull=False, company=profile.company) | Q(administrator=profile, administrator__user__is_manager=False)), enabled=True).prefetch_related(
             Prefetch('pictures', queryset=PropertyPhoto.objects.filter(enabled=True).order_by('index'))
         ).order_by(sortby)
 
@@ -1335,7 +1338,7 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             # Remote Loader
             print(111)
             pagy = self.paginate_queryset(queryset)
-            total = Property.objects.filter(Q(Q(company__isnull=False, company=profile.company) | Q(administrator=profile)), enabled=True).count()
+            total = Property.objects.filter(Q(Q(company__isnull=False, company=profile.company) | Q(administrator=profile, administrator__user__is_manager=False)), enabled=True).count()
             # print('Pagination: ', page)
             if pagy is not None:
                 size = request.query_params.get('size', None)
@@ -1352,16 +1355,16 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             print(request.user.is_manager)
             
             if profile.company:
-                total = Property.objects.filter(Q(Q(company=profile.company) | Q(administrator=profile)), enabled=True).count()
+                total = Property.objects.filter(Q(Q(company=profile.company) | Q(administrator=profile, administrator__user__is_manager=False)), enabled=True).count()
                 if search:
                     print("A333a")
-                    queryset = Property.objects.filter(Q(Q(company=profile.company) | Q(administrator=profile)), Q(Q(ref__icontains=search) | Q(name__icontains=search) | Q(type__icontains=search) | Q(space__icontains=search)), enabled=True).order_by(sortby)[page_number*size:(page_number*size)+size]
+                    queryset = Property.objects.filter(Q(Q(company=profile.company) | Q(administrator=profile, administrator__user__is_manager=False)), Q(Q(ref__icontains=search) | Q(name__icontains=search) | Q(type__icontains=search) | Q(space__icontains=search)), enabled=True).order_by(sortby)[page_number*size:(page_number*size)+size]
                     total = len(queryset)
                 else:
                     print("A333b")
-                    queryset = Property.objects.filter(Q(Q(company=profile.company) | Q(administrator=profile)), enabled=True).order_by(sortby)
+                    queryset = Property.objects.filter(Q(Q(company=profile.company) | Q(administrator=profile, administrator__user__is_manager=False)), enabled=True).order_by(sortby)
                     total = len(queryset)
-                    # queryset = Property.objects.filter(Q(Q(company__isnull=False, company=profile.company) | Q(administrator=profile)), enabled=True).order_by(sortby)[page_number*size:(page_number*size)+size]
+                    # queryset = Property.objects.filter(Q(Q(company__isnull=False, company=profile.company) | Q(administrator=profile, administrator__user__is_manager=False)), enabled=True).order_by(sortby)[page_number*size:(page_number*size)+size]
             elif request.user.is_manager:
                 if search:
                     print("A444a")
@@ -1632,13 +1635,16 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
         profile = request.user.user_profile
         print(' ====>> ', request.query_params)
         if len(request.query_params.get("office", "")) > 3:
+            print(1)
             para = request.query_params.get("office", "")
-            queryset = Property.objects.filter(Q(Q(company__isnull=False, company=profile.company) | Q(administrator=profile)), Q(Q(office__isnull=True) | Q(office__id=para) | Q(office__ref=para)), enabled=True)
+            queryset = Property.objects.filter(Q(Q(company__isnull=False, company=profile.company) | Q(administrator=profile, administrator__user__is_manager=False)), Q(Q(office__isnull=True) | Q(office__id=para) | Q(office__ref=para)), enabled=True)
         elif len(request.query_params.get("portfolio", "")) > 3:
+            print(2)
             para = request.query_params.get("portfolio", "")
-            queryset = Property.objects.filter(Q(Q(company__isnull=False, company=profile.company) | Q(administrator=profile)), Q(Q(portfolio__isnull=True) | Q(portfolio__id=para) | Q(portfolio__ref=para)), enabled=True)
+            queryset = Property.objects.filter(Q(Q(company__isnull=False, company=profile.company) | Q(administrator=profile, administrator__user__is_manager=False)), Q(Q(portfolio__isnull=True) | Q(portfolio__id=para) | Q(portfolio__ref=para)), enabled=True)
         else:
-            queryset = Property.objects.filter(Q(Q(company__isnull=False, company=profile.company) | Q(administrator=profile)), enabled=True)
+            print(3, ' ', )
+            queryset = Property.objects.filter(Q(Q(company__isnull=False, company=profile.company) | Q(administrator=profile, administrator__user__is_manager=False)), enabled=True)
         print(queryset.query)
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
@@ -1732,7 +1738,7 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
     @action(methods=['get'], detail=False, url_path='mine', url_name='mine')
     def mine(self, request, *args, **kwargs):
         p = request.user.user_profile
-        properties = Property.objects.filter(Q(administrator=p) | Q(members=p), enabled=True).prefetch_related(
+        properties = Property.objects.filter(Q(administrator=p, administrator__user__is_manager=False) | Q(members=p), enabled=True).prefetch_related(
             Prefetch('offices', queryset=Office.objects.filter(enabled=True).prefetch_related(
                 Prefetch('office_properties', queryset=Property.objects.filter(enabled=True)))), 
             Prefetch('portfolios', queryset=Portfolio.objects.filter(enabled=True).prefetch_related(

@@ -209,6 +209,7 @@ class State(UntrackedModel):
 
 class City(UntrackedModel):
     name = models.CharField(max_length=254, verbose_name="Name")
+    # state = models.ForeignKey(State, on_delete=models.CASCADE, default="80a03ed3-fb3a-4b3d-a16f-70eedb14ecb6")
     state_name = models.CharField(max_length=254, verbose_name="State Name")
     country_name = models.CharField(max_length=254, verbose_name="Country Name", default='United States')
     approved = models.BooleanField(default=True, )
