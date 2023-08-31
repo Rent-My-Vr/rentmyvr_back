@@ -663,7 +663,7 @@ class Property(StampedUpdaterModel):
     hide_phone = models.BooleanField(default=False, )
     hide_email = models.BooleanField(default=False, )
     
-    address = models.ForeignKey(Address, related_name='property_address', on_delete=models.CASCADE)
+    address = models.ForeignKey(Address, related_name='property_address', on_delete=models.CASCADE, default=None, blank=True, null=True)
     
     street = models.CharField(max_length=128, verbose_name="Street", null=True, blank=True, default='')
     number = models.CharField(max_length=32, verbose_name="Number", null=True, blank=True, default='')

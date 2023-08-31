@@ -193,8 +193,8 @@ class InvitationSerializer(serializers.ModelSerializer):
 class ProfileSerializer(serializers.ModelSerializer):
     user = UserSerializer(many=False, read_only=False)
     city = CitySerializer(many=False, read_only=True)
-    offices = serializers.PrimaryKeyRelatedField(many=True, read_only=False, required=False, queryset=Office.objects.filter(enabled=True))
-    portfolios = serializers.PrimaryKeyRelatedField(many=True, read_only=False, required=False, queryset=Portfolio.objects.filter(enabled=True))
+    member_offices = serializers.PrimaryKeyRelatedField(many=True, read_only=False, required=False, queryset=Office.objects.filter(enabled=True))
+    member_portfolios = serializers.PrimaryKeyRelatedField(many=True, read_only=False, required=False, queryset=Portfolio.objects.filter(enabled=True))
     company_id = serializers.PrimaryKeyRelatedField(many=False, read_only=True, required=False)
     updated_by_id = serializers.SerializerMethodField()
     # worker_statuses = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
@@ -276,8 +276,8 @@ class ProfileMoreSerializer(serializers.ModelSerializer):
     user = UserSerializer(many=False, read_only=False)
     city = CitySerializer(many=False, read_only=True)
     # address = AddressSerializer(many=False, read_only=True)
-    portfolios = PortfolioSerializer(many=True, read_only=True)
-    offices = OfficeSerializer(many=True, read_only=True)
+    member_portfolios = PortfolioSerializer(many=True, read_only=True)
+    member_offices = OfficeSerializer(many=True, read_only=True)
 
     class Meta:
         model = Profile

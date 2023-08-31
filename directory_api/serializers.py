@@ -328,18 +328,18 @@ class PropertySerializer(serializers.ModelSerializer):
             # print(address_data)
             # print('==== 22222 ====')
             # print(address_data.get('city'))
-            print('****************************')
-            # if address_data.get('city'):
-            #     cid = address_data.get('city')
-            # else:
-            #     cid = city_data.pop('id', None)
-            #     if not cid:
-            #         (city, created) = City.objects.get_or_create(name=city_data.pop('name', None), state_name=city_data.pop('state_name', None), country_name=city_data.pop('country_name', None), defaults=city_data)
-            #         cid = city.id
-            # address_data['city_id'] = cid
-            # address = Address.objects.create(**address_data)
-            # print('==== 3 ====')
-            # property = Property.objects.create(address=address, **validated_data)
+            print('****************************+++++++++ ', self.instance)
+            cid = city_data.pop('id', None)
+            if not cid:
+                (city, created) = City.objects.get_or_create(name=city_data.pop('name', None), state_name=city_data.pop('state_name', None), country_name=city_data.pop('country_name', None), defaults=city_data)
+                cid = city.id
+            validated_data['city_id'] = cid
+            
+            print('\n\n==== 3333 ====\n')
+            print(validated_data)
+            print('\n==== 3333 ====\n\n')
+            
+            property = Property.objects.create(**validated_data)
             for b in booking_sites:
                 b['property'] = property
                 BookingSite.objects.create(**b)
@@ -507,7 +507,7 @@ class PropertySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Property
-        exclude = ()
+        exclude = ('address', )
         read_only_fields = ('id', 'ref', 'enabled', 'updated', 'updated_by')
 
 

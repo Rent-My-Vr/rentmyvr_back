@@ -384,9 +384,6 @@ class CompanyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
     def mine(self, request, *args, **kwargs):
         p = request.user.user_profile
         
-        print(p.id)
-        print(Company.objects.filter(Q(Q(administrator=p, administrator__user__is_manager=False) | Q(id=p.company.id)), enabled=True))
-        
         company = Company.objects.filter(Q(Q(administrator=p, administrator__user__is_manager=False) | Q(id=p.company.id)), enabled=True).prefetch_related(
                 Prefetch('offices', queryset=Office.objects.filter(Q(Q(administrator=p, administrator__user__is_manager=False) | Q(company=p.company)), enabled=True).prefetch_related(
                     Prefetch('properties', queryset=Property.objects.filter(Q(Q(administrator=p, administrator__user__is_manager=False) | Q(company=p.company)), enabled=True)))), 

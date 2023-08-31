@@ -707,10 +707,17 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             # data['address']['properties']['city']['id'] = request.data.get('address[properties][city][id]', None)
             # data['address']['properties']['city']['imported'] = request.data.get('address[properties][city][imported]', False)
             # data['address']['properties']['city']['import_id'] = request.data.get('address[properties][city][import_id]', None)
-            data['city']['name'] = request.data.get('city[name]')
-            data['city']['state_name'] = request.data.get('city[state_name]')
-            data['city']['country_name'] = request.data.get('country')
+            data['city'] = dict()
+            data['city']['id'] = data.get('city[id]')
+            data['city']['name'] = data.get('city[name]')
+            data['city']['state_name'] = data.get('city[state_name]')
+            data['city']['country_name'] = data.get('country[name]')
             data['city']['approved'] = True if data['city']['id'] else False
+            data['country'] = dict()
+            data['country']['id'] = data.get('country[id]')
+            data['country']['name'] = data.get('country[name]')
+            s = State.objects.filter(country__id=data.get('country', {}).get('id'), name=data.get('state')).first()
+            data['state'] = s.id if s else State.objects.filter(country__name=data.get('city', {}).get('country_name'), name=data.get('state')).first().id
             data['city_data'] = data['city']
             
             # data.pop("address[id]", None)
@@ -734,6 +741,8 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             data.pop("city[created]", None)
             data.pop("city[country_name]", None)
             data.pop("city[approved]", None)
+            data.pop("country[id]", None)
+            data.pop("country[name]", None)
             print(data)
             print(data.get('booking_sites[]'))
             
