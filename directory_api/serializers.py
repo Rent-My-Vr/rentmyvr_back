@@ -586,6 +586,7 @@ class PropertySearchResultSerializer(serializers.ModelSerializer):
 class PropertyDetailSerializer(serializers.ModelSerializer):
     # address = AddressDetailGeoSerializer(many=False, read_only=True)
     city = CityLiteSerializer(many=False, read_only=True)
+    state = StateLiteSerializer(many=False, read_only=True)
     subscription = SubscriptionSerializer(many=False, read_only=True)
     booking_sites = BookingSiteFullSerializer(many=True, read_only=True)
     social_media = SocialMediaLinkSerializer(many=True, read_only=True)

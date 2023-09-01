@@ -974,16 +974,30 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             # data['address']['properties']['state'] = request.data.get('address[properties][state]')
             # data['address']['properties']['hidden'] = request.data.get('address[properties][hidden]')
             # data['address']['properties']['more_info'] = request.data.get('address[properties][more_info]')
+            
             data['city'] = dict()
-            data['city']['id'] = request.data.get('city[id]', None)
-            data['city']['imported'] = request.data.get('city[imported]', False)
-            data['city']['import_id'] = request.data.get('city[import_id]', None)
-            data['city']['name'] = request.data.get('city[name]')
-            data['city']['state_name'] = request.data.get('city[state_name]')
-            country = request.data.get('city[country_name]')
-            data['city']['country_name'] = country if country else 'United States'
+            data['city']['id'] = data.get('city[id]')
+            data['city']['name'] = data.get('city[name]')
+            data['city']['state_name'] = data.get('city[state_name]')
+            data['city']['country_name'] = data.get('country[name]')
             data['city']['approved'] = True if data['city']['id'] else False
+            data['country'] = dict()
+            data['country']['id'] = data.get('country[id]')
+            data['country']['name'] = data.get('country[name]')
+            s = State.objects.filter(country__id=data.get('country', {}).get('id'), name=data.get('state')).first()
+            data['state'] = s.id if s else State.objects.filter(country__name=data.get('city', {}).get('country_name'), name=data.get('state')).first().id
             data['city_data'] = data['city']
+            
+            # data['city'] = dict()
+            # data['city']['id'] = request.data.get('city[id]', None)
+            # data['city']['imported'] = request.data.get('city[imported]', False)
+            # data['city']['import_id'] = request.data.get('city[import_id]', None)
+            # data['city']['name'] = request.data.get('city[name]')
+            # data['city']['state_name'] = request.data.get('city[state_name]')
+            # country = request.data.get('city[country_name]')
+            # data['city']['country_name'] = country if country else 'United States'
+            # data['city']['approved'] = True if data['city']['id'] else False
+            # data['city_data'] = data['city']
             # data['address']['properties']['city'] = data['address']['properties']['city'].get('id', None) if data['address']['properties']['city'].get('id', None) else None
 
             # data.pop("address[id]", None)
