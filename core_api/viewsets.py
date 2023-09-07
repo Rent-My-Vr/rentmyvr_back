@@ -300,17 +300,34 @@ class CompanyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             print(data)
             if data.get('city').get('id', None):
                 print('====Have City****')
-                data['country'] = data.get('city').get('country_name')
+                c = Country.objects.get(name=data.get('city').get('country_name'))
+                data['country'] = dict()
+                data['country']['id'] = c.id
+                data['country']['name'] = c.name
                 data['state'] = data.get('city').get('state_name')
                 data['city'] = data.get('city').get('id')
+                
+                print(' ====> 1 ', data['country']);
+                
+                s = State.objects.filter(country__id=data.get('country', {}).get('id'), name=data.get('state')).first()
+                data['state_obj'] = s.id if s else State.objects.filter(country__name=data.get('city', {}).get('country_name'), name=data.get('state')).first().id
+                
             else:
                 print('====Create City****')
                 ser = CitySerializer(data=data.get('city'))
                 ser.is_valid(raise_exception=True)
                 inst = ser.save()
-                data['country'] = inst.country_name
+                c = Country.objects.get(name=data.get('city').get('country_name'))
+                data['country'] = dict()
+                data['country']['id'] = c.id
+                data['country']['name'] = c.name
                 data['state'] = inst.state_name
                 data['city'] = inst.id
+                
+                print(' ====> 1 ', data['country']);
+                
+                s = State.objects.filter(country__id=data.get('country', {}).get('id'), name=data.get('state')).first()
+                data['state_obj'] = s.id if s else State.objects.filter(country__name=data.get('city', {}).get('country_name'), name=data.get('state')).first().id
             profile = request.user.user_profile
             data['administrator'] = profile.id
             if profile.company:
@@ -336,21 +353,37 @@ class CompanyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             print(data)
             if data.get('city').get('id', None):
                 print('====Have City****')
-                data['country'] = data.get('city').get('country_name')
+                c = Country.objects.get(name=data.get('city').get('country_name'))
+                data['country'] = dict()
+                data['country']['id'] = c.id
+                data['country']['name'] = c.name
                 data['state'] = data.get('city').get('state_name')
                 data['city'] = data.get('city').get('id')
+                
+                print(' ====> 1 ', data['country']);
+                
+                s = State.objects.filter(country__id=data.get('country', {}).get('id'), name=data.get('state')).first()
+                data['state_obj'] = s.id if s else State.objects.filter(country__name=data.get('city', {}).get('country_name'), name=data.get('state')).first().id
             else:
                 print('====Create City****')
                 ser = CitySerializer(data=data.get('city'))
                 ser.is_valid(raise_exception=True)
                 inst = ser.save()
-                data['country'] = inst.country_name
+                c = Country.objects.get(name=data.get('city').get('country_name'))
+                data['country'] = dict()
+                data['country']['id'] = c.id
+                data['country']['name'] = c.name
                 data['state'] = inst.state_name
                 data['city'] = inst.id
+                
+                print(' ====> 1 ', data['country']);
+                
+                s = State.objects.filter(country__id=data.get('country', {}).get('id'), name=data.get('state')).first()
+                data['state_obj'] = s.id if s else State.objects.filter(country__name=data.get('city', {}).get('country_name'), name=data.get('state')).first().id
                     
             partial = kwargs.pop('partial', False)
             instance = self.get_object()
-            data['administrator'] = instance.administrator.id if request.user.is_manager else request.user.profile.id
+            data['administrator'] = instance.administrator.id if request.user.is_manager else request.user.user_profile.id
             serializer = self.get_serializer(instance, data=request.data, partial=partial)
             
             serializer.is_valid(raise_exception=True)
@@ -383,8 +416,9 @@ class CompanyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
     @action(methods=['get'], detail=False, url_path='mine', url_name='mine')
     def mine(self, request, *args, **kwargs):
         p = request.user.user_profile
+        cid = p.company.id if p.company else None
         
-        company = Company.objects.filter(Q(Q(administrator=p, administrator__user__is_manager=False) | Q(id=p.company.id)), enabled=True).prefetch_related(
+        company = Company.objects.filter(Q(Q(administrator=p, administrator__user__is_manager=False) | Q(id=cid)), enabled=True).prefetch_related(
                 Prefetch('offices', queryset=Office.objects.filter(Q(Q(administrator=p, administrator__user__is_manager=False) | Q(company=p.company)), enabled=True).prefetch_related(
                     Prefetch('properties', queryset=Property.objects.filter(Q(Q(administrator=p, administrator__user__is_manager=False) | Q(company=p.company)), enabled=True)))), 
                 Prefetch('portfolios', queryset=Portfolio.objects.filter(Q(Q(administrator=p, administrator__user__is_manager=False) | Q(company=p.company)), enabled=True).prefetch_related(
@@ -397,7 +431,6 @@ class CompanyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
         
         print("Company: ", company)
         print("Company***: ", type(company))
-        print("Ref: ", company.ref)
         print("\n\n")
         
         if company:
