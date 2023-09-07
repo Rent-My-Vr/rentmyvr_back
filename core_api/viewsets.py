@@ -555,7 +555,7 @@ class InvitationViewSet(viewsets.ModelViewSet):
             if invite.status in [Invitation.SENT, Invitation.PENDING, Invitation.RESENT]:
                 if action in [Invitation.ACCEPTED, Invitation.REJECTED]:
                     profile = Profile.objects.filter(user__email=invite.email).first()
-                    if profile.user.is_manager:
+                    if profile is not None and profile.user.is_manager:
                         return Response({'message': f"Sorry you are a staff of RentMyVR and cannot be Company member at the same time. Kindly as your admin to strip off your RentMyVR access first."}, status=status.HTTP_400_BAD_REQUEST)
                     if profile is not None and action == Invitation.ACCEPTED:
                         try:
