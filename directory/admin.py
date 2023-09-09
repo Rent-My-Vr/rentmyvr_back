@@ -65,7 +65,7 @@ class LaundryAdmin(admin.ModelAdmin):
 @admin.register(ManagerDirectory)
 class ManagerDirectoryAdmin(admin.ModelAdmin):
     search_fields = ('id', 'ref', 'name', 'email', 'website', 'contact_name', 'phone', 'company__name', 'company__ref', 'company__id', 'subscription__ref', 'subscription__id', 
-                     'subscription__external_ref', 'city__name', 'city__id', 'state_obj__name', 'zip_code', 'state_obj__country__name', 'formatted', 'import_id', 'more_info', 'street', 'number')
+                     'subscription__external_ref', 'city__name', 'city__id', 'state_obj__name', 'zip_code', 'state_obj__country__name', 'more_info', 'street', 'number')
     list_filter = ('is_active', 'is_published', 'enabled', 'manage_for_others')
     list_display = ('ref', 'name', 'company', 'is_active', 'is_published', 'subscription', 'administrator', 'website', 'contact_name', 'email', 'phone', 'phone_2', 'ext_2', 'address', 'manage_for_others', 'id', 'created', 'updated', 'description')
 
