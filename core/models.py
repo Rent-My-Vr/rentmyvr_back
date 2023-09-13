@@ -164,9 +164,9 @@ class Country(UntrackedModel):
     native = models.CharField(max_length=254, verbose_name="Native", null=True, blank=True, default='')
     region = models.CharField(max_length=128, verbose_name="Region", null=True, blank=True, default='')
     subregion = models.CharField(max_length=128, verbose_name="Subregion", null=True, blank=True, default='')
-    latitude = models.CharField(max_length=32, verbose_name="Latitude")
-    longitude = models.CharField(max_length=32, verbose_name="Longitude")
-    emoji = models.CharField(max_length=32, verbose_name="Emoji")
+    latitude = models.CharField(max_length=16, verbose_name="Latitude")
+    longitude = models.CharField(max_length=16, verbose_name="Longitude")
+    emoji = models.CharField(max_length=16, verbose_name="Emoji")
     emojiU = models.CharField(max_length=64, verbose_name="EmojiU")
     timezones = models.JSONField()
     
@@ -214,7 +214,7 @@ class City(UntrackedModel):
     country_name = models.CharField(max_length=254, verbose_name="Country Name", default='United States')
     approved = models.BooleanField(default=True, )
     imported = models.BooleanField(default=False, )
-    import_id = models.CharField(max_length=16, verbose_name="Imported Id", default='', blank=True, null=True)
+    import_id = models.CharField(max_length=32, verbose_name="Imported Id", default='', blank=True, null=True)
     
     def __str__(self):
         return self.name
