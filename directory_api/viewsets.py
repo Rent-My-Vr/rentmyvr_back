@@ -692,8 +692,9 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             # data['address']['id'] = request.data.get('address[id]', None)
             # data['address']['type'] = request.data.get('address[type]', None)
             data['location'] = dict()
-            data['location']['type'] = request.data.get('location[type]', None)
-            data['location']['coordinates'] = [float(request.data.get('location[coordinates][0]', 0)), float(request.data.get('location[coordinates][1]', 0))]
+            # data['location']['type'] = request.data.get('location[type]', None)
+            data['location']['type'] = 'Point'
+            data['location']['coordinates'] = [float(request.data.get('location[lng]', 0)), float(request.data.get('location[lat]', 0))]
             # data['address']['properties'] = dict()
             # data['address']['properties']['formatted'] = request.data.get('address[properties][formatted]')
             # data['address']['properties']['country_name'] = request.data.get('address[properties][country]')
@@ -723,8 +724,8 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             # data.pop("address[id]", None)
             # data.pop("address[type]", None)
             data.pop("location[type]", None)
-            data.pop("location[coordinates][0]", None)
-            data.pop("location[coordinates][1]", None)
+            data.pop("location[lng]", None)
+            data.pop("location[lat]", None)
             # data.pop("address[properties][formatted]", None)
             # data.pop("address[properties][more_info]", None)
             # data.pop("address[properties][street]", None)
@@ -962,10 +963,11 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             # data['address']['id'] = request.data.get('address[id]', None)
             # data['address']['type'] = request.data.get('address[type]', None)
             data['location'] = dict()
-            data['location']['type'] = request.data.get('location[type]', None)
-            data['location']['coordinates'] = [float(request.data.get('location[coordinates][0]', 0)), float(request.data.get('location[coordinates][1]', 0))]
+            # data['location']['type'] = request.data.get('location[type]', None)
+            data['location']['type'] = 'Point'
+            data['location']['coordinates'] = [float(request.data.get('location[lng]', 0)), float(request.data.get('location[lat]', 0))]
             # data['address']['properties'] = dict()
-            country = request.data.get('country_name')
+            # country = request.data.get('country_name')
             # data['address']['properties']['formatted'] = request.data.get('address[properties][formatted]')
             # data['address']['properties']['country_name'] = country if country else 'United States'
             # data['address']['properties']['street'] = request.data.get('address[properties][street]')
@@ -1003,8 +1005,8 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             # data.pop("address[id]", None)
             # data.pop("address[type]", None)
             data.pop("location[type]", None)
-            data.pop("location[coordinates][0]", None)
-            data.pop("location[coordinates][1]", None)
+            data.pop("location[lng]", None)
+            data.pop("location[lat]", None)
             # data.pop("address[properties][formatted]", None)
             # data.pop("address[properties][more_info]", None)
             # data.pop("address[properties][country_name]", None)
@@ -1564,16 +1566,10 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             
             if data.get('checkIn', None) and data.get('checkOut', None):
                 try:
-                    check_in = datetime.fromtimestamp(
-                        int(data['checkIn'])
-                    )
-                    check_out = datetime.fromtimestamp(
-                        int(data['checkOut'])
-                    )
+                    check_in = datetime.fromtimestamp(int(data['checkIn']))
+                    check_out = datetime.fromtimestamp(int(data['checkOut']))
                     days = (check_out - check_in).days;
-                    queryset = queryset.filter(
-                        min_night_stay__lte=days
-                    )
+                    queryset = queryset.filter(min_night_stay__lte=days)
                 except:
                     print('Error on filtering by checkIn/checkOut')
             if data.get('petAllow', None):
@@ -1641,6 +1637,7 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
                 return Response({"data": [], "count": size, "total_pages": 1})
         print(' +++ ', queryset.query)
         print('\n <<+++>> ', queryset)
+        print('\n <<+++*******+++>> ', queryset[0].location)
         queryset = queryset[0:300] if (location or boundary) else queryset
         page = self.paginate_queryset(queryset)
         print(' >>>>>>> Pagination: ', page)

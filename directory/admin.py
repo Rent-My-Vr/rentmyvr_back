@@ -284,14 +284,15 @@ class PropertyAdmin(ImportExportModelAdmin):
     search_fields = ['id','ref', 'name', 'type', 'space', 'hosted_by', 'suitabilities', 'price_night', 'email', 'phone', 'ical_url','subscription__external_ref',
                      'subscription__id', 'company__id', 'company__ref', 'company__name', 'administrator__id', 'administrator__ref', 'administrator__user__email',
                      'administrator__user__first_name', 'administrator__user__last_name', 'city__name', 'city__id', 'state__name', 'zip_code', 'state__country__name',
-                     'formatted', 'import_id', 'more_info', 'street', 'number']
+                     'formatted', 'more_info', 'location', 'import_id', 'more_info', 'street', 'number']
     list_filter = ('imported', 'enabled', 'is_active', 'is_published', 'is_draft', 'hide_address', 'space', 'is_pet_allowed', 'type', )
-    list_display = ('ref', 'name', 'company', 'administrator', 'subscription', 'is_active', 'is_published', 'is_draft', 'office', 'portfolio', 'calendar', 'ical_url', 'type', 'space', 'hosted_by', 'max_no_of_guest', 'no_of_bedrooms', 'no_of_bathrooms', 'is_pet_allowed', 'suitabilities', 'price_night', 'address', 'hide_address', 'email', 'phone', 'id', 'video', 'virtual_tour', 'imported', 'enabled', 'created', 'updated', 'updated_by')
+    list_display = ('ref', 'name', 'company', 'administrator', 'subscription', 'is_active', 'is_published', 'is_draft', 'office', 'portfolio', 'calendar', 'ical_url', 'type', 'space', 'hosted_by', 'max_no_of_guest', 'no_of_bedrooms', 'no_of_bathrooms', 'is_pet_allowed', 'suitabilities', 'price_night', 'address', 'formatted', 'more_info', 'location', 'hide_address', 'email', 'phone', 'id', 'video', 'virtual_tour', 'imported', 'enabled', 'created', 'updated', 'updated_by')
 
     actions = ("publish", "unpublish")
 
     @admin.display(description='Provided Address')
     def address(self, i):
+        print('++++++++++++')
         street = f'{i.number} {i.street}, ' if i.number and i.street else f'{i.street}, ' if i.street else ''
         zip = f' {i.zip_code}, ' if i.zip_code else ', '
         return '{}{}, {}{}{}'.format(street, i.city.name, i.city.state_name, zip, i.city.country_name)
