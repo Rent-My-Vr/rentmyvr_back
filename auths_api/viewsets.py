@@ -306,6 +306,10 @@ class LoginView(DJ_LoginView):
         # # except ActivationRequired as ex:
         #     print(ex)
 
+    @action(methods=['post', 'get'], detail=False, url_path='callback', url_name='callback')
+    def callback(self, request, *args, **kwargs):
+        print('\n\nHere........')
+        # payload = request.data
 
 class LogoutView(DJ_LogoutView):
     """

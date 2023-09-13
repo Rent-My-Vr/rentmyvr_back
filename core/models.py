@@ -186,6 +186,9 @@ class Country(UntrackedModel):
 class State(UntrackedModel):
     name = models.CharField(max_length=254, verbose_name="Name")
     country_name = models.CharField(max_length=254, verbose_name="Country Name")
+    
+    country = models.ForeignKey(Country, on_delete=models.CASCADE, default="df5295cc-209d-4e62-b5a7-e718b1bc2368")
+    
     code = models.CharField(max_length=8, verbose_name="code")
     latitude = models.CharField(max_length=16, verbose_name="Latitude", null=True, blank=True, default='')
     longitude = models.CharField(max_length=16, verbose_name="Longitude", null=True, blank=True, default='')
@@ -198,7 +201,7 @@ class State(UntrackedModel):
 
     class Meta:
         unique_together = ('name', 'country_name')
-        ordering = ('country_name', 'name')
+        ordering = ('country__name', 'name')
         managed = AUTO_MANAGE
         verbose_name = _('State')
         verbose_name_plural = _('States')
@@ -206,6 +209,7 @@ class State(UntrackedModel):
 
 class City(UntrackedModel):
     name = models.CharField(max_length=254, verbose_name="Name")
+    # state = models.ForeignKey(State, on_delete=models.CASCADE, default="80a03ed3-fb3a-4b3d-a16f-70eedb14ecb6")
     state_name = models.CharField(max_length=254, verbose_name="State Name")
     country_name = models.CharField(max_length=254, verbose_name="Country Name", default='United States')
     approved = models.BooleanField(default=True, )
@@ -274,18 +278,22 @@ class Company(TrackedModel):
     phone = models.CharField(max_length=16, verbose_name="Phone", null=True, blank=True, default='')
     ext = models.CharField(max_length=8, verbose_name="Ext #", null=True, blank=True, default='')
     description = models.TextField(verbose_name="Description", null=True, blank=True, default='')
-    country = models.CharField(max_length=128, verbose_name="Country", default="United States")
-    state = models.CharField(max_length=128, verbose_name="State")
-    street = models.CharField(max_length=254, verbose_name="Street", null=True, blank=True, default='')
-    number = models.CharField(max_length=32, verbose_name="Number", null=True, blank=True, default='')
+    
+    street = models.CharField(max_length=128, verbose_name="Street", null=True, blank=True, default='')
+    number = models.CharField(max_length=16, verbose_name="Number", null=True, blank=True, default='')
     city = models.ForeignKey(City, on_delete=models.CASCADE, verbose_name="City")
-    zip_code = models.CharField(max_length=10, verbose_name="Zip Code", null=True, blank=True, default='')
+    zip_code = models.CharField(max_length=16, verbose_name="Zip Code", null=True, blank=True, default='')
+    state = models.CharField(max_length=128, verbose_name="State")
+    state_obj = models.ForeignKey(State, on_delete=models.CASCADE, verbose_name="State")
     more_info = models.CharField(max_length=512, verbose_name="Additional Info", null=True, blank=True, default='')
-    formatted = models.CharField(max_length=512, verbose_name="Formatted Address", null=True, blank=True, default='')
-    # location = gis_model.PointField(null=True, blank=True, spatial_index=True, geography=True, srid=4326, dim=3)
     
     administrator = models.OneToOneField("Profile", on_delete=models.CASCADE, related_name='profile', verbose_name="Administrator", blank=True, null=True, default=None)
     
+    def address(self):
+        street = f'{self.number} {self.street}, ' if self.number and self.street else f'{self.street}, ' if self.street else ''
+        zip = f' {self.zip_code}, ' if self.zip_code else ', '
+        return '{}{}, {}{}{}'.format(street, self.city.name, self.state_obj.name, zip, self.state_obj.country.iso3)
+
     class Meta:
         ordering = ('name',)
         unique_together = ('name', 'state')
@@ -414,8 +422,19 @@ class Profile(TrackedModel):
     ref = models.CharField(max_length=16, verbose_name="Ref", unique=True, blank=False, null=False)
     user = models.OneToOneField(UserModel, on_delete=models.CASCADE, related_name='user_profile')
     company = models.ForeignKey(Company, on_delete=models.SET_NULL, related_name='members', blank=True, null=True, default=None)
-    address = models.ForeignKey(Address, on_delete=models.CASCADE, related_name='profiles', blank=True, null=True, default=None)
     image = models.ImageField(upload_to=profile_upload_path, blank=True, null=True, default=None)
+    
+    address = models.ForeignKey(Address, on_delete=models.CASCADE, related_name='profiles', blank=True, null=True, default=None)
+    
+    street = models.CharField(max_length=128, verbose_name="Street", null=True, blank=True, default='')
+    number = models.CharField(max_length=16, verbose_name="Number", null=True, blank=True, default='')
+    city = models.ForeignKey(City, on_delete=models.CASCADE, verbose_name="City", blank=True, null=True, default=None)
+    zip_code = models.CharField(max_length=16, verbose_name="Zip Code", null=True, blank=True, default='')
+    state = models.ForeignKey(State, on_delete=models.CASCADE, verbose_name="State", blank=True, null=True, default=None)
+    # location = gis_model.PointField(null=True, blank=True, spatial_index=True, geography=True, srid=4326)
+    # formatted = models.CharField(max_length=512, verbose_name="Formatted Address", null=True, blank=True, default='')
+    more_info = models.CharField(max_length=512, verbose_name="Additional Info", null=True, blank=True, default='')
+    
     # position = models.CharField(max_length=32, verbose_name="Position", choices=POSITIONS, default="Worker")
     # status = models.CharField(max_length=32, verbose_name="Status", choices=STATUS, default=UNAVAILABLE)
     # projects = models.ManyToManyField('Project')

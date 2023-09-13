@@ -1,21 +1,14 @@
 from enum import unique
-from itertools import product
 import logging
-import re
-import uuid
-from django.utils import timezone
 from django.db import models
-from django.db.models import Q, Prefetch
 from django.conf import settings
 from django.core.cache import cache
 from django.contrib.auth import get_user_model
+from django.contrib.gis.db import models as gis_model
 from django.core.validators import FileExtensionValidator
-from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
-from django.utils.deconstruct import deconstructible
 from django.template.defaultfilters import filesizeformat
-# from django_mysql.models import ListCharField
 
 from core.models import *
 from payment.models import Subscription
@@ -255,20 +248,20 @@ class ManagerDirectory(TrackedModel):
     phone = models.CharField(max_length=16, verbose_name="Phone", null=True, blank=True, default='')
     ext = models.CharField(max_length=8, verbose_name="Ext #", null=True, blank=True, default='')
     description = models.TextField(verbose_name="Description", null=True, blank=True, default='')
-    country = models.CharField(max_length=128, verbose_name="Country", default="United States")
-    state = models.CharField(max_length=128, verbose_name="State")
-    street = models.CharField(max_length=254, verbose_name="Street", null=True, blank=True, default='')
-    number = models.CharField(max_length=32, verbose_name="Number", null=True, blank=True, default='')
-    city = models.ForeignKey(City, on_delete=models.CASCADE, verbose_name="City")
-    zip_code = models.CharField(max_length=10, verbose_name="Zip Code", null=True, blank=True, default='')
-    more_info = models.CharField(max_length=512, verbose_name="Additional Info", null=True, blank=True, default='')
-    formatted = models.CharField(max_length=512, verbose_name="Formatted Address", null=True, blank=True, default='')
-    
-    location = gis_model.PointField(null=True, blank=True, spatial_index=True, geography=True, srid=4326, dim=3)
     phone_2 = models.CharField(max_length=16, verbose_name="Phone 2", null=True, blank=True, default='')
     ext_2 = models.CharField(max_length=8, verbose_name="Ext #", null=True, blank=True, default='')
     social_links = models.JSONField(null=False, blank=True, default=list)
     logo = models.ImageField(upload_to=manager_image_upload_path, blank=True, null=True, default=None)
+    street = models.CharField(max_length=128, verbose_name="Street", null=True, blank=True, default='')
+    number = models.CharField(max_length=16, verbose_name="Number", null=True, blank=True, default='')
+    city = models.ForeignKey(City, on_delete=models.CASCADE, verbose_name="City")
+    zip_code = models.CharField(max_length=16, verbose_name="Zip Code", null=True, blank=True, default='')
+    state = models.CharField(max_length=128, verbose_name="State")
+    state_obj = models.ForeignKey(State, on_delete=models.CASCADE, verbose_name="State")
+    # location = gis_model.PointField(null=True, blank=True, spatial_index=True, geography=True, srid=4326)
+    # formatted = models.CharField(max_length=512, verbose_name="Formatted Address", null=True, blank=True, default='')
+    more_info = models.CharField(max_length=512, verbose_name="Additional Info", null=True, blank=True, default='')
+    
     # facebook = models.URLField(max_length=254, verbose_name="Facebook", default='', blank=True, null=True)
     # instagram = models.URLField(max_length=254, verbose_name="Instagram", default='', blank=True, null=True)
     # tiktok = models.URLField(max_length=254, verbose_name="TikTok", default='', blank=True, null=True)
@@ -304,15 +297,15 @@ class ManagerDirectory(TrackedModel):
 class Office(TrackedModel):
     ref = models.CharField(max_length=16, verbose_name="Ref", unique=True)
     name = models.CharField(max_length=128, verbose_name="Name", db_index=True)
-    country = models.CharField(max_length=128, verbose_name="Country", default="United States")
-    street = models.CharField(max_length=254, verbose_name="Street", null=True, blank=True, default='')
-    number = models.CharField(max_length=32, verbose_name="Number", null=True, blank=True, default='')
+    street = models.CharField(max_length=128, verbose_name="Street", null=True, blank=True, default='')
+    number = models.CharField(max_length=16, verbose_name="Number", null=True, blank=True, default='')
     city = models.ForeignKey(City, on_delete=models.CASCADE, verbose_name="City")
-    zip_code = models.CharField(max_length=10, verbose_name="Zip Code", null=True, blank=True, default='')
+    zip_code = models.CharField(max_length=16, verbose_name="Zip Code", null=True, blank=True, default='')
+    state = models.ForeignKey(State, on_delete=models.CASCADE, verbose_name="State")
+    # location = gis_model.PointField(null=True, blank=True, spatial_index=True, geography=True, srid=4326)
+    # formatted = models.CharField(max_length=512, verbose_name="Formatted Address", null=True, blank=True, default='')
     more_info = models.CharField(max_length=512, verbose_name="Additional Info", null=True, blank=True, default='')
-    formatted = models.CharField(max_length=512, verbose_name="Formatted Address", null=True, blank=True, default='')
-    # location = gis_model.PointField(null=True, blank=True, geography=True, spatial_index=True, srid=4326, dim=3)
-    # location = gis_model.PointField(null=True, blank=True, geography=True, spatial_index=True, srid=4326)
+    
     company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name='offices')
     administrator = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name='offices', verbose_name="Admin")
     members = models.ManyToManyField(Profile, blank=True, related_name='member_offices')
@@ -652,22 +645,34 @@ class Property(StampedUpdaterModel):
     no_of_bathrooms = models.DecimalField(verbose_name="No of Bathrooms", max_digits=5, decimal_places=1, default=0.0)
     is_pet_allowed = models.BooleanField(default=True, )
     suitabilities = models.JSONField(default=list, blank=True, null=True)
+
+    min_night_stay = models.IntegerField(verbose_name="Min Nights Stay", default=0)
+
+    featured_listing = models.BooleanField(verbose_name="Featurd Listing?", default=False)
+
     description = models.TextField(verbose_name="Description")
     host_note = models.TextField(verbose_name="Host Notes", default='', blank=True, null=True)
     cancellation_policy = models.TextField(verbose_name="Cancellation Policy", default='', blank=True, null=True)
     ical_url = models.URLField(verbose_name="iCal URL", default=None, blank=True, null=True)
     calendar = models.OneToOneField(Calendar, on_delete=models.SET_NULL, related_name="property", default=None, blank=True, null=True)
-    # room_type = models.CharField(max_length=32, verbose_name="Room Type", choices=ROOM_TYPES)
-    # sleeper_type = models.CharField(max_length=32, verbose_name="Sleeper Type", choices=SLEEPER_TYPES)
     
     price_night = models.DecimalField(verbose_name="Ave $ Per Night", max_digits=9, decimal_places=2, default=0.0)
-    address = models.ForeignKey(Address, related_name='property_address', on_delete=models.CASCADE)
-    # hide_address = models.BooleanField(default=False, )
-    hide_phone = models.BooleanField(default=False, )
-    hide_email = models.BooleanField(default=False, )
     email = models.CharField(max_length=128, verbose_name="email", default='', blank=True, null=True)
     phone = models.CharField(max_length=16, verbose_name="phone", default='', blank=True, null=True)
-    # logo = models.ImageField(blank=True, null=True, default=None)
+    hide_address = models.BooleanField(default=False, )
+    hide_phone = models.BooleanField(default=False, )
+    hide_email = models.BooleanField(default=False, )
+    
+    address = models.ForeignKey(Address, related_name='property_address', on_delete=models.CASCADE, default=None, blank=True, null=True)
+    
+    street = models.CharField(max_length=128, verbose_name="Street", null=True, blank=True, default='')
+    number = models.CharField(max_length=32, verbose_name="Number", null=True, blank=True, default='')
+    city = models.ForeignKey(City, on_delete=models.CASCADE, verbose_name="City")
+    zip_code = models.CharField(max_length=16, verbose_name="Zip Code", null=True, blank=True, default='')
+    state = models.ForeignKey(State, on_delete=models.CASCADE, verbose_name="State")
+    location = gis_model.PointField(null=True, blank=True, spatial_index=True, geography=True, srid=4326)
+    formatted = models.CharField(max_length=512, verbose_name="Computed Address", null=True, blank=True, default='')
+    more_info = models.CharField(max_length=512, verbose_name="Additional Info", null=True, blank=True, default='')
     
     accessibility = models.ManyToManyField(Accessibility, blank=True)
     activities = models.ManyToManyField(Activity, blank=True)
@@ -698,6 +703,12 @@ class Property(StampedUpdaterModel):
     import_id = models.CharField(max_length=128, verbose_name="import id", default='', blank=True, null=True)
     
     def save(self, *args, **kwargs):
+        self.min_night_stay = 0
+        if self.suitabilities and len(self.suitabilities):
+            for s in self.suitabilities:
+                if s['id'] == 'night-stay':
+                    self.min_night_stay = int(s['days'])
+
         if not self.created:
             try:
                 x = int(Property.objects.latest('created').ref[1:]) + 1

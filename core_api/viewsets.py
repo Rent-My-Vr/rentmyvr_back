@@ -52,50 +52,50 @@ class UUIDEncoder(json.JSONEncoder):
         return json.JSONEncoder.default(self, obj)
 
 
-class AddressViewSet(viewsets.ModelViewSet, AchieveModelMixin):
-    permission_classes = (IsAuthenticated, )
-    authentication_classes = (TokenAuthentication,)
-    parser_classes = (JSONParser, MultiPartParser)
+# class AddressViewSet(viewsets.ModelViewSet, AchieveModelMixin):
+#     permission_classes = (IsAuthenticated, )
+#     authentication_classes = (TokenAuthentication,)
+#     parser_classes = (JSONParser, MultiPartParser)
         
-    # def perform_create(self, serializer):
-    #     return serializer.save(updated_by_id=self.request.user.id) 
-    #     # return serializer.save(updated_by_id=settings.EMAIL_PROCESSOR_ID) 
+#     # def perform_create(self, serializer):
+#     #     return serializer.save(updated_by_id=self.request.user.id) 
+#     #     # return serializer.save(updated_by_id=settings.EMAIL_PROCESSOR_ID) 
         
-    def get_queryset(self):
-        """
-        This view should return a list of all the Company for
-        the user as determined by currently logged in user.
-        """
-        return Address.objects.filter(enabled=True)
+#     def get_queryset(self):
+#         """
+#         This view should return a list of all the Company for
+#         the user as determined by currently logged in user.
+#         """
+#         return Address.objects.filter(enabled=True)
  
-    def get_serializer_class(self):
-        if self.action in ['retrieve',]:
-            return AddressDetailSerializer
-        return AddressSerializer
+#     def get_serializer_class(self):
+#         if self.action in ['retrieve',]:
+#             return AddressDetailSerializer
+#         return AddressSerializer
 
-    def create(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        address = self.perform_create(serializer)
-        headers = self.get_success_headers(serializer.data)
+#     def create(self, request, *args, **kwargs):
+#         serializer = self.get_serializer(data=request.data)
+#         serializer.is_valid(raise_exception=True)
+#         address = self.perform_create(serializer)
+#         headers = self.get_success_headers(serializer.data)
 
-    def update(self, request, *args, **kwargs):
-        with transaction.atomic():
-            partial = kwargs.pop('partial', False)
-            instance = self.get_object()
-            serializer = self.get_serializer(instance, data=request.data, partial=partial)
+#     def update(self, request, *args, **kwargs):
+#         with transaction.atomic():
+#             partial = kwargs.pop('partial', False)
+#             instance = self.get_object()
+#             serializer = self.get_serializer(instance, data=request.data, partial=partial)
 
-            serializer.is_valid(raise_exception=True)
-            address = serializer.save()
+#             serializer.is_valid(raise_exception=True)
+#             address = serializer.save()
             
-            self.perform_update(serializer)
+#             self.perform_update(serializer)
 
-        if getattr(instance, '_prefetched_objects_cache', None):
-            # If 'prefetch_related' has been applied to a queryset, we need to
-            # forcibly invalidate the prefetch cache on the instance.
-            instance._prefetched_objects_cache = {}
+#         if getattr(instance, '_prefetched_objects_cache', None):
+#             # If 'prefetch_related' has been applied to a queryset, we need to
+#             # forcibly invalidate the prefetch cache on the instance.
+#             instance._prefetched_objects_cache = {}
 
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+#         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
 class CountryViewSet(viewsets.ModelViewSet, AchieveModelMixin):
@@ -300,17 +300,34 @@ class CompanyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             print(data)
             if data.get('city').get('id', None):
                 print('====Have City****')
-                data['country'] = data.get('city').get('country_name')
+                c = Country.objects.get(name=data.get('city').get('country_name'))
+                data['country'] = dict()
+                data['country']['id'] = c.id
+                data['country']['name'] = c.name
                 data['state'] = data.get('city').get('state_name')
                 data['city'] = data.get('city').get('id')
+                
+                print(' ====> 1 ', data['country']);
+                
+                s = State.objects.filter(country__id=data.get('country', {}).get('id'), name=data.get('state')).first()
+                data['state_obj'] = s.id if s else State.objects.filter(country__name=data.get('city', {}).get('country_name'), name=data.get('state')).first().id
+                
             else:
                 print('====Create City****')
                 ser = CitySerializer(data=data.get('city'))
                 ser.is_valid(raise_exception=True)
                 inst = ser.save()
-                data['country'] = inst.country_name
+                c = Country.objects.get(name=data.get('city').get('country_name'))
+                data['country'] = dict()
+                data['country']['id'] = c.id
+                data['country']['name'] = c.name
                 data['state'] = inst.state_name
                 data['city'] = inst.id
+                
+                print(' ====> 1 ', data['country']);
+                
+                s = State.objects.filter(country__id=data.get('country', {}).get('id'), name=data.get('state')).first()
+                data['state_obj'] = s.id if s else State.objects.filter(country__name=data.get('city', {}).get('country_name'), name=data.get('state')).first().id
             profile = request.user.user_profile
             data['administrator'] = profile.id
             if profile.company:
@@ -321,11 +338,12 @@ class CompanyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             headers = self.get_success_headers(serializer.data)
             profile.company = company
             profile.save()
-            c = profile.properties.all().update(company=company)
-            print(f'-----Upgraded {c} companies------')
-            user = request.user
-            user.position = UserModel.ADMIN
-            user.save()
+            if not profile.user.is_manager:
+                c = profile.properties.all().update(company=company)
+                print(f'-----Upgraded {c} companies------')
+                user = request.user
+                user.position = UserModel.ADMIN
+                user.save()
 
         return Response(CompanyMinSerializer(company).data, status=status.HTTP_201_CREATED, headers=headers)
     
@@ -335,21 +353,37 @@ class CompanyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             print(data)
             if data.get('city').get('id', None):
                 print('====Have City****')
-                data['country'] = data.get('city').get('country_name')
+                c = Country.objects.get(name=data.get('city').get('country_name'))
+                data['country'] = dict()
+                data['country']['id'] = c.id
+                data['country']['name'] = c.name
                 data['state'] = data.get('city').get('state_name')
                 data['city'] = data.get('city').get('id')
+                
+                print(' ====> 1 ', data['country']);
+                
+                s = State.objects.filter(country__id=data.get('country', {}).get('id'), name=data.get('state')).first()
+                data['state_obj'] = s.id if s else State.objects.filter(country__name=data.get('city', {}).get('country_name'), name=data.get('state')).first().id
             else:
                 print('====Create City****')
                 ser = CitySerializer(data=data.get('city'))
                 ser.is_valid(raise_exception=True)
                 inst = ser.save()
-                data['country'] = inst.country_name
+                c = Country.objects.get(name=data.get('city').get('country_name'))
+                data['country'] = dict()
+                data['country']['id'] = c.id
+                data['country']['name'] = c.name
                 data['state'] = inst.state_name
                 data['city'] = inst.id
+                
+                print(' ====> 1 ', data['country']);
+                
+                s = State.objects.filter(country__id=data.get('country', {}).get('id'), name=data.get('state')).first()
+                data['state_obj'] = s.id if s else State.objects.filter(country__name=data.get('city', {}).get('country_name'), name=data.get('state')).first().id
                     
             partial = kwargs.pop('partial', False)
             instance = self.get_object()
-            data['administrator'] = instance.administrator.id
+            data['administrator'] = instance.administrator.id if request.user.is_manager else request.user.user_profile.id
             serializer = self.get_serializer(instance, data=request.data, partial=partial)
             
             serializer.is_valid(raise_exception=True)
@@ -382,18 +416,23 @@ class CompanyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
     @action(methods=['get'], detail=False, url_path='mine', url_name='mine')
     def mine(self, request, *args, **kwargs):
         p = request.user.user_profile
-        company = Company.objects.filter(Q(administrator=p) | Q(members=p), enabled=True).prefetch_related(
-            Prefetch('offices', queryset=Office.objects.filter(enabled=True).prefetch_related(
-                Prefetch('properties', queryset=Property.objects.filter(enabled=True)))), 
-            Prefetch('portfolios', queryset=Portfolio.objects.filter(enabled=True).prefetch_related(
-                Prefetch('properties', queryset=Property.objects.filter(enabled=True)))),
-            Prefetch('members', queryset=Profile.objects.filter(enabled=True).prefetch_related(
-                Prefetch('member_portfolios', queryset=Portfolio.objects.filter(enabled=True)),
-                Prefetch('member_offices', queryset=Office.objects.filter(enabled=True)))),
-            Prefetch('invitations', queryset=Invitation.objects.filter(enabled=True))
-        ).first()
+        cid = p.company.id if p.company else None
+        
+        company = Company.objects.filter(Q(Q(administrator=p, administrator__user__is_manager=False) | Q(id=cid)), enabled=True).prefetch_related(
+                Prefetch('offices', queryset=Office.objects.filter(Q(Q(administrator=p, administrator__user__is_manager=False) | Q(company=p.company)), enabled=True).prefetch_related(
+                    Prefetch('properties', queryset=Property.objects.filter(Q(Q(administrator=p, administrator__user__is_manager=False) | Q(company=p.company)), enabled=True)))), 
+                Prefetch('portfolios', queryset=Portfolio.objects.filter(Q(Q(administrator=p, administrator__user__is_manager=False) | Q(company=p.company)), enabled=True).prefetch_related(
+                    Prefetch('properties', queryset=Property.objects.filter(Q(Q(administrator=p, administrator__user__is_manager=False) | Q(company=p.company)), enabled=True)))),
+                Prefetch('members', queryset=Profile.objects.filter(user__is_manager=False, company=p.company, enabled=True).prefetch_related(
+                    Prefetch('member_portfolios', queryset=Portfolio.objects.filter(Q(Q(administrator=p, administrator__user__is_manager=False) | Q(company=p.company)), enabled=True)),
+                    Prefetch('member_offices', queryset=Office.objects.filter(Q(Q(administrator=p, administrator__user__is_manager=False) | Q(company=p.company)), enabled=True)))),
+                Prefetch('invitations', queryset=Invitation.objects.filter(company=p.company, enabled=True))
+            ).first()
         
         print("Company: ", company)
+        print("Company***: ", type(company))
+        print("\n\n")
+        
         if company:
             return Response(CompanyMDLDetailSerializer(company).data, status=status.HTTP_200_OK)
         else:
@@ -414,12 +453,12 @@ class CompanyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
                 Office.objects.filter(administrator=profile).update(administrator=p)
                 for off in Office.objects.filter(company=p.company, members=profile):
                     members = off.members.all()
-                    members = list(filter(lambda x: x.id != profile.id, members))
+                    members = list(filter(lambda x: (x.id != profile.id and not profile.user.is_manager), members))
                     off.members.set(members)
                 Office.objects.filter(company=p.company, administrator=profile).update(administrator=p)
                 for port in Portfolio.objects.filter(company=p.company, members=profile):
                     members = port.members.all()
-                    members = list(filter(lambda x: x.id != profile.id, members))
+                    members = list(filter(lambda x: (x.id != profile.id and not profile.user.is_manager), members))
                     port.members.set(members)
                 Portfolio.objects.filter(company=p.company, administrator=profile).update(administrator=p)
                 Property.objects.filter(company=p.company, administrator=profile).update(administrator=p)
@@ -549,6 +588,8 @@ class InvitationViewSet(viewsets.ModelViewSet):
             if invite.status in [Invitation.SENT, Invitation.PENDING, Invitation.RESENT]:
                 if action in [Invitation.ACCEPTED, Invitation.REJECTED]:
                     profile = Profile.objects.filter(user__email=invite.email).first()
+                    if profile is not None and profile.user.is_manager:
+                        return Response({'message': f"Sorry you are a staff of RentMyVR and cannot be Company member at the same time. Kindly as your admin to strip off your RentMyVR access first."}, status=status.HTTP_400_BAD_REQUEST)
                     if profile is not None and action == Invitation.ACCEPTED:
                         try:
                             if profile.company is not None  and profile.company.id != invite.company.id:
@@ -585,7 +626,12 @@ class InvitationViewSet(viewsets.ModelViewSet):
         print(request.user.user_profile.company)
         # client_callback_link = request.query_params.get('client_callback_link', None)
         client_callback_link = request.data.get('client_callback_link', None)
-        invite = Invitation.objects.filter(id=kwargs['pk'], company=request.user.user_profile.company).first()   
+        
+        if request.user.is_manager:
+            invite = Invitation.objects.filter(id=kwargs['pk']).first()
+        else:
+            invite = Invitation.objects.filter(id=kwargs['pk'], company=request.user.user_profile.company).first()
+
         if invite and client_callback_link:
             uidb64 = urlsafe_base64_encode(force_bytes(invite.email))
             print(uidb64)
@@ -742,35 +788,35 @@ class ProfileViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             user_instance = UserModel.objects.get(id=data['user']['id'])
             serializer = self.get_serializer(instance, data=request.data, partial=partial)
 
-            print(data.get('address'))
+            # print(data.get('address'))
             city_id = None
-            if data.get('address').get('city').get('id', None):
+            if data.get('city').get('id', None):
                 print('====Have City****')
-                city_id = data.get('address').get('city').get('id')
-                data['address']['city_id'] = city_id
-                data['address'].pop('city', None)
+                city_id = data.get('city').get('id')
+                data['city_id'] = city_id
+                data.pop('city', None)
             else:
                 print('====Create City****')
-                ser = CitySerializer(data=data.get('address').get('city'))
+                ser = CitySerializer(data=data.get('city'))
                 ser.is_valid(raise_exception=True)
                 inst = ser.save()
-                data['address']['city_id'] = inst.id
+                data['city_id'] = inst.id
                 city_id = inst.id
-            print(data.get('address'))
-            inst = Address.objects.filter(id=data.get('address').get('id', None)).first()
-            print(inst)
-            if inst:
-                ser = AddressSerializer(inst, data=data.get('address'), partial=partial) 
-            else:
-                ser = AddressSerializer(data=data.get('address'))
-            print(1)
-            ser.is_valid(raise_exception=True)
-            print(2)
-            address = ser.save(city_id=city_id)
+            
+            # inst = Address.objects.filter(id=data.get('address').get('id', None)).first()
+            # print(inst)
+            # if inst:
+            #     ser = AddressSerializer(inst, data=data.get('address'), partial=partial) 
+            # else:
+            #     ser = AddressSerializer(data=data.get('address'))
+            # print(1)
+            # ser.is_valid(raise_exception=True)
+            # print(2)
+            # address = ser.save(city_id=city_id)
             # address.city_id = city_id
             # address.save()
-            print(address)
-            print(address.id)
+            # print(address)
+            # print(address.id)
                  
             user_serializer = UserUpdateSerializer(user_instance, data=data['user'], partial=partial)
             print(3)
@@ -784,11 +830,11 @@ class ProfileViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             
             print(6)
             new_profile = self.perform_update(serializer)
-            new_profile = self.get_object()
-            print(7)
-            new_profile.address_id = address.id
-            new_profile.save()
-            print(8)
+            # new_profile = self.get_object()
+            # print(7)
+            # new_profile.address_id = address.id
+            # new_profile.save()
+            # print(8)
 
         if getattr(instance, '_prefetched_objects_cache', None):
             # If 'prefetch_related' has been applied to a queryset, we need to
@@ -796,6 +842,20 @@ class ProfileViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             instance._prefetched_objects_cache = {}
 
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    @action(methods=['post'], detail=False, url_path='update/company', url_name='update-company')
+    def update_company(self, request, *args, **kwargs):
+        instance = request.user.user_profile
+        data = request.data
+        print(data)
+        print(instance)
+        print(instance.user.is_manager)
+        
+        if instance.user.is_manager:
+            instance.company_id = data['company']
+            instance.save()
+        
+        return Response({"status": "Ok"}, status=status.HTTP_200_OK)
 
     @action(methods=['patch'], detail=False, permission_classes=[], url_path='timezone/(?P<pk>[^/.]+)',
             url_name='timezone-update')
@@ -821,8 +881,7 @@ class ProfileViewSet(viewsets.ModelViewSet, AchieveModelMixin):
 
     @action(methods=['get'], detail=False, url_path='me', url_name='me')
     def me(self, request, *args, **kwargs):
-        p = request.user.user_profile
-        profile = self.get_queryset().filter(id=p.id).prefetch_related(
+        profile = self.get_queryset().filter(id=request.user.user_profile.id).prefetch_related(
             Prefetch('member_offices', queryset=Office.objects.filter(enabled=True).prefetch_related(
                 Prefetch('properties', queryset=Property.objects.filter(enabled=True)))), 
             Prefetch('offices', queryset=Office.objects.filter(enabled=True).prefetch_related(
@@ -842,14 +901,15 @@ class ProfileViewSet(viewsets.ModelViewSet, AchieveModelMixin):
         company = profile.company
         if not company:
             try:
-                company = Company.objects.filter(Q(Q(administrator=profile) | Q(members=profile)), enabled=True).first()
-                if company:
-                    profiles = Profile.objects.filter(Q(Q(company=company) | Q(administrator__company=company), enabled=True)).distinct()
-                    data = ProfileSerializer(profiles).data
+                if not request.user.is_manager:
+                    company = Company.objects.filter(Q(Q(administrator=profile) | Q(members=profile)), enabled=True).first()
+                    if company:
+                        profiles = Profile.objects.filter(Q(Q(company=company) | Q(administrator__company=company), enabled=True)).distinct()
+                        data = ProfileSerializer(profiles).data
             except Profile.administrator.RelatedObjectDoesNotExist:
                 pass
         else:
-            profiles = Profile.objects.filter(Q(Q(company=company) | Q(properties__company=company), enabled=True)).distinct()
+            profiles = Profile.objects.filter(Q(Q(company__administrator__company=company) | Q(company=company) | Q(properties__company=company)), enabled=True, user__is_manager=False).distinct()
             data = ProfileSerializer(profiles, many=True).data
               
         return Response(data, status=status.HTTP_200_OK)
@@ -877,21 +937,4 @@ class ProfileViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             instance._prefetched_objects_cache = {}
 
         return Response(ProfileImageSerializer(instance).data)
-
-    def list(self, request, *args, **kwargs):
-        queryset = Profile.objects.filter(enabled=True).prefetch_related(Prefetch('worker_statuses', queryset=WorkStatus.objects.filter(enabled=True, project__enabled=True)))
-        
-        if request.query_params.get('project_id'):
-            queryset = Profile.objects.filter(enabled=True, work_statuses__project_id=request.query_params.get('project_id')).prefetch_related(Prefetch('worker_statuses', queryset=WorkStatus.objects.filter(~Q(status=Project.FINISHED), enabled=True, project__enabled=True)))       
-        else:
-            queryset = Profile.objects.filter(enabled=True).prefetch_related(Prefetch('worker_statuses', queryset=WorkStatus.objects.filter(~Q(status=Project.FINISHED), enabled=True, project__enabled=True)))
-        queryset = self.filter_queryset(queryset)
-
-        page = self.paginate_queryset(queryset)
-        if page is not None:
-            serializer = self.get_serializer(page, many=True)
-            return self.get_paginated_response(serializer.data)
-
-        serializer = self.get_serializer(queryset, many=True)
-        return Response(serializer.data)
 

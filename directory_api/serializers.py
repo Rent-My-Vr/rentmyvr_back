@@ -10,11 +10,9 @@ from rest_framework import serializers
 from rest_framework.authtoken.models import Token
 from rest_framework.fields import UUIDField
 
-from django.contrib.auth.models import Permission
-
 # from auths_api.serializers import UserSerializer, UserUpdateSerializer, UserNameSerializer
 from core.models import *
-from core_api.serializers import AddressDetailGeoSerializer, AddressCreateGeoSerializer, AddressGeoSerializer, CitySerializer, CompanySerializer, ProfileSerializer
+from core_api.serializers import CitySerializer, CityLiteSerializer, CompanySerializer, ProfileSerializer, StateSerializer, StateLiteSerializer, CountrySerializer, CountryLiteSerializer
 from directory.models import *
 from payment_api.serializers import *
 
@@ -283,8 +281,9 @@ class PropertyVideoSerializer(serializers.ModelSerializer):
 
 
 class PropertySerializer(serializers.ModelSerializer):
-    address = AddressCreateGeoSerializer(many=False, read_only=False)
+    # address = AddressCreateGeoSerializer(many=False, read_only=False)
     # address = serializers.SerializerMethodField("get_address")
+    city = CitySerializer(many=False, read_only=True)
     booking_sites = BookingSiteSerializer(many=True, read_only=False)
     social_media = SocialMediaLinkSerializer(many=True, read_only=False)
     pictures = PropertyPhotoSerializer(many=True, read_only=True)
@@ -297,7 +296,7 @@ class PropertySerializer(serializers.ModelSerializer):
         city_data = self.context.get('city_data', {})
         print(city_data)
         print('===========: ******** : 33============')
-        address_data = validated_data.pop('address')
+        # address_data = validated_data.pop('address')
         accessibility = validated_data.pop('accessibility')
         activities = validated_data.pop('activities')
         bathrooms = validated_data.pop('bathrooms')
@@ -320,33 +319,27 @@ class PropertySerializer(serializers.ModelSerializer):
         # pictures = validated_data.pop('pictures')
 
         with transaction.atomic():
-            print('==== 1 ====')
-            print(address_data)
-            print('==== 2 ====')
             print(validated_data)
             print('==== 22 ====')
             print(social_media)
             print('==== 222 ====')
             print(booking_sites)
-            print('==== 2222 ====')
-            print(address_data)
-            print('==== 22222 ====')
-            print(address_data.get('city'))
-            print('****************************')
-            if address_data.get('city'):
-                cid = address_data.get('city')
-            else:
-                cid = city_data.pop('id', None)
-                if not cid:
-                    (city, created) = City.objects.get_or_create(name=city_data.pop('name', None), state_name=city_data.pop('state_name', None), country_name=city_data.pop('country_name', None), defaults=city_data)
-                    cid = city.id
-            address_data['city_id'] = cid
-            address = Address.objects.create(**address_data)
-            print('==== 3 ====')
-            property = Property.objects.create(address=address, **validated_data)
-            # for r in room_types:
-            #     r['property'] = property
-            #     RoomType.objects.create(**r)
+            # print('==== 2222 ====')
+            # print(address_data)
+            # print('==== 22222 ====')
+            # print(address_data.get('city'))
+            print('****************************+++++++++ ', self.instance)
+            cid = city_data.pop('id', None)
+            if not cid:
+                (city, created) = City.objects.get_or_create(name=city_data.pop('name', None), state_name=city_data.pop('state_name', None), country_name=city_data.pop('country_name', None), defaults=city_data)
+                cid = city.id
+            validated_data['city_id'] = cid
+            
+            print('\n\n==== 3333 ====\n')
+            print(validated_data)
+            print('\n==== 3333 ====\n\n')
+            
+            property = Property.objects.create(**validated_data)
             for b in booking_sites:
                 b['property'] = property
                 BookingSite.objects.create(**b)
@@ -413,10 +406,10 @@ class PropertySerializer(serializers.ModelSerializer):
         print('===========: ******** : 22============')
         # city_data = self.context.get('city_data', {})
         updated_by_id = self.context.get('updated_by_id', '')
-        address_id = self.context.get('address_id', '')
+        # address_id = self.context.get('address_id', '')
         # print(city_data)
         print(updated_by_id, '  ===========: ******** : 33============')
-        validated_data.pop('address')
+        # validated_data.pop('address')
         # address_data['city'] = city_data.get('id') if city_data.get('id', None) else None
         accessibility = validated_data.pop('accessibility')
         activities = validated_data.pop('activities')
@@ -453,7 +446,7 @@ class PropertySerializer(serializers.ModelSerializer):
             # print('==== 222 ====')
             # print(booking_sites)
             # print('==== 2222 ====')
-            print(address_id)
+            # print(address_id)
             # print('==== 22222 ====')
             # print(address_data.get('city'))
             print('****************************')
@@ -470,7 +463,7 @@ class PropertySerializer(serializers.ModelSerializer):
             print('==== 3 ====')
             print(validated_data)
             # property = Property.objects.update(id=validated_data.get('id'), **validated_data)
-            property = Property.objects.filter(id=instance.id).update(address_id=address_id, **validated_data)
+            property = Property.objects.filter(id=instance.id).update(**validated_data)
             # property = instance.update(address_id=address_id, **validated_data)
             # for r in room_types:
             #     r['property'] = property
@@ -514,7 +507,7 @@ class PropertySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Property
-        exclude = ()
+        exclude = ('address', )
         read_only_fields = ('id', 'ref', 'enabled', 'updated', 'updated_by')
 
 
@@ -566,8 +559,9 @@ class PortfolioDetailSerializer(serializers.ModelSerializer):
 
 
 class PropertyListSerializer(serializers.ModelSerializer):
-    address = AddressGeoSerializer(many=False, read_only=False)
+    # address = AddressGeoSerializer(many=False, read_only=False)
     # address = serializers.SerializerMethodField("get_address")
+    city = CityLiteSerializer(many=False, read_only=True)
     booking_sites = BookingSiteSerializer(many=True, read_only=False)
     social_media = SocialMediaLinkSerializer(many=True, read_only=False)
     pictures = PropertyPhotoSerializer(many=True, read_only=True)
@@ -581,15 +575,18 @@ class PropertyListSerializer(serializers.ModelSerializer):
 
 class PropertySearchResultSerializer(serializers.ModelSerializer):
     pictures = PropertyPhotoSerializer(many=True, read_only=True)
-    address = AddressDetailGeoSerializer(many=False, read_only=True)
+    distance = serializers.CharField()
+    # distance = serializers.DecimalField(max_digits=11, decimal_places=6)
 
     class Meta:
         model = Property
-        fields = ('id', 'address', 'is_active', 'ref', 'name', 'type', 'space', 'price_night', 'max_no_of_guest', 'no_of_bedrooms', 'no_of_bathrooms', 'pictures')
+        fields = ('id', 'distance', 'location', 'formatted', 'is_active', 'ref', 'name', 'type', 'space', 'price_night', 'max_no_of_guest', 'no_of_bedrooms', 'no_of_bathrooms', 'pictures')
 
 
 class PropertyDetailSerializer(serializers.ModelSerializer):
-    address = AddressDetailGeoSerializer(many=False, read_only=True)
+    # address = AddressDetailGeoSerializer(many=False, read_only=True)
+    city = CityLiteSerializer(many=False, read_only=True)
+    state = StateLiteSerializer(many=False, read_only=True)
     subscription = SubscriptionSerializer(many=False, read_only=True)
     booking_sites = BookingSiteFullSerializer(many=True, read_only=True)
     social_media = SocialMediaLinkSerializer(many=True, read_only=True)
