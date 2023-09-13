@@ -935,6 +935,7 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             cal = Calendar(name=instance.name, slug=instance.ref)
             cal.save()
             instance.calendar = cal
+            instance.location = Point(data['location']['lng'], data['location']['lat'], srid=4326)
             instance.save()
 
             if instance.ical_url:
