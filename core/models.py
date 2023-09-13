@@ -280,9 +280,9 @@ class Company(TrackedModel):
     description = models.TextField(verbose_name="Description", null=True, blank=True, default='')
     
     street = models.CharField(max_length=128, verbose_name="Street", null=True, blank=True, default='')
-    number = models.CharField(max_length=16, verbose_name="Number", null=True, blank=True, default='')
+    number = models.CharField(max_length=32, verbose_name="Number", null=True, blank=True, default='')
     city = models.ForeignKey(City, on_delete=models.CASCADE, verbose_name="City")
-    zip_code = models.CharField(max_length=16, verbose_name="Zip Code", null=True, blank=True, default='')
+    zip_code = models.CharField(max_length=32, verbose_name="Zip Code", null=True, blank=True, default='')
     state = models.CharField(max_length=128, verbose_name="State")
     state_obj = models.ForeignKey(State, on_delete=models.CASCADE, verbose_name="State")
     more_info = models.CharField(max_length=512, verbose_name="Additional Info", null=True, blank=True, default='')
