@@ -1635,9 +1635,9 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
                 return Response(serializer.data)
             else:
                 return Response({"data": [], "count": size, "total_pages": 1})
-        print(' +++ ', queryset.query)
-        print('\n <<+++>> ', queryset)
-        print('\n <<+++*******+++>> ', queryset[0].location)
+        # print(' +++ ', queryset.query)
+        # print('\n <<+++>> ', queryset)
+        # print('\n <<+++*******+++>> ', queryset[0].location)
         queryset = queryset[0:300] if (location or boundary) else queryset
         page = self.paginate_queryset(queryset)
         print(' >>>>>>> Pagination: ', page)
