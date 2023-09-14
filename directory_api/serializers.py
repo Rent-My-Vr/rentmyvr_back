@@ -508,6 +508,7 @@ class PropertySerializer(serializers.ModelSerializer):
     class Meta:
         model = Property
         # exclude = ('address', )
+        fields = '__all__'
         read_only_fields = ('id', 'ref', 'enabled', 'updated', 'updated_by')
 
 
