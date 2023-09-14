@@ -695,6 +695,7 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             # data['location']['type'] = request.data.get('location[type]', None)
             data['location']['type'] = 'Point'
             data['location']['coordinates'] = [float(request.data.get('location[lng]', 0)), float(request.data.get('location[lat]', 0))]
+            loc = data['location']
             # data['address']['properties'] = dict()
             # data['address']['properties']['formatted'] = request.data.get('address[properties][formatted]')
             # data['address']['properties']['country_name'] = request.data.get('address[properties][country]')
@@ -935,7 +936,8 @@ class PropertyViewSet(viewsets.ModelViewSet, AchieveModelMixin):
             cal = Calendar(name=instance.name, slug=instance.ref)
             cal.save()
             instance.calendar = cal
-            instance.location = Point(data['location']['lng'], data['location']['lat'], srid=4326)
+            print('===== Loc: ', loc)
+            instance.location = Point(loc['coordinates'][0], loc['coordinates'][1], srid=4326)
             instance.save()
 
             if instance.ical_url:
