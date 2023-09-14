@@ -720,6 +720,11 @@ class Property(StampedUpdaterModel):
     def __str__(self):
         return f"{self.name}"
 
+    def address(self):
+        street = f'{self.number} {self.street}, ' if self.number and self.street else f'{self.street}, ' if self.street else ''
+        zip = f' {self.zip_code}, ' if self.zip_code else ', '
+        return '{}{}, {}{}{}'.format(street, self.city.name, self.city.state_name, zip, self.city.country_name)
+    
     def get_admin_url(self):
         return reverse('admin:{}_{}_change'.format(self._meta.app_label, self._meta.model_name), args=(self.pk, ))
 
